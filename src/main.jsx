@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './lib/auth.jsx';
 import App from './App.jsx';
 import './styles/index.css';
+import './styles/mobile.css';
 
 // Register the service worker for Web Push (best-effort, no-op on insecure origins).
 if ('serviceWorker' in navigator && typeof window !== 'undefined' && window.isSecureContext) {

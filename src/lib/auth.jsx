@@ -1,7 +1,7 @@
 // Supabase auth wrapper that mimics @clerk/clerk-react's API surface
 // so existing components don't need invasive changes.
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabase.js';
 
@@ -41,7 +41,10 @@ export function useAuth() {
   const { isLoaded, session } = useContext(AuthCtx);
   const userId = session?.user?.id ?? null;
   const getToken = useCallback(async () => session?.access_token ?? null, [session]);
-  return { isLoaded, isSignedIn: !!userId, userId, getToken };
+  return useMemo(
+    () => ({ isLoaded, isSignedIn: !!userId, userId, getToken }),
+    [isLoaded, userId, getToken]
+  );
 }
 
 /** Mirror Clerk's useUser() shape: { isLoaded, isSignedIn, user }. */

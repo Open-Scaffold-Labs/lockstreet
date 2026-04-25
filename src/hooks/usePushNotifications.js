@@ -13,7 +13,7 @@ function urlBase64ToUint8Array(base64String) {
 export function usePushNotifications() {
   const [perm, setPerm] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'default');
   const [subscribed, setSubscribed] = useState(false);
-  const auth = useAuth?.() || {};
+  const { getToken } = useAuth?.() || {};
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
@@ -39,7 +39,7 @@ export function usePushNotifications() {
       });
     }
 
-    const token = auth.getToken ? await auth.getToken() : null;
+    const token = getToken ? await getToken() : null;
     await fetch('/api/notify-subscribe', {
       method: 'POST',
       headers: {
@@ -50,7 +50,7 @@ export function usePushNotifications() {
     });
     setSubscribed(true);
     return true;
-  }, [auth]);
+  }, [getToken]);
 
   return { perm, subscribed, enable };
 }

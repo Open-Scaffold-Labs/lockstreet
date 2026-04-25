@@ -7,8 +7,7 @@ import { useAuth } from '../lib/auth.jsx';
  * Cached per session; re-checks on user change and on /success bounce.
  */
 export function useSubscription() {
-  const auth = useAuth?.() || {};
-  const userId = auth.userId || null;
+  const { userId, getToken } = useAuth?.() || {};
   const isSignedIn = !!userId;
 
   const [status, setStatus] = useState({
@@ -27,7 +26,7 @@ export function useSubscription() {
         return;
       }
       try {
-        const token = auth.getToken ? await auth.getToken() : null;
+        const token = getToken ? await getToken() : null;
         const res = await fetch('/api/subscription-status', {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
@@ -46,7 +45,8 @@ export function useSubscription() {
     }
     check();
     return () => { cancelled = true; };
-  }, [isSignedIn, userId, auth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, userId]);
 
   return status;
 }

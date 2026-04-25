@@ -1,0 +1,145 @@
+/* ====================================================================
+   Lock Street - mobile-first overrides
+   Loaded after index.css. Targets phone-size screens (<= 600px).
+   ==================================================================== */
+
+@media (max-width: 600px) {
+  body {
+    /* Respect iPhone notch / safe areas */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* ----- Header ----- */
+  .hdr-row { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+  .brand { font-size: 20px; gap: 6px; }
+  .badge-ats { font-size: 9px; padding: 2px 5px; }
+  .tagline { display: none; }
+  .gopro { padding: 7px 10px; font-size: 11px; }
+  .btn-ghost { padding: 6px 10px; font-size: 11px; }
+
+  /* Tabs - allow horizontal scroll on phone */
+  .tabs { padding: 0 8px; gap: 0; }
+  .tab { font-size: 11px; padding: 12px 10px; letter-spacing: 0.04em; }
+
+  /* ----- Layout ----- */
+  .wrap { padding: 14px 12px 60px; }
+
+  /* ----- Cards / grids ----- */
+  .grid { grid-template-columns: 1fr; gap: 10px; }
+  .filter button { font-size: 10px; padding: 5px 9px; }
+  .team-row { grid-template-columns: 38px 1fr auto; gap: 10px; padding: 6px 2px; }
+  .orb { width: 38px; height: 38px; font-size: 12px; }
+  .tabbr { font-size: 14px; }
+  .score { font-size: 22px; }
+  .pill { font-size: 10px; padding: 4px 7px; }
+}
+
+@media (max-width: 600px) {
+  /* ----- Home / landing ----- */
+  .home-hero { padding: 32px 12px 40px; }
+  .home-hero h1 { font-size: 36px; line-height: 1.05; }
+  .home-hero p { font-size: 14px; }
+  .hero-eyebrow { font-size: 9px; padding: 5px 10px; }
+  .hero-cta-row { flex-direction: column; gap: 8px; align-items: stretch; }
+  .btn-lg { padding: 12px 20px; font-size: 12px; text-align: center; }
+
+  .home-stats { grid-template-columns: 1fr; gap: 10px; padding: 18px 0; }
+  .hstat { padding: 18px 14px; }
+  .hstat-num { font-size: 42px; }
+  .hstat-suffix { font-size: 22px; }
+
+  .home-how { padding: 32px 0 16px; }
+  .home-how h2, .home-tiers h2, .home-final-cta h2 { font-size: 24px; margin-bottom: 18px; }
+  .how-grid { grid-template-columns: 1fr; gap: 10px; }
+  .how-card { padding: 18px 16px; }
+
+  .home-tiers { padding: 16px 0 32px; }
+  .tiers { grid-template-columns: 1fr; gap: 12px; max-width: none; }
+  .tier { padding: 22px 18px 18px; }
+  .tier .price { font-size: 32px; }
+
+  .home-final-cta { padding: 36px 16px; margin: 16px 0; }
+  .home-final-cta h2 { font-size: 22px; }
+
+  /* ----- About / Track Record ----- */
+  .about-block { padding: 18px 16px; margin: 18px 0; }
+  .about-block h3 { font-size: 16px; }
+  .about-block p { font-size: 13.5px; }
+  .credential-card { padding: 14px; }
+  .cred-rank { font-size: 38px; min-width: auto; }
+  .cred-of { font-size: 12px; }
+  .cred-title { font-size: 14px; }
+  .cred-detail { font-size: 12.5px; }
+  .cred-why { font-size: 12px; padding: 8px 10px; }
+
+  /* ----- Subscribe ----- */
+  .sub-hero h2 { font-size: 26px; }
+  .sub-hero p { font-size: 13.5px; }
+
+  /* ----- Off-season banner ----- */
+  .off-season-banner { padding: 14px 16px; margin: 0 0 14px; }
+  .osb-row { gap: 10px; }
+  .osb-stats { font-size: 12px; gap: 6px; }
+  .osb-cta { font-size: 12.5px; }
+
+  /* ----- Picks empty state ----- */
+  .picks-empty-hero { padding: 22px 14px 18px; margin-bottom: 18px; }
+  .picks-empty-hero h2 { font-size: 24px; }
+  .picks-empty-hero p { font-size: 13px; }
+  .sample-card { opacity: 0.9; }
+
+  /* ----- Footer ----- */
+  .footnote { font-size: 9.5px; padding: 0 14px; }
+  .footnote-disclaimer { font-size: 10px; padding: 0 14px; }
+
+  /* ----- Stats / Record ----- */
+  .record-hero { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat { padding: 14px 12px; }
+  .stat .v { font-size: 24px; }
+}
+
+
+/* ----- Install prompt (mobile bottom banner) ----- */
+.install-prompt {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(160deg, #141926, #0f131e);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.7);
+  z-index: 80;
+  font-family: var(--disp);
+  animation: slideup .35s ease;
+}
+.ip-x {
+  position: absolute; top: 6px; right: 8px;
+  background: transparent; border: 0; color: var(--ink-faint);
+  font-size: 18px; line-height: 1; cursor: pointer; padding: 4px 8px;
+}
+.ip-x:hover { color: var(--ink); }
+.ip-text { flex: 1; min-width: 0; padding-right: 12px; }
+.ip-title { font-size: 13px; font-weight: 700; color: var(--gold); margin-bottom: 2px; }
+.ip-body { font-size: 12px; color: var(--ink-dim); line-height: 1.45; }
+.ip-body strong { color: var(--ink); font-weight: 700; }
+.ip-install {
+  background: var(--gold); color: #0b0f1a; border: 0; border-radius: 8px;
+  padding: 10px 14px; font-family: var(--disp); font-weight: 700; font-size: 12px;
+  letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; flex-shrink: 0;
+}
+
+@keyframes slideup {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Hide install prompt on desktop */
+@media (min-width: 601px) {
+  .install-prompt { display: none; }
+}
