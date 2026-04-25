@@ -1,3 +1,5 @@
+import TrackRecordChart from '../components/TrackRecordChart.jsx';
+
 /**
  * About / Credentials page.
  * Public, no auth required. The credibility-first page.
@@ -39,6 +41,11 @@ export default function AboutRoute() {
           three separate seasons across three formats, with two of us showing up
           in the standings independently.
         </p>
+      </div>
+
+      <div className="about-block">
+        <h3>Cumulative units · most recent ATS season</h3>
+        <TrackRecordChart />
       </div>
 
       <div className="about-block">

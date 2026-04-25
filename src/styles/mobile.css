@@ -143,3 +143,22 @@
 @media (min-width: 601px) {
   .install-prompt { display: none; }
 }
+
+
+/* ----- New components (mobile tuning) ----- */
+@media (max-width: 600px) {
+  .onboarding-card { padding: 26px 22px 18px; border-radius: 16px; }
+  .ob-title { font-size: 22px; }
+  .ob-body  { font-size: 13.5px; }
+
+  .trc-final { font-size: 30px; }
+  .trc-canvas { height: 180px; }
+
+  .toast { font-size: 12px; min-width: 200px; padding: 8px 12px 8px 14px; }
+
+  /* Move install prompt up so it doesn't sit under the bottom nav */
+  .install-prompt { bottom: calc(72px + env(safe-area-inset-bottom)); }
+
+  /* Header is more compact - hide the GO PRO button on tiny screens; use bottom nav instead */
+  .hdr-row .gopro { display: none; }
+}

@@ -4,6 +4,7 @@ import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
 import { usePicks } from '../hooks/usePicks.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import GameCard from '../components/GameCard.jsx';
+import { SkeletonCardGrid } from '../components/Skeleton.jsx';
 
 export default function PicksRoute() {
   const { games, loading } = useEspnScoreboard();
@@ -15,7 +16,7 @@ export default function PicksRoute() {
     [games, picks]
   );
 
-  if (loading || picksLoading) return <div className="empty">Loading picks...</div>;
+  if (loading || picksLoading) return <SkeletonCardGrid count={6} />;
 
   if (list.length === 0) return <PicksEmptyState />;
 

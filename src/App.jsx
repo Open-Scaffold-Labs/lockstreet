@@ -1,6 +1,9 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header.jsx';
+import BottomNav from './components/BottomNav.jsx';
 import InstallPrompt from './components/InstallPrompt.jsx';
+import OnboardingModal from './components/OnboardingModal.jsx';
+import { ToastProvider } from './lib/toast.jsx';
 import ScoresRoute from './routes/ScoresRoute.jsx';
 import PicksRoute from './routes/PicksRoute.jsx';
 import SubscribeRoute from './routes/SubscribeRoute.jsx';
@@ -12,7 +15,7 @@ import SignInRoute from './routes/SignInRoute.jsx';
 
 export default function App() {
   return (
-    <>
+    <ToastProvider>
       <Header />
       <main className="wrap">
         <Routes>
@@ -29,7 +32,9 @@ export default function App() {
         </Routes>
       </main>
       <footer className="footnote">Lock Street - Follow the smart money.</footer>
+      <BottomNav />
       <InstallPrompt />
-    </>
+      <OnboardingModal />
+    </ToastProvider>
   );
 }

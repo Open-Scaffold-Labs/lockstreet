@@ -4,6 +4,7 @@ import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
 import { usePicks } from '../hooks/usePicks.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import GameCard from '../components/GameCard.jsx';
+import { SkeletonCardGrid } from '../components/Skeleton.jsx';
 
 // Heuristic: if total games this week is small AND most kickoffs are > 7 days out,
 // treat as off-season for a friendlier display.
@@ -80,7 +81,7 @@ export default function ScoresRoute() {
         ))}
       </div>
 
-      {loading && <div className="empty">Loading scoreboard...</div>}
+      {loading && <SkeletonCardGrid count={6} />}
       {error   && <div className="empty">Couldn't reach ESPN right now. Retrying in 30s.</div>}
       {!loading && !error && filtered.length === 0 && (
         <div className="empty">No games on the slate.</div>

@@ -22,6 +22,18 @@ function formatKickoff(iso) {
   } catch { return ''; }
 }
 
+function countdownTo(iso) {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return null;
+  const totalMin = Math.floor(ms / 60000);
+  if (totalMin < 60) return `in ${totalMin}m`;
+  const totalHr = Math.floor(totalMin / 60);
+  if (totalHr < 24) return `in ${totalHr}h ${totalMin % 60}m`;
+  const days = Math.floor(totalHr / 24);
+  return `in ${days}d ${totalHr % 24}h`;
+}
+
 function TeamRow({ team, score, side, showScore }) {
   const winClass = side === 'win' ? 'win' : side === 'lose' ? 'muted' : '';
   return (
@@ -62,7 +74,13 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
   } else if (status === 'final') {
     stateEl = <span className="state final">{period || 'Final'}</span>;
   } else {
-    stateEl = <span className="state">{formatKickoff(kickoff)}</span>;
+    const cd = countdownTo(kickoff);
+    stateEl = (
+      <span className="state upcoming">
+        {formatKickoff(kickoff)}
+        {cd && <span className="state-countdown"> · {cd}</span>}
+      </span>
+    );
   }
 
   return (

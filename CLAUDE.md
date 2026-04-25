@@ -1,18 +1,14 @@
 # Lock Street — Claude Session Brief
 
-> Read this first. It's the working memory for any Claude (or developer) picking up
-> the LockStreet project. Update it as facts change so the next session doesn't
-> repeat work or rediscover gotchas.
+> Read this first. It's the working memory for any Claude (or developer) picking up the LockStreet project. Update it as facts change so the next session doesn't repeat work or rediscover gotchas.
 
 ---
 
 ## What this is
 
-**Lock Street** is a premium NFL + CFB betting picks subscription app.
-A subscriber gets **4 NFL + 4 college picks against the spread per week**,
-with reasoning and unit sizing, locked until kickoff, **never made public**.
+**Lock Street** is a premium NFL + CFB betting picks subscription app. A subscriber gets **4 NFL + 4 college picks against the spread per week**, with reasoning and unit sizing, locked until kickoff, **never made public**.
 
-- **Pricing:** $100 / week · $250 / month · $500 / year (Annual is the headline value at ~$9.60/wk effective).
+- **Pricing:** $100 / week · $250 / month · $500 / year (Annual is the headline value at \~$9.60/wk effective).
 - **Free tier:** one weekly free pick on a chosen game, posted publicly. Used as the funnel.
 - **Paid picks are permanently private** to active subscribers — even after the game ends, non-subs never see them.
 
@@ -25,34 +21,21 @@ Father-son operation. Brand around lineage / shared system.
 
 ### Verifiable track record (used on /about page)
 
-| Pool | Field | Result | Notes |
-|---|---|---|---|
-| W3P1 ATS Pool (most recent season) | 100 | **#1** — 94/144 (~65% ATS) | Joint entry, 4 picks each. Same format as paid product. |
-| Office Football Pool | 66 | **#1** — Matt solo, 67-44-3, 23 key wins | Confidence-weighted, simulates unit sizing. |
-| Karen's NFL Pool | 84 | **#1 (Matt) and #2 (Shawn)** | Both top-2 — strongest system-validation signal. |
+PoolFieldResultNotesW3P1 ATS Pool (most recent season)100#**1** — 94/144 (\~65% ATS)Joint entry, 4 picks each. Same format as paid product.Office Football Pool66#**1** — Matt solo, 67-44-3, 23 key winsConfidence-weighted, simulates unit sizing.Karen's NFL Pool84#**1 (Matt) and #2 (Shawn**)Both top-2 — strongest system-validation signal.
 
 ---
 
 ## Tech stack
 
-| Layer | Choice | Notes |
-|---|---|---|
-| Frontend | **React 18 + Vite 5** | Pure SPA, file-based routes via react-router-dom |
-| Auth | **Supabase Auth** | Was Clerk originally; migrated. Custom `src/lib/auth.jsx` mirrors Clerk's `useAuth/useUser/SignedIn/SignedOut/SignInButton/UserButton` API for minimal component churn. |
-| DB | **Supabase Postgres** | RLS-gated. Schema in `supabase/migrations/20260425_initial_schema.sql`. |
-| Payments | **Stripe** (subscriptions) | Webhook at `api/stripe-webhook.js`. Not yet wired with real keys. |
-| Push | **Web Push** | VAPID keys generated. SW at `public/sw.js`. |
-| API | **Vercel serverless** in `/api/*` | Run with `vercel dev` locally; unused under plain Vite. |
-| Deploy | **Vercel Hobby** (planned) | Not yet deployed. Code on GitHub only. |
-| PWA | manifest + icons + sw | Mobile-first. Installable on iOS via Add-to-Home-Screen, native on Android. |
+LayerChoiceNotesFrontend**React 18 + Vite 5**Pure SPA, file-based routes via react-router-domAuth**Supabase Auth**Was Clerk originally; migrated. Custom `src/lib/auth.jsx` mirrors Clerk's `useAuth/useUser/SignedIn/SignedOut/SignInButton/UserButton` API for minimal component churn.DB**Supabase Postgres**RLS-gated. Schema in `supabase/migrations/20260425_initial_schema.sql`.Payments**Stripe** (subscriptions)Webhook at `api/stripe-webhook.js`. Not yet wired with real keys.Push**Web Push**VAPID keys generated. SW at `public/sw.js`.API**Vercel serverless** in `/api/*`Run with `vercel dev` locally; unused under plain Vite.Deploy**Vercel Hobby** (planned)Not yet deployed. Code on GitHub only.PWAmanifest + icons + swMobile-first. Installable on iOS via Add-to-Home-Screen, native on Android.
 
 ### Database schema (`supabase/migrations/20260425_initial_schema.sql`)
 
 Three tables, all RLS-enabled:
 
-- **`picks`** — `game_id`, `league` (nfl|cfb), `season`, `week`, `side`, `units` (0.5–5.0), `reasoning`, `visibility` (public|paid), `result` (win|loss|push|pending), `posted_at`, `locks_at`, `graded_at`, `created_by`. Unique on `game_id`.
-- **`subscriptions`** — keyed by `user_id`, mirrors Stripe state. Tiers: weekly|monthly|season. Statuses: active|inactive|past_due|canceled|trialing.
-- **`push_subscriptions`** — Web Push endpoints, keyed by `user_id` (cascade delete).
+- `picks` — `game_id`, `league` (nfl|cfb), `season`, `week`, `side`, `units` (0.5–5.0), `reasoning`, `visibility` (public|paid), `result` (win|loss|push|pending), `posted_at`, `locks_at`, `graded_at`, `created_by`. Unique on `game_id`.
+- `subscriptions` — keyed by `user_id`, mirrors Stripe state. Tiers: weekly|monthly|season. Statuses: active|inactive|past_due|canceled|trialing.
+- `push_subscriptions` — Web Push endpoints, keyed by `user_id` (cascade delete).
 
 ### RLS policies
 
@@ -67,6 +50,7 @@ Three tables, all RLS-enabled:
 - `src/lib/auth.jsx` is the abstraction layer. Components import `useAuth`, `useUser`, `SignedIn`, `SignedOut`, `SignInButton`, `UserButton` from there.
 - The hooks return memoized objects to avoid the infinite render loop bug we hit during the Clerk migration.
 - Admin role: stored in `auth.users.raw_app_meta_data.role = 'admin'`. Set via SQL:
+
   ```sql
   update auth.users
   set raw_app_meta_data = jsonb_set(coalesce(raw_app_meta_data, '{}'::jsonb), '{role}', '"admin"')
@@ -152,8 +136,8 @@ lockstreet/
 
 ## Critical user rules (DO NOT VIOLATE)
 
-1. **NEVER spend money without explicit per-action user authorization.** This includes creating Supabase Pro projects (the existing `OpenScaffoldLabs` org is on Pro — every new project there costs ~$10/mo). Only use the free `mlav-personal` org for Lock Street. Don't invoke Stripe charges. Don't deploy to paid Vercel.
-2. **The `lockstreet` Supabase project (ref `chwijzlynfnxvzfeydtf`)** lives in the **`mlav-personal` free org** — DO NOT touch projects in `OpenScaffoldLabs`.
+1. **NEVER spend money without explicit per-action user authorization.** This includes creating Supabase Pro projects (the existing `OpenScaffoldLabs` org is on Pro — every new project there costs \~$10/mo). Only use the free `mlav-personal` org for Lock Street. Don't invoke Stripe charges. Don't deploy to paid Vercel.
+2. **The** `lockstreet` **Supabase project (ref** `chwijzlynfnxvzfeydtf`**)** lives in the `mlav-personal` **free org** — DO NOT touch projects in `OpenScaffoldLabs`.
 3. **Confirm cost before any action that could bill.** Mistakes here have happened and the user is rightly sensitive about it.
 
 ---
@@ -183,20 +167,20 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 ## Windows-specific gotchas (this machine)
 
 - **OneDrive sync interferes with git locks** (`.git/packed-refs.lock` "File exists" warning on push). Harmless — push usually completes anyway. Clean with: `del /q .git\packed-refs.lock`.
-- **`NODE_ENV=production` is set globally** somewhere on this PC. `npm install` skips devDependencies unless you `set NODE_ENV=development` first.
+- `NODE_ENV=production` **is set globally** somewhere on this PC. `npm install` skips devDependencies unless you `set NODE_ENV=development` first.
 - **PowerShell vs cmd vs DC quoting** — `git commit -m "..."` from the agent's shell tools strips quotes. Use `git commit -F path/to/msg.txt` instead.
-- **`bash` is not on PATH** by default; Git for Windows is at `C:\Program Files\Git\cmd\git.exe`. GitHub Desktop has its own minimal git at `C:\Users\Mlav1\AppData\Local\GitHubDesktop\app-*\resources\app\git\cmd\git.exe`.
-- **Desktop Commander's `write_file` corrupts `.svg` files** (writes binary garbage when the extension hints "image"). Workaround: write SVG content via PowerShell `[System.IO.File]::WriteAllText(...)`.
+- `bash` **is not on PATH** by default; Git for Windows is at `C:\Program Files\Git\cmd\git.exe`. GitHub Desktop has its own minimal git at `C:\Users\Mlav1\AppData\Local\GitHubDesktop\app-*\resources\app\git\cmd\git.exe`.
+- **Desktop Commander's** `write_file` **corrupts** `.svg` **files** (writes binary garbage when the extension hints "image"). Workaround: write SVG content via PowerShell `[System.IO.File]::WriteAllText(...)`.
 - **Sharp reads SVG from a *path* fine, but rejects in-memory SVG buffers** in some configs. The icon generator script reads from disk for the master SVG.
 
 ---
 
 ## Cowork-specific gotchas
 
-- **Local MCPs configured via `claude_desktop_config.json` are NOT available in Cowork** by default. Desktop Commander needed to be re-added via Claude Code CLI (`claude mcp add --scope user desktop-commander -- npx -y @wonderwhy-er/desktop-commander@latest`) AND requires git-bash on PATH (Git for Windows install).
-- **The connected Supabase MCP is scoped to the `OpenScaffoldLabs` Pro org**, not the `mlav-personal` free org where Lock Street lives. So MCP-driven SQL/migrations on Lock Street's project won't work — use the dashboard SQL editor (driven via Chrome MCP if needed).
-- **Chrome MCP `resize_window` resizes the outer Chrome window but not the actual viewport** — can't reliably test mobile breakpoints from inside the agent. Trust the CSS or use real device.
-- **`form_input` doesn't always trigger React onChange handlers reliably**. Use `computer.type` after a `left_click` to focus the field; press Enter to submit forms.
+- **Local MCPs configured via** `claude_desktop_config.json` **are NOT available in Cowork** by default. Desktop Commander needed to be re-added via Claude Code CLI (`claude mcp add --scope user desktop-commander -- npx -y @wonderwhy-er/desktop-commander@latest`) AND requires git-bash on PATH (Git for Windows install).
+- **The connected Supabase MCP is scoped to the** `OpenScaffoldLabs` **Pro org**, not the `mlav-personal` free org where Lock Street lives. So MCP-driven SQL/migrations on Lock Street's project won't work — use the dashboard SQL editor (driven via Chrome MCP if needed).
+- **Chrome MCP** `resize_window` **resizes the outer Chrome window but not the actual viewport** — can't reliably test mobile breakpoints from inside the agent. Trust the CSS or use real device.
+- `form_input` **doesn't always trigger React onChange handlers reliably**. Use `computer.type` after a `left_click` to focus the field; press Enter to submit forms.
 - **Supabase requires a real-looking email** for sign-up. `@example.com` is rejected as `email_address_invalid`. `@gmail.com` etc. work. Free-tier Supabase has email-send rate limits (2/hour) which may have been hit during testing — check `over_email_send_rate_limit` errors.
 
 ---
@@ -217,8 +201,8 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 ### ⚠ Open / next-up
 
 - **Stripe wiring** — need real keys + 3 Price IDs. Subscription flow won't work without them.
-- **`SUPABASE_SERVICE_ROLE_KEY`** — needed in `.env.local` for `api/stripe-webhook.js` and `api/send-notifications.js` to bypass RLS for server work.
-- **`vercel dev`** — set up to run /api/* locally (or just deploy and test against deployed URL).
+- `SUPABASE_SERVICE_ROLE_KEY` — needed in `.env.local` for `api/stripe-webhook.js` and `api/send-notifications.js` to bypass RLS for server work.
+- `vercel dev` — set up to run /api/\* locally (or just deploy and test against deployed URL).
 - **Real admin user** — Matt should sign up via the form with his real email; promote that user to admin via the same SQL pattern, then we can delete the test user.
 - **First real picks** — once admin can post via /admin, add a test pick to validate the full pipeline.
 - **Real on-device PWA test** — `http://192.168.1.119:5174` from an iPhone on the same wifi to confirm install + look. Push notifications need HTTPS so won't work locally — wait for deploy.
@@ -226,8 +210,8 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 ### 📦 Cleanup pending (not urgent)
 
-- ~10 GB locked Claude VM bundle files at `C:\Users\Mlav1\AppData\Roaming\Claude\vm_bundles\claudevm.bundle` — `cleanup_after_quit.ps1` in the Cowork outputs folder removes them after Cowork is fully quit.
-- ~10 GB `C:\Windows.old` — user can delete via Disk Cleanup → "Previous Windows installation(s)" (admin required).
+- \~10 GB locked Claude VM bundle files at `C:\Users\Mlav1\AppData\Roaming\Claude\vm_bundles\claudevm.bundle` — `cleanup_after_quit.ps1` in the Cowork outputs folder removes them after Cowork is fully quit.
+- \~10 GB `C:\Windows.old` — user can delete via Disk Cleanup → "Previous Windows installation(s)" (admin required).
 
 ---
 
