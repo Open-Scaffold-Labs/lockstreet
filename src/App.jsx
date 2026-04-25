@@ -2,8 +2,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header.jsx';
 import ScoresRoute from './routes/ScoresRoute.jsx';
 import PicksRoute from './routes/PicksRoute.jsx';
-import RecordRoute from './routes/RecordRoute.jsx';
 import SubscribeRoute from './routes/SubscribeRoute.jsx';
+import AboutRoute from './routes/AboutRoute.jsx';
+import HomeRoute from './routes/HomeRoute.jsx';
 import AdminRoute from './routes/AdminRoute.jsx';
 import SuccessRoute from './routes/SuccessRoute.jsx';
 import SignInRoute from './routes/SignInRoute.jsx';
@@ -14,10 +15,11 @@ export default function App() {
       <Header />
       <main className="wrap">
         <Routes>
-          <Route path="/" element={<Navigate to="/scores" replace />} />
+          <Route path="/" element={<HomeRoute />} />
           <Route path="/scores" element={<ScoresRoute />} />
           <Route path="/picks" element={<PicksRoute />} />
-          <Route path="/record" element={<RecordRoute />} />
+          <Route path="/record" element={<Navigate to="/about" replace />} />
+          <Route path="/about" element={<AboutRoute />} />
           <Route path="/subscribe" element={<SubscribeRoute />} />
           <Route path="/admin" element={<AdminRoute />} />
           <Route path="/success" element={<SuccessRoute />} />
@@ -25,7 +27,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/scores" replace />} />
         </Routes>
       </main>
-      <footer className="footnote">Lock Street — Follow the smart money.</footer>
+      <footer className="footnote">Lock Street - Follow the smart money.</footer>
     </>
   );
 }

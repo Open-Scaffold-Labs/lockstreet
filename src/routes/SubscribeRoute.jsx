@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { useAuth, SignInButton, useUser } from '@clerk/clerk-react';
+import { useAuth, SignInButton, useUser } from '../lib/auth.jsx';
 import { TIERS } from '../lib/pricing.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 
@@ -35,7 +35,7 @@ export default function SubscribeRoute() {
       const j = await res.json();
       if (!res.ok || !j.sessionId) throw new Error(j.error || `HTTP ${res.status}`);
       const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe key missing — set VITE_STRIPE_PUBLISHABLE_KEY.');
+      if (!stripe) throw new Error('Stripe key missing - set VITE_STRIPE_PUBLISHABLE_KEY.');
       const { error } = await stripe.redirectToCheckout({ sessionId: j.sessionId });
       if (error) throw error;
     } catch (e) {
@@ -51,11 +51,11 @@ export default function SubscribeRoute() {
         <h2>Unlock the <span className="accent">real picks</span>.</h2>
         <p>
           Free tier shows you every line, every ATS record, and every line movement we're tracking.
-          Subscribe to see the actual pick side and unit size on every game — locked until kickoff.
+          Subscribe to see the actual pick side and unit size on every game - locked until kickoff.
         </p>
         {sub.active && (
           <p style={{ color: 'var(--green)', marginTop: 14, fontFamily: 'var(--mono)', fontSize: 12 }}>
-            ✓ You're subscribed — {sub.tier}{sub.renewsAt ? ` · renews ${new Date(sub.renewsAt).toLocaleDateString()}` : ''}.
+            OK You're subscribed - {sub.tier}{sub.renewsAt ? ` / renews ${new Date(sub.renewsAt).toLocaleDateString()}` : ''}.
           </p>
         )}
         {err && <p style={{ color: 'var(--red)', marginTop: 10, fontFamily: 'var(--mono)', fontSize: 12 }}>{err}</p>}
@@ -71,14 +71,11 @@ export default function SubscribeRoute() {
             <ul>{t.features.map((f) => <li key={f}>{f}</li>)}</ul>
 
             {sub.signedIn ? (
-              <button
-                onClick={() => checkout(t.id)}
-                disabled={loadingTier === t.id || sub.active}
-              >
-                {sub.active ? 'Subscribed' : loadingTier === t.id ? 'Redirecting…' : t.cta}
+              <button onClick={() => checkout(t.id)} disabled={loadingTier === t.id || sub.active}>
+                {sub.active ? 'Subscribed' : loadingTier === t.id ? 'Redirecting...' : t.cta}
               </button>
             ) : (
-              <SignInButton mode="modal" afterSignInUrl="/subscribe">
+              <SignInButton afterSignInUrl="/subscribe">
                 <button>{t.cta}</button>
               </SignInButton>
             )}

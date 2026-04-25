@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '../lib/auth.jsx';
 
 /**
  * Single source of truth for "can this user see picks?".
- * Asks /api/subscription-status, which consults Stripe via the user's Clerk ID.
+ * Asks /api/subscription-status, which consults Stripe via the user's Supabase ID.
  * Cached per session; re-checks on user change and on /success bounce.
  */
 export function useSubscription() {

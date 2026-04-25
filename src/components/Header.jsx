@@ -1,11 +1,11 @@
 import { NavLink, Link } from 'react-router-dom';
-import { SignInButton, SignedIn, SignedOut, UserButton, useUser } from '@clerk/clerk-react';
+import { SignInButton, SignedIn, SignedOut, UserButton, useUser } from '../lib/auth.jsx';
 import { useSubscription } from '../hooks/useSubscription.js';
 
 const TABS = [
   { to: '/scores',    label: 'Scores' },
   { to: '/picks',     label: 'Picks' },
-  { to: '/record',    label: 'Record' },
+  { to: '/about',     label: 'Track Record' },
   { to: '/subscribe', label: 'Subscribe' },
 ];
 
@@ -37,11 +37,11 @@ export default function Header() {
         <SignedIn>
           {isAdmin && <Link to="/admin" className="btn-ghost">Admin</Link>}
           {sub.active ? (
-            <Link to="/subscribe" className="gopro active"><span>✓</span><span>ACTIVE</span></Link>
+            <Link to="/subscribe" className="gopro active"><span>OK</span><span>ACTIVE</span></Link>
           ) : (
             <Link to="/subscribe" className="gopro"><span>GO PRO</span></Link>
           )}
-          <UserButton appearance={{ elements: { avatarBox: { width: 32, height: 32 } } }} />
+          <UserButton />
         </SignedIn>
       </div>
 

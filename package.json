@@ -2,7 +2,7 @@
   "name": "lockstreet",
   "version": "0.1.0",
   "private": true,
-  "description": "Lock Street — Follow the smart money. Sports betting picks app for NFL + CFB.",
+  "description": "Lock Street - Follow the smart money. Sports betting picks app for NFL + CFB.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,10 +11,8 @@
     "lint": "eslint src --ext .js,.jsx"
   },
   "dependencies": {
-    "@clerk/backend": "^1.15.0",
-    "@clerk/clerk-react": "^5.31.0",
     "@stripe/stripe-js": "^4.8.0",
-    "@vercel/kv": "^3.0.0",
+    "@supabase/supabase-js": "^2.45.0",
     "chart.js": "^4.5.0",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.3.0",

@@ -225,3 +225,145 @@ body {
   .tiers { grid-template-columns: 1fr; }
   .tagline { display: none; }
 }
+
+/* ----- About / Credentials page ----- */
+.about { max-width: 880px; margin: 0 auto; }
+.about-block { margin: 30px 0; padding: 26px 28px; background: linear-gradient(160deg, #141926, #0f131e);
+  border: 1px solid var(--border); border-radius: 16px;
+  opacity: 0; transform: translateY(8px); animation: fadeup .5s ease forwards; }
+.about-block h3 { margin: 0 0 14px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
+.about-block p { color: var(--ink-dim); font-size: 14.5px; line-height: 1.65; margin: 0 0 12px; }
+.about-block p:last-child { margin-bottom: 0; }
+.about-block strong { color: var(--ink); font-weight: 700; }
+
+.about-list { list-style: none; padding: 0; margin: 14px 0 0; }
+.about-list li { color: var(--ink-dim); font-size: 14px; line-height: 1.55; padding: 10px 0; padding-left: 26px;
+  position: relative; border-bottom: 1px solid var(--border); }
+.about-list li:last-child { border-bottom: 0; }
+.about-list li::before { content: ''; position: absolute; left: 4px; top: 18px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
+.about-list ol, ol.about-list { counter-reset: step; }
+ol.about-list li { counter-increment: step; }
+ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18px; height: 18px;
+  border-radius: 4px; background: rgba(251, 191, 36, 0.15); color: var(--gold);
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; }
+.about-list strong { color: var(--ink); }
+
+.credential-card { display: flex; gap: 22px; padding: 20px; margin-top: 14px;
+  background: rgba(11, 15, 26, 0.5); border: 1px solid var(--border); border-radius: 12px;
+  transition: border-color .2s ease; }
+.credential-card:hover { border-color: rgba(251, 191, 36, 0.3); }
+.cred-rank { font-family: var(--disp); font-weight: 800; font-size: 56px; line-height: 1;
+  color: var(--gold); letter-spacing: -0.03em; min-width: 110px; }
+.cred-of { font-family: var(--mono); font-size: 14px; color: var(--ink-faint);
+  display: block; margin-top: 4px; font-weight: 500; letter-spacing: 0; }
+.cred-body { flex: 1; min-width: 0; }
+.cred-title { font-family: var(--disp); font-weight: 700; font-size: 15px; color: var(--ink);
+  margin-bottom: 8px; letter-spacing: -0.01em; }
+.cred-detail { color: var(--ink-dim); font-size: 13.5px; line-height: 1.55; margin-bottom: 10px; }
+.cred-detail strong { color: var(--ink); }
+.cred-note { display: block; font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+  margin-top: 6px; letter-spacing: 0.02em; }
+.cred-why { font-size: 13px; color: var(--ink-dim); line-height: 1.55;
+  padding: 10px 12px; background: rgba(251, 191, 36, 0.04);
+  border-left: 2px solid var(--gold); border-radius: 0 6px 6px 0; font-style: italic; }
+
+.about-block-cta { background: linear-gradient(160deg, rgba(251, 191, 36, 0.08), rgba(15, 19, 30, 1));
+  border-color: rgba(251, 191, 36, 0.3); text-align: center; }
+.about-block-cta h3 { font-size: 22px; }
+
+.footnote-disclaimer { max-width: 880px; margin: 30px auto 0; color: var(--ink-faint);
+  font-family: var(--mono); font-size: 10.5px; line-height: 1.7; letter-spacing: 0.02em;
+  text-align: center; padding: 0 22px; }
+
+@media (max-width: 720px) {
+  .credential-card { flex-direction: column; gap: 8px; }
+  .cred-rank { font-size: 42px; min-width: auto; }
+}
+
+/* ----- Home / Landing page ----- */
+.home { max-width: 1100px; margin: 0 auto; }
+
+.home-hero { text-align: center; padding: 60px 20px 70px;
+  background: radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.08), transparent 60%); }
+.hero-eyebrow { display: inline-block; font-family: var(--mono); font-size: 11px;
+  font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold);
+  background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 6px 12px; border-radius: 20px; margin-bottom: 20px; }
+.home-hero h1 { font-size: 64px; font-weight: 800; letter-spacing: -0.03em;
+  margin: 0 0 20px; line-height: 1.05; }
+.home-hero h1 .accent { color: var(--gold); }
+.home-hero p { color: var(--ink-dim); font-size: 17px; line-height: 1.65;
+  max-width: 620px; margin: 0 auto 30px; }
+.hero-cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn-lg { padding: 14px 28px; font-size: 14px; border-radius: 10px;
+  text-decoration: none; display: inline-block;
+  font-family: var(--disp); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.home-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+  padding: 30px 0; max-width: 880px; margin: 0 auto; }
+.hstat { text-align: center; padding: 26px 18px;
+  background: linear-gradient(160deg, #141926, #0f131e);
+  border: 1px solid var(--border); border-radius: 14px; }
+.hstat-num { font-family: var(--disp); font-weight: 800; font-size: 56px;
+  color: var(--gold); letter-spacing: -0.03em; line-height: 1; }
+.hstat-suffix { font-size: 32px; color: var(--gold-dim); margin-left: 4px; }
+.hstat-label { color: var(--ink-dim); font-size: 13px; margin-top: 12px; line-height: 1.5; }
+
+.home-how { padding: 60px 0 30px; }
+.home-how h2, .home-tiers h2, .home-final-cta h2 { text-align: center;
+  font-size: 32px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 30px; }
+.how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.how-card { background: linear-gradient(160deg, #141926, #0f131e);
+  border: 1px solid var(--border); border-radius: 14px; padding: 26px 22px; }
+.how-num { font-family: var(--mono); font-weight: 800; font-size: 14px;
+  color: var(--gold); letter-spacing: 0.1em; margin-bottom: 12px; }
+.how-card h3 { margin: 0 0 10px; font-size: 17px; font-weight: 700; }
+.how-card p { color: var(--ink-dim); font-size: 14px; line-height: 1.6; margin: 0; }
+
+.home-tiers { padding: 30px 0 60px; }
+
+.home-final-cta { text-align: center; padding: 60px 20px;
+  background: linear-gradient(160deg, rgba(251, 191, 36, 0.08), rgba(15, 19, 30, 0.4));
+  border-radius: 16px; border: 1px solid rgba(251, 191, 36, 0.2); margin: 30px 0; }
+.home-final-cta p { color: var(--ink-dim); margin: 0 0 22px; font-size: 15px; }
+
+@media (max-width: 720px) {
+  .home-hero h1 { font-size: 42px; }
+  .home-stats { grid-template-columns: 1fr; }
+  .how-grid { grid-template-columns: 1fr; }
+}
+
+/* ----- Off-season banner (Scores) ----- */
+.off-season-banner { margin: 0 0 18px; padding: 18px 22px;
+  background: linear-gradient(160deg, rgba(251, 191, 36, 0.08), rgba(15, 19, 30, 0.6));
+  border: 1px solid rgba(251, 191, 36, 0.25); border-radius: 14px;
+  opacity: 0; transform: translateY(8px); animation: fadeup .5s ease forwards; }
+.osb-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.osb-label { font-family: var(--mono); font-size: 11px; font-weight: 800; letter-spacing: 0.16em;
+  color: var(--gold); padding: 4px 8px; border-radius: 4px;
+  background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.4); }
+.osb-stats { display: flex; gap: 8px; font-size: 13.5px; color: var(--ink-dim);
+  font-family: var(--mono); flex-wrap: wrap; }
+.osb-stats strong { color: var(--gold); font-weight: 700; }
+.osb-dot { color: var(--ink-faint); }
+.osb-cta { font-size: 13.5px; color: var(--ink-dim); line-height: 1.55; }
+.osb-link { color: var(--gold); text-decoration: none; font-weight: 700; margin-left: 6px; }
+.osb-link:hover { text-decoration: underline; }
+
+/* ----- Picks empty state (marketing teaser) ----- */
+.picks-empty-hero { text-align: center; padding: 30px 20px 24px;
+  background: radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.06), transparent 70%);
+  border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.picks-empty-hero h2 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em;
+  margin: 14px 0 12px; }
+.picks-empty-hero h2 .accent { color: var(--gold); }
+.picks-empty-hero p { max-width: 580px; margin: 0 auto 20px;
+  color: var(--ink-dim); font-size: 14.5px; line-height: 1.6; }
+
+.sample-label { font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.16em; color: var(--ink-faint); text-transform: uppercase;
+  margin: 16px 0 10px; }
+.sample-card { opacity: 0.85; }
+.sample-card .pick-side { letter-spacing: 0.4em; color: var(--ink-faint); }
