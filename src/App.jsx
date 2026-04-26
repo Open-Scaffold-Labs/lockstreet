@@ -45,7 +45,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/scores" replace />} />
         </Routes>
       </main>
-      <footer className="footnote">Lock Street - Follow the smart money.</footer>
+      <footer className="footnote">Lock Street — Be fearful when others are greedy. Be greedy when others are fearful.</footer>
       <BottomNav />
       <InstallPrompt />
       <OnboardingModal />

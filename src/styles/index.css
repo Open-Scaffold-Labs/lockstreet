@@ -53,7 +53,11 @@ body {
 .badge-ats { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--gold);
   background: rgba(192, 132, 252, 0.08); border: 1px solid rgba(192, 132, 252, 0.4);
   padding: 3px 6px; border-radius: 5px; letter-spacing: 0.06em; }
-.tagline { color: var(--ink-dim); font-size: 13px; margin-left: 4px; }
+.tagline { color: var(--ink-dim); font-size: 12px; font-style: italic;
+  margin-left: 8px; max-width: 540px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.hero-attribution { color: var(--ink-faint); font-family: var(--mono); font-size: 12px;
+  letter-spacing: 0.08em; text-transform: uppercase; margin: -10px 0 16px 0; }
 .spacer { flex: 1; }
 .gopro { font-family: var(--disp); font-weight: 700; color: #000000; background: var(--gold);
   border: 0; border-radius: 8px; padding: 9px 14px; font-size: 13px; letter-spacing: 0.06em;
