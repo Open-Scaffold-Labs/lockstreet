@@ -106,11 +106,11 @@ export function UserButton() {
   return (
     <div style={{ position: 'relative' }}>
       <button type="button" onClick={() => setOpen((o) => !o)}
-              style={{ width:32, height:32, borderRadius:'50%', background:'#1f2937', color:'#fff', fontSize:11, fontWeight:700, border:'1px solid rgba(255, 167, 102, 0.35)', cursor:'pointer' }}>
+              style={{ width:32, height:32, borderRadius:'50%', background:'#1f2937', color:'#fff', fontSize:11, fontWeight:700, border:'1px solid rgba(192, 132, 252, 0.35)', cursor:'pointer' }}>
         {initials}
       </button>
       {open && (
-        <div style={{ position:'absolute', right:0, top:38, background:'#0f172a', border:'1px solid rgba(255, 167, 102, 0.35)', borderRadius:8, padding:8, minWidth:160, zIndex:10 }}>
+        <div style={{ position:'absolute', right:0, top:38, background:'#0f172a', border:'1px solid rgba(192, 132, 252, 0.35)', borderRadius:8, padding:8, minWidth:160, zIndex:10 }}>
           <div style={{ padding:'6px 8px', fontSize:12, color:'#94a3b8' }}>{user?.primaryEmailAddress?.emailAddress}</div>
           <button type="button" onClick={signOut} style={{ width:'100%', padding:'6px 8px', background:'transparent', border:'none', color:'#fff', textAlign:'left', cursor:'pointer' }}>Sign out</button>
         </div>

@@ -89,7 +89,7 @@ export default function TrackRecordChart({ data = SAMPLE, isSample = true }) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#0a0a0a', borderColor: 'rgba(255, 167, 102, 0.35)', borderWidth: 1,
+        backgroundColor: '#0a0a0a', borderColor: 'rgba(192, 132, 252, 0.35)', borderWidth: 1,
         padding: 10, titleColor: '#ffa766', bodyColor: '#f4eeff',
         callbacks: { label: (ctx) => `${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y}u` },
       },
