@@ -27,8 +27,10 @@
      without overwhelming type. Bump --border-strong's alpha for emphasis. */
   --border: rgba(192, 132, 252, 0.22);
   --border-strong: rgba(192, 132, 252, 0.55);
-  --nfl: #2563eb;
-  --cfb: #16a34a;
+  /* Legacy per-sport tokens kept for any stray references. All league
+     badges now share the brand orange via the .lg-badge base style below. */
+  --nfl: var(--orange);
+  --cfb: var(--orange);
   --disp: 'Syne', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
@@ -95,8 +97,14 @@ body {
 .card-top { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
   border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 11px;
   letter-spacing: 0.06em; color: var(--ink-dim); text-transform: uppercase; }
-.lg-badge { padding: 3px 7px; border-radius: 5px; font-weight: 700; font-size: 10px; letter-spacing: 0.1em; color: #fff; }
-.lg-badge.nfl { background: var(--nfl); } .lg-badge.cfb { background: var(--cfb); }
+/* League badges — all sports use the same neon orange chip with black
+   text for max contrast / "neon" feel. Per-sport class modifiers
+   (.nfl/.cfb/.mlb/.nba/.nhl) all inherit this base styling. */
+.lg-badge {
+  padding: 3px 7px; border-radius: 5px;
+  font-weight: 700; font-size: 10px; letter-spacing: 0.1em;
+  background: var(--orange); color: #000000;
+}
 .wk { color: var(--ink-dim); }
 .state { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red);
