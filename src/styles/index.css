@@ -79,17 +79,14 @@ body {
 .gopro.active { background: var(--green); color: #062e15; }
 
 /* ----- Tabs ----- */
-/* Tabs — 11 entries currently. Container starts close to the left edge
-   and per-tab horizontal padding is tightened so all fit on a typical
-   ~1280px laptop viewport without horizontal scroll. */
-.tabs { display: flex; gap: 0; padding: 0 8px; max-width: 1180px; margin: 0 auto;
+.tabs { display: flex; gap: 2px; padding: 0 22px; max-width: 1180px; margin: 0 auto;
   border-bottom: 1px solid var(--border); overflow-x: auto; }
 .tab { background: transparent; border: 0; color: var(--ink-dim); font-family: var(--disp);
-  font-weight: 700; font-size: 12px; letter-spacing: 0.06em; padding: 14px 10px; cursor: pointer;
+  font-weight: 700; font-size: 13px; letter-spacing: 0.08em; padding: 14px 16px; cursor: pointer;
   position: relative; text-transform: uppercase; text-decoration: none; white-space: nowrap; }
 .tab:hover { color: var(--ink); }
 .tab.active { color: var(--ink); }
-.tab.active::after { content: ''; position: absolute; left: 6px; right: 6px; bottom: -1px;
+.tab.active::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px;
   height: 2px; background: var(--gold); border-radius: 2px; }
 .tab .count { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); margin-left: 6px;
   padding: 2px 5px; border-radius: 4px; background: rgba(255, 255, 255, 0.04); }
