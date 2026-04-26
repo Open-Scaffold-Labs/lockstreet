@@ -730,17 +730,6 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   color: var(--ink-faint); letter-spacing: 0.06em;
 }
 
-/* ================================================================
-   Parlay calculator
-   ================================================================ */
-.parlay-row { flex-direction: column; align-items: stretch; }
-.about-block.ev-positive { border-color: rgba(74, 222, 128, 0.3); background: linear-gradient(160deg, rgba(74, 222, 128, 0.06), rgba(10, 10, 10, 1)); }
-.about-block.ev-negative { border-color: rgba(248, 113, 113, 0.3); background: linear-gradient(160deg, rgba(248, 113, 113, 0.06), rgba(10, 10, 10, 1)); }
-.ev-result { padding-top: 4px; }
-.ev-num { font-family: var(--disp); font-weight: 800; font-size: 38px; letter-spacing: -0.02em; color: var(--gold); line-height: 1; }
-.ev-pct  { font-family: var(--mono); font-size: 14px; color: var(--ink-dim); margin-left: 14px; font-weight: 500; letter-spacing: 0.04em; }
-.about-block.ev-positive .ev-num { color: var(--green); }
-.about-block.ev-negative .ev-num { color: var(--red); }
 
 
 /* ================================================================

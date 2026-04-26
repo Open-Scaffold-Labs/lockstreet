@@ -7,7 +7,6 @@ const TABS = [
   { to: '/picks',     label: 'Picks' },
   { to: '/lines',     label: 'Lines' },
   { to: '/props',     label: 'Props' },
-  { to: '/parlay',    label: 'Parlay' },
   { to: '/bankroll',  label: 'Bankroll' },
   { to: '/contest',   label: 'Contest' },
   { to: '/leaderboard', label: 'Leaders' },
