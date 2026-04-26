@@ -78,6 +78,31 @@ body {
 .gopro:hover { transform: translateY(-1px); }
 .gopro.active { background: var(--green); color: #062e15; }
 
+/* ----- Date tab on /scores ----- */
+.date-tab {
+  display: flex; align-items: center; justify-content: center;
+  gap: 14px; padding: 6px 0; margin: 6px 0 12px;
+  font-family: var(--mono); font-size: 13px; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink); user-select: none;
+}
+.date-tab-arrow {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--ink); width: 32px; height: 32px;
+  border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: border-color .15s ease, color .15s ease;
+}
+.date-tab-arrow:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.date-tab-arrow:disabled { opacity: 0.25; cursor: not-allowed; }
+.date-tab-label { display: inline-flex; align-items: center; gap: 10px; min-width: 220px; justify-content: center; }
+.date-tab-pill {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em;
+  padding: 2px 6px; border-radius: 4px;
+  background: rgba(192, 132, 252, 0.12); color: var(--gold);
+  border: 1px solid rgba(192, 132, 252, 0.35);
+}
+.date-tab-pill-today { background: var(--orange); color: #000; border-color: transparent; }
+
 /* ----- Tabs ----- */
 .tabs { display: flex; gap: 2px; padding: 0 22px; max-width: 1180px; margin: 0 auto;
   border-bottom: 1px solid var(--border); overflow-x: auto; }

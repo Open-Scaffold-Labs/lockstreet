@@ -35,8 +35,45 @@ function daysUntil(date) {
   return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
 }
 
+// Date helpers for the date-tab feature
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+function startOfDay(d) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function addDays(d, n) {
+  const x = startOfDay(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+function diffDays(a, b) {
+  return Math.round((startOfDay(a) - startOfDay(b)) / MS_PER_DAY);
+}
+// ESPN expects dates in YYYYMMDD
+function espnDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}${m}${day}`;
+}
+function formatDate(d) {
+  return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
 export default function ScoresRoute() {
-  const { games, loading, error } = useEspnScoreboard({ leagues: ALL_LEAGUES });
+  const today = useMemo(() => startOfDay(new Date()), []);
+  const [selectedDate, setSelectedDate] = useState(today);
+  const offset = diffDays(selectedDate, today);  // -7..+7
+
+  // When the user is on today, pass null so ESPN returns its usual "today's
+  // slate" + we get the live-polling refresh. Other days pass the explicit date.
+  const espnDateParam = offset === 0 ? null : espnDate(selectedDate);
+
+  const { games, loading, error } = useEspnScoreboard({
+    leagues: ALL_LEAGUES,
+    date: espnDateParam,
+  });
   const { picks } = usePicks();
   const sub = useSubscription();
   const [sport, setSport] = useState('all');
@@ -46,22 +83,37 @@ export default function ScoresRoute() {
     [games, sport]
   );
 
-  // Show a notice on NFL/ALL filters during football off-season pointing at
-  // the projected 2026 NFL schedule release. Last season's Super Bowl
-  // still renders below it (correctly labeled by the espn.js postseason
-  // mapper).
-  const showNflScheduleNotice = (sport === 'all' || sport === 'nfl') &&
-    !loading && !error && isFootballOffSeason(games);
+  // Off-season detection — football has no current games. We only check
+  // this against TODAY's slate (offset 0); on past/future dates the user is
+  // explicitly browsing a specific day so the off-season fallback shouldn't
+  // apply.
+  const footballOffSeason = useMemo(
+    () => offset === 0 && !loading && !error && isFootballOffSeason(games),
+    [offset, games, loading, error]
+  );
 
-  // Show the football off-season banner only when football is actually
-  // off and the user is on ALL or NFL/CFB filters (not when they're
-  // browsing MLB/NBA/NHL where it's irrelevant).
-  const footballOffSeason = useMemo(() => !loading && !error && isFootballOffSeason(games), [games, loading, error]);
+  // Show NFL schedule notice when on TODAY + NFL/ALL filter + football off-season.
+  const showNflScheduleNotice = (sport === 'all' || sport === 'nfl') && footballOffSeason;
+
+  // Show off-season banner same gating.
   const offSeason = footballOffSeason && (sport === 'all' || sport === 'nfl' || sport === 'cfb');
   const nflStart = nextSeasonStart('nfl');
   const cfbStart = nextSeasonStart('cfb');
   const nflDays = daysUntil(nflStart);
   const cfbDays = daysUntil(cfbStart);
+
+  // Hide the date tab when the active filter is a football league AND it's
+  // off-season — those filters fall back to the placeholder content. For ALL,
+  // MLB, NBA, NHL the date tab is always visible (those have year-round slates
+  // or are currently in season).
+  const hideDateTab = footballOffSeason && (sport === 'nfl' || sport === 'cfb');
+
+  function shiftDate(delta) {
+    const next = addDays(selectedDate, delta);
+    const nextOffset = diffDays(next, today);
+    if (nextOffset < -7 || nextOffset > 7) return;
+    setSelectedDate(next);
+  }
 
   return (
     <section>
@@ -80,6 +132,31 @@ export default function ScoresRoute() {
             to be ready for week 1.
             <Link to="/subscribe" className="osb-link">See pricing →</Link>
           </div>
+        </div>
+      )}
+
+      {!hideDateTab && (
+        <div className="date-tab">
+          <button
+            type="button"
+            className="date-tab-arrow"
+            onClick={() => shiftDate(-1)}
+            disabled={offset <= -7}
+            aria-label="Previous day"
+          >‹</button>
+          <span className="date-tab-label">
+            {formatDate(selectedDate)}
+            {offset === 0  && <span className="date-tab-pill date-tab-pill-today">TODAY</span>}
+            {offset === 1  && <span className="date-tab-pill">TOMORROW</span>}
+            {offset === -1 && <span className="date-tab-pill">YESTERDAY</span>}
+          </span>
+          <button
+            type="button"
+            className="date-tab-arrow"
+            onClick={() => shiftDate(1)}
+            disabled={offset >= 7}
+            aria-label="Next day"
+          >›</button>
         </div>
       )}
 

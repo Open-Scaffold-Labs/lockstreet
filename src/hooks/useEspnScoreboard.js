@@ -3,7 +3,14 @@ import { fetchAll } from '../lib/espn.js';
 
 const ORDER = { live: 0, upcoming: 1, final: 2 };
 
-export function useEspnScoreboard({ refreshMs = 30_000, leagues = ['nfl', 'cfb'] } = {}) {
+/**
+ * @param {object} options
+ * @param {number} [options.refreshMs] poll interval; only fires when date is null/today
+ * @param {string[]} [options.leagues]
+ * @param {string|null} [options.date] YYYYMMDD — when set, fetches that day's slate
+ *   and disables auto-refresh polling (no need to poll yesterday's box scores).
+ */
+export function useEspnScoreboard({ refreshMs = 30_000, leagues = ['nfl', 'cfb'], date = null } = {}) {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,7 +26,7 @@ export function useEspnScoreboard({ refreshMs = 30_000, leagues = ['nfl', 'cfb']
     let stop = false;
     async function load() {
       try {
-        const all = await fetchAll(leagues);
+        const all = await fetchAll(leagues, date);
         if (stop || !mounted.current) return;
         const sorted = all.slice().sort((a, b) => {
           const s = (ORDER[a.status] ?? 9) - (ORDER[b.status] ?? 9);
@@ -37,9 +44,10 @@ export function useEspnScoreboard({ refreshMs = 30_000, leagues = ['nfl', 'cfb']
       }
     }
     load();
-    const t = setInterval(load, refreshMs);
-    return () => { stop = true; clearInterval(t); };
-  }, [refreshMs, leagues.join(',')]);  // re-run if leagues set changes
+    // Only poll when viewing today's slate. Past/future days don't change.
+    const t = !date ? setInterval(load, refreshMs) : null;
+    return () => { stop = true; if (t) clearInterval(t); };
+  }, [refreshMs, leagues.join(','), date]);
 
   return { games, loading, error, updatedAt };
 }

@@ -21,9 +21,17 @@ function endpointFor(league, kind = 'scoreboard', extra = '') {
   return `${BASE}/${prefix}/${kind}${extra}`;
 }
 
-/** @returns {Promise<NormalizedGame[]>} */
-export async function fetchScoreboard(league) {
-  const url = endpointFor(league, 'scoreboard');
+/**
+ * Fetch a league's scoreboard. Pass `dateOverride` (YYYYMMDD string) to
+ * request a specific day's slate; without it ESPN returns "today" — which
+ * for football during off-season can be the previous Super Bowl.
+ * @returns {Promise<NormalizedGame[]>}
+ */
+export async function fetchScoreboard(league, dateOverride = null) {
+  const prefix = SPORT_PATH[league];
+  if (!prefix) throw new Error(`Unknown league: ${league}`);
+  const params = dateOverride ? `?dates=${dateOverride}` : '';
+  const url = `${BASE}/${prefix}/scoreboard${params}`;
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`ESPN ${league} ${res.status}`);
   const json = await res.json();
@@ -34,10 +42,11 @@ export async function fetchScoreboard(league) {
  * Fetch every league's scoreboard in parallel and merge.
  * Defaults to football-only for backward compat with existing /lines logic
  * that expects ESPN games to be NFL/CFB. Pass `leagues` explicitly to widen.
+ * Pass `dateOverride` to scope every fetch to a specific day.
  */
-export async function fetchAll(leagues = ['nfl', 'cfb']) {
+export async function fetchAll(leagues = ['nfl', 'cfb'], dateOverride = null) {
   const results = await Promise.all(
-    leagues.map((l) => fetchScoreboard(l).catch(() => []))
+    leagues.map((l) => fetchScoreboard(l, dateOverride).catch(() => []))
   );
   return results.flat();
 }
