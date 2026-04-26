@@ -63,7 +63,7 @@ export default function GameDetailRoute() {
       {/* Game header */}
       <div className="gd-header">
         <div className="gd-team gd-away">
-          <span className={'lg-badge ' + league}>{league.toUpperCase()}</span>
+          {away.logo && <img src={away.logo} alt="" className="gd-team-logo" />}
           <div className="gd-team-name">{away.name}</div>
           <div className="gd-team-record">{away.record}</div>
           <div className="gd-team-score">{away.score}</div>
@@ -73,12 +73,22 @@ export default function GameDetailRoute() {
           {data.status === 'live' && <div className="gd-live-dot">● LIVE</div>}
         </div>
         <div className="gd-team gd-home">
-          <span className={'lg-badge ' + league}>{league.toUpperCase()}</span>
+          {home.logo && <img src={home.logo} alt="" className="gd-team-logo" />}
           <div className="gd-team-name">{home.name}</div>
           <div className="gd-team-record">{home.record}</div>
           <div className="gd-team-score">{home.score}</div>
         </div>
       </div>
+
+      {/* Side-by-side team preview: last-5 SU record + injuries.
+          Always rendered when ESPN provides any of the data — works for
+          upcoming games (when boxscore is empty) and pre-game research. */}
+      {(away.lastFive || home.lastFive || away.injuries.length || home.injuries.length) && (
+        <div className="gd-preview-grid">
+          <TeamPreview side={away} label="AWAY" />
+          <TeamPreview side={home} label="HOME" />
+        </div>
+      )}
 
       {/* Top fantasy performers (live or final) */}
       {topFantasy.length > 0 && (
@@ -135,6 +145,76 @@ export default function GameDetailRoute() {
         </div>
       ))}
     </section>
+  );
+}
+
+/**
+ * Side-by-side team preview block: recent record (last 5 SU from ESPN
+ * summary) and injury list. Shown for upcoming games as pre-game research
+ * and remains visible during live/final games. ESPN's summary endpoint
+ * doesn't reliably ship offensive/defensive league rank or 10-game ATS
+ * record — those would need separate team-stats fetches and are noted as
+ * "—" for now.
+ */
+function TeamPreview({ side, label }) {
+  const lf = side.lastFive;
+  const injuries = side.injuries || [];
+  const lastFiveLine = lf
+    ? `${lf.wins}-${lf.losses}${lf.pushes ? `-${lf.pushes}` : ''}`
+    : '—';
+
+  return (
+    <div className="gd-preview-team">
+      <div className="gd-preview-head">
+        {side.logo && <img src={side.logo} alt="" className="gd-preview-logo" />}
+        <div>
+          <div className="gd-preview-side">{label}</div>
+          <div className="gd-preview-team-name">{side.abbr}</div>
+        </div>
+      </div>
+
+      <div className="gd-preview-stat-row">
+        <div className="gd-preview-stat">
+          <div className="gd-preview-label">Last 5 SU</div>
+          <div className="gd-preview-value">{lastFiveLine}</div>
+        </div>
+        <div className="gd-preview-stat">
+          <div className="gd-preview-label">Last 5 ATS</div>
+          <div className="gd-preview-value gd-preview-muted">—</div>
+        </div>
+      </div>
+
+      <div className="gd-preview-stat-row">
+        <div className="gd-preview-stat">
+          <div className="gd-preview-label">Off Rank</div>
+          <div className="gd-preview-value gd-preview-muted">—</div>
+        </div>
+        <div className="gd-preview-stat">
+          <div className="gd-preview-label">Def Rank</div>
+          <div className="gd-preview-value gd-preview-muted">—</div>
+        </div>
+      </div>
+
+      <div className="gd-preview-stat">
+        <div className="gd-preview-label">Injuries</div>
+        {injuries.length === 0 ? (
+          <div className="gd-preview-value gd-preview-muted">None reported</div>
+        ) : (
+          <ul className="gd-injuries">
+            {injuries.slice(0, 6).map((inj, i) => (
+              <li key={i}>
+                <strong>{inj.name}</strong>
+                {inj.position ? <span className="gd-injury-pos"> {inj.position}</span> : null}
+                <span className="gd-injury-status"> · {inj.status || 'unknown'}</span>
+              </li>
+            ))}
+            {injuries.length > 6 && (
+              <li className="gd-preview-muted">+{injuries.length - 6} more</li>
+            )}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 }
 

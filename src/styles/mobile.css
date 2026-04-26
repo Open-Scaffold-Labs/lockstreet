@@ -53,6 +53,20 @@
   .gd-team-score { font-size: 36px; }
   .gd-team-name  { font-size: 13px; }
   .gd-status { min-width: 70px; }
+  .gd-team-logo { width: 44px; height: 44px; }
+  /* Preview stays side-by-side on mobile (away | home) so the visual ties
+     each team's data column to its team in the header above. Tighter
+     padding and smaller type to fit. */
+  .gd-preview-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .gd-preview-team { padding: 10px 8px; gap: 10px; }
+  .gd-preview-logo { width: 28px; height: 28px; }
+  .gd-preview-team-name { font-size: 14px; }
+  .gd-preview-side { font-size: 8px; }
+  .gd-preview-label { font-size: 8px; letter-spacing: 0.1em; }
+  .gd-preview-value { font-size: 13px; }
+  .gd-injuries { font-size: 11px; }
+  .gd-injury-pos { font-size: 9px; }
+  .gd-injury-status { font-size: 10px; }
   .gd-fantasy-card { grid-template-columns: 24px 1fr auto; gap: 8px; padding: 8px 10px; }
   .gd-fantasy-name { font-size: 13px; }
   .gd-fantasy-pts span { font-size: 20px; }

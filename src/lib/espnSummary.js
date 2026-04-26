@@ -38,6 +38,28 @@ function normalizeSummary(json, league) {
     statistics: tp.statistics || [],
   }));
 
+  // Pre-game intel: lastFiveGames, injuries, team-level stats. Each is keyed
+  // by team id, then we attach to home/away below. ESPN's shapes vary by
+  // league but the surface area here is consistent enough to render.
+  const lastFiveByTeam = byTeamId(json.lastFiveGames, (entry) => extractLastN(entry));
+  const injuriesByTeam = byTeamId(json.injuries, (entry) => extractInjuries(entry));
+  const teamStatsByTeam = byTeamId(json.boxscore?.teams, (entry) => extractTeamStats(entry));
+
+  function buildTeam(c) {
+    return {
+      id:    c.id,
+      abbr:  c.team?.abbreviation,
+      name:  c.team?.displayName,
+      logo:  c.team?.logos?.[0]?.href || c.team?.logo,
+      score: num(c.score),
+      record: c.record?.[0]?.summary || '',
+      color: c.team?.color ? `#${c.team.color}` : null,
+      lastFive: lastFiveByTeam[c.id] || null,
+      injuries: injuriesByTeam[c.id] || [],
+      teamStats: teamStatsByTeam[c.id] || null,
+    };
+  }
+
   return {
     id:         header.id,
     league,
@@ -46,27 +68,79 @@ function normalizeSummary(json, league) {
     period:     header.status?.period ?? null,
     clock:      header.status?.displayClock || '',
     date:       header.competitions?.[0]?.date,
-    home: {
-      id:    home.id,
-      abbr:  home.team?.abbreviation,
-      name:  home.team?.displayName,
-      logo:  home.team?.logos?.[0]?.href || home.team?.logo,
-      score: num(home.score),
-      record: home.record?.[0]?.summary || '',
-      color: home.team?.color ? `#${home.team.color}` : null,
-    },
-    away: {
-      id:    away.id,
-      abbr:  away.team?.abbreviation,
-      name:  away.team?.displayName,
-      logo:  away.team?.logos?.[0]?.href || away.team?.logo,
-      score: num(away.score),
-      record: away.record?.[0]?.summary || '',
-      color: away.team?.color ? `#${away.team.color}` : null,
-    },
+    home: buildTeam(home),
+    away: buildTeam(away),
     players,                                  // raw shape, parsed in extractPlayers()
     parsed: extractPlayers(players, league),  // [{teamId, teamAbbr, players: [{name, position, stats, fp}]}]
   };
+}
+
+/**
+ * Index a list of {team:{id}, ...} ESPN entries by team id, mapping each
+ * through `mapper`. Many ESPN summary fields use this exact shape (one
+ * object per team, top-level array).
+ */
+function byTeamId(arr, mapper) {
+  if (!Array.isArray(arr)) return {};
+  const out = {};
+  for (const entry of arr) {
+    const id = entry?.team?.id ?? entry?.id;
+    if (!id) continue;
+    out[id] = mapper(entry);
+  }
+  return out;
+}
+
+/** Last-N recent results: returns { wins, losses, pushes, games: [{result, opp, score}] }. */
+function extractLastN(entry) {
+  const events = entry?.events || [];
+  let wins = 0, losses = 0, pushes = 0;
+  const games = events.map((e) => {
+    const r = (e?.gameResult || '').toUpperCase();   // 'W' | 'L' | 'T'
+    if (r === 'W') wins++;
+    else if (r === 'L') losses++;
+    else pushes++;
+    return {
+      result: r || '?',
+      opp:    e?.opponent?.abbreviation || e?.opponent?.displayName || '',
+      atVs:   e?.atVs || '',     // '@' or 'vs'
+      score:  e?.score || e?.gameDetail?.score || '',
+      date:   e?.gameDate,
+    };
+  });
+  return { wins, losses, pushes, games };
+}
+
+/** Injury list: [{name, position, status, detail}]. */
+function extractInjuries(entry) {
+  const list = entry?.injuries || [];
+  return list.map((row) => {
+    const a = row?.athlete || {};
+    return {
+      name:     a.displayName || a.shortName || '',
+      position: a.position?.abbreviation || '',
+      status:   row?.status || row?.type || '',
+      detail:   row?.details?.detail || row?.details?.type || '',
+    };
+  });
+}
+
+/**
+ * Best-effort team-level stat extraction from boxscore.teams[].statistics.
+ * For pre-game we usually get null; for live/final we get team game-stats.
+ * League-level offensive/defensive rank doesn't reliably ship in summary —
+ * surface what's there and let the UI hide what's missing.
+ */
+function extractTeamStats(entry) {
+  const stats = entry?.statistics;
+  if (!stats || stats.length === 0) return null;
+  const out = {};
+  for (const s of stats) {
+    const key = s.name || s.label;
+    if (!key) continue;
+    out[key] = s.displayValue ?? s.value ?? null;
+  }
+  return out;
 }
 
 // ============================================================
