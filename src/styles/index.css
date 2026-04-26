@@ -41,11 +41,7 @@
 }
 
 * { box-sizing: border-box; }
-html { background: var(--bg); color: var(--ink); font-family: var(--disp);
-  /* Lock all digits to a fixed width so scores/records/odds/times line up
-     cleanly. Letters stay proportional (full Syne). Only affects numerals. */
-  font-variant-numeric: tabular-nums;
-}
+html { background: var(--bg); color: var(--ink); font-family: var(--disp); }
 html, body, #root { margin: 0; padding: 0; min-height: 100%; }
 /* #root must be transparent so the body's gradient shows through on every
    page. Without this, the React container paints solid black on top. */
