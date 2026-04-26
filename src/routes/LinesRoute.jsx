@@ -87,46 +87,6 @@ function useLiveOdds(sport) {
   return { data, status, error };
 }
 
-// ---------- public splits fetcher (Action Network proxy) ----------
-function usePublicSplits(sport) {
-  const [data, setData] = useState(null);
-  const [status, setStatus] = useState('idle');
-
-  useEffect(() => {
-    if (sport === 'all') { setData(null); setStatus('idle'); return; }
-    let cancelled = false;
-    setStatus('loading');
-    fetch(`/api/public-splits?sport=${sport}`)
-      .then((r) => r.ok ? r.json() : null)
-      .then((j) => { if (!cancelled) { setData(j); setStatus(j ? 'ready' : 'error'); } })
-      .catch(() => { if (!cancelled) setStatus('error'); });
-    return () => { cancelled = true; };
-  }, [sport]);
-
-  return { data, status };
-}
-
-// Build a lookup keyed by both full team-name pair AND short-name pair so we
-// can match Action Network games against Odds API events even when the team
-// labels differ slightly between feeds.
-function indexPublicSplits(games) {
-  const idx = new Map();
-  for (const g of games || []) {
-    const fullKey  = `${g.away?.full}|${g.home?.full}`;
-    const shortKey = `${g.away?.display}|${g.home?.display}`;
-    const abbrKey  = `${g.away?.abbr}|${g.home?.abbr}`;
-    if (g.away?.full && g.home?.full)       idx.set(fullKey, g);
-    if (g.away?.display && g.home?.display) idx.set(shortKey, g);
-    if (g.away?.abbr && g.home?.abbr)       idx.set(abbrKey, g);
-  }
-  return idx;
-}
-
-function findPublicSplitForGame(idx, away, home) {
-  if (!idx) return null;
-  return idx.get(`${away}|${home}`) || null;
-}
-
 function indexLiveEvents(events) {
   const idx = new Map();
   for (const ev of events || []) {
@@ -173,11 +133,6 @@ export default function LinesRoute() {
   const { games, loading } = useEspnScoreboard();
   const [sport, setSport] = useState('mlb'); // default to in-season sport
   const live = useLiveOdds(sport);
-  const splits = usePublicSplits(sport);
-  const splitsIdx = useMemo(
-    () => (splits.status === 'ready' ? indexPublicSplits(splits.data?.games) : null),
-    [splits.status, splits.data]
-  );
 
   const sportConfig = SPORTS.find((s) => s.k === sport);
   const useEspnMerge = !!sportConfig?.espn && sport !== 'all' || sport === 'all';
@@ -257,14 +212,6 @@ export default function LinesRoute() {
 
       {gamesToRender.map((g) => {
         const liveEv = liveOnlyMode ? g._live : (usingLive ? findLiveEventForGame(liveIdx, g) : null);
-        // Public splits — match by full team name first, then fall back to short.
-        const publicSplit = splitsIdx
-          ? (
-              findPublicSplitForGame(splitsIdx, liveEv?.away, liveEv?.home)
-              || findPublicSplitForGame(splitsIdx, g.away?.name, g.home?.name)
-              || findPublicSplitForGame(splitsIdx, g.away?.abbr, g.home?.abbr)
-            )
-          : null;
         const books = liveEv
           ? FALLBACK_BOOKS.map((b) => {
               const lb = liveEv.books?.find((x) => x.key === b.key);
@@ -331,30 +278,6 @@ export default function LinesRoute() {
                   <td className="lines-market">ML away</td>
                   {mlsAway.map((c) => <td key={c.book.id} className="lines-cell">{fmtPrice(c.val)}</td>)}
                 </tr>
-                {publicSplit && (
-                  <tr>
-                    <td className="lines-market" style={{ color: 'var(--gold)' }}>Public bets</td>
-                    <td className="lines-cell" colSpan={books.length} style={{ textAlign: 'left', paddingLeft: 14, color: 'var(--ink)' }}>
-                      {publicSplit.splits.spread.away_bets != null && (
-                        <span style={{ marginRight: 18 }}>
-                          Spread: <strong>{publicSplit.splits.spread.away_bets}%</strong> {g.away?.abbr} ·{' '}
-                          <strong>{publicSplit.splits.spread.home_bets}%</strong> {g.home?.abbr}
-                        </span>
-                      )}
-                      {publicSplit.splits.total.over_bets != null && (
-                        <span style={{ marginRight: 18 }}>
-                          Total: <strong>{publicSplit.splits.total.over_bets}%</strong> O ·{' '}
-                          <strong>{publicSplit.splits.total.under_bets}%</strong> U
-                        </span>
-                      )}
-                      {publicSplit.numBets != null && (
-                        <span style={{ color: 'var(--ink-dim)', fontSize: 12 }}>
-                          {publicSplit.numBets.toLocaleString()} bets tracked
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
