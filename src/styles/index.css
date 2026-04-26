@@ -40,17 +40,24 @@
 html, body, #root { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: var(--disp); min-height: 100%; }
 body {
   -webkit-font-smoothing: antialiased;
+  /* Subtle two-color glow on the corners — purple top-left, orange top-right.
+     Pure black underneath. The old NFL-blue gradient is gone. */
   background:
-    radial-gradient(1200px 600px at 20% -10%, rgba(192, 132, 252, 0.06), transparent 60%),
-    radial-gradient(900px 500px at 90% 10%, rgba(37, 99, 235, 0.06), transparent 60%),
+    radial-gradient(1200px 600px at 20% -10%, rgba(192, 132, 252, 0.07), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(255, 128, 0, 0.05), transparent 60%),
     var(--bg);
 }
+
+/* Hide browser scrollbars across the whole app while keeping scroll behavior.
+   Webkit (Chrome/Safari/Edge) + Firefox both supported. */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
 /* ----- Header ----- */
 .hdr { position: sticky; top: 0; z-index: 50;
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
-  background: rgba(11, 15, 26, 0.72);
+  background: rgba(0, 0, 0, 0.72);
   border-bottom: 1px solid var(--border); }
 .hdr-row { display: flex; align-items: center; gap: 18px; padding: 14px 22px; max-width: 1180px; margin: 0 auto; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 26px; letter-spacing: -0.02em; text-decoration: none; }
