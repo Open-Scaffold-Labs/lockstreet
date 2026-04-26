@@ -283,67 +283,121 @@ async function fetchNhl(abbr) {
 }
 
 // ====================================================================
-// NBA via ESPN — fetch all 30 teams in parallel to compute offRank from
-// avgPoints (since ESPN doesn't ship rank fields for NBA stats and there's
-// no public points-allowed stat exposed). Cached at module level for the
-// lifetime of the warm Vercel function.
+// NBA via ESPN — fetch all 30 teams' full season+playoff schedules in
+// parallel. From the resulting completed games we derive per-team avg
+// points scored (offense), avg points allowed (defense), league ranks for
+// both, and an accurate Last 10 by sorting completed games by date. ESPN
+// ships none of this directly for NBA, but the raw schedule events have
+// final scores we can roll up ourselves. Cached 6 hours at module scope.
 // ====================================================================
-let NBA_RANKS_CACHE = { at: 0, ranks: null }; // { teamId: { offRank, ppg } }
+let NBA_DATA_CACHE = { at: 0, data: null }; // { teamId: { ppg, oppPpg, offRank, defRank, games: [...] } }
 
-async function getNbaOffRanks() {
-  if (NBA_RANKS_CACHE.ranks && Date.now() - NBA_RANKS_CACHE.at < CACHE_MS) {
-    return NBA_RANKS_CACHE.ranks;
+function nbaYear() {
+  // ESPN labels NBA seasons by end year. Oct → following calendar year.
+  const d = new Date();
+  return d.getMonth() >= 9 ? d.getFullYear() + 1 : d.getFullYear();
+}
+
+async function fetchNbaTeamCompletedGames(teamId, year) {
+  const types = [2, 3]; // regular season + postseason
+  const responses = await Promise.all(types.map(async (st) => {
+    const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}/schedule?season=${year}&seasontype=${st}`;
+    try {
+      const r = await fetch(url, { headers: BROWSER_HEADERS });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  }));
+  const events = [];
+  for (const j of responses) {
+    if (!j) continue;
+    for (const e of j.events || []) {
+      const c = e?.competitions?.[0];
+      if (!c?.status?.type?.completed) continue;
+      const me = (c.competitors || []).find((x) => String(x.team?.id) === String(teamId));
+      const opp = (c.competitors || []).find((x) => String(x.team?.id) !== String(teamId));
+      if (!me || !opp) continue;
+      events.push({
+        date: e.date,
+        ourScore: Number(me.score),
+        oppScore: Number(opp.score),
+        win: me.winner === true,
+        loss: me.winner === false,
+      });
+    }
   }
-  // Fetch list of 30 teams
+  // Newest first
+  events.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return events;
+}
+
+async function getNbaSeasonData() {
+  if (NBA_DATA_CACHE.data && Date.now() - NBA_DATA_CACHE.at < CACHE_MS) {
+    return NBA_DATA_CACHE.data;
+  }
   const teamsRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams', { headers: BROWSER_HEADERS });
   if (!teamsRes.ok) return null;
   const teamsJson = await teamsRes.json();
-  const teams = (teamsJson?.sports?.[0]?.leagues?.[0]?.teams || [])
+  const teamIds = (teamsJson?.sports?.[0]?.leagues?.[0]?.teams || [])
     .map((t) => t.team?.id).filter(Boolean);
+  const year = nbaYear();
 
-  // Fetch each team's stats in parallel; bail out gracefully if any fail.
-  const results = await Promise.all(teams.map(async (id) => {
-    try {
-      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${id}/statistics`, { headers: BROWSER_HEADERS });
-      if (!r.ok) return null;
-      const j = await r.json();
-      const cats = j?.results?.stats?.categories || [];
-      let ppg = null;
-      for (const c of cats) {
-        for (const s of c.stats || []) {
-          if ((s.name || '').toLowerCase() === 'avgpoints') { ppg = Number(s.value ?? s.displayValue); break; }
-        }
-        if (ppg != null) break;
-      }
-      return { id, ppg };
-    } catch { return null; }
+  // 30 teams × 2 schedule fetches = 60 in parallel. ESPN handles the load.
+  const perTeam = await Promise.all(teamIds.map(async (id) => {
+    const games = await fetchNbaTeamCompletedGames(id, year);
+    if (!games.length) return null;
+    const us  = games.map((g) => g.ourScore).filter(Number.isFinite);
+    const opp = games.map((g) => g.oppScore).filter(Number.isFinite);
+    if (!us.length || !opp.length) return null;
+    return {
+      id,
+      ppg:    us.reduce((a, b) => a + b, 0) / us.length,
+      oppPpg: opp.reduce((a, b) => a + b, 0) / opp.length,
+      games,
+    };
   }));
-  const valid = results.filter((r) => r && Number.isFinite(r.ppg));
-  valid.sort((a, b) => b.ppg - a.ppg);
-  const ranks = {};
-  valid.forEach((r, i) => { ranks[r.id] = { offRank: i + 1, ppg: r.ppg }; });
-  NBA_RANKS_CACHE = { at: Date.now(), ranks };
-  return ranks;
+  const valid = perTeam.filter(Boolean);
+  if (!valid.length) return null;
+
+  const offRanked = valid.slice().sort((a, b) => b.ppg - a.ppg);
+  const defRanked = valid.slice().sort((a, b) => a.oppPpg - b.oppPpg); // lower = better
+
+  const data = {};
+  for (const t of valid) {
+    data[t.id] = {
+      ppg: t.ppg,
+      oppPpg: t.oppPpg,
+      offRank: offRanked.findIndex((x) => x.id === t.id) + 1,
+      defRank: defRanked.findIndex((x) => x.id === t.id) + 1,
+      games: t.games,
+    };
+  }
+  NBA_DATA_CACHE = { at: Date.now(), data };
+  return data;
 }
 
 async function fetchNbaViaEspn(teamId) {
   if (!teamId) return empty();
-  // Get base ESPN payload (last10 from schedule + offValue from stats)
-  const base = await fetchEspn('nba', teamId);
-  // Overlay rank from our parallel-computed ranks
-  try {
-    const ranks = await getNbaOffRanks();
-    if (ranks && ranks[teamId]) {
-      base.offRank = ranks[teamId].offRank;
-      // Trust the centrally-computed PPG over the per-team fetch (consistency)
-      base.offValue = ranks[teamId].ppg.toFixed(1);
-    }
-  } catch {}
-  base.offLabel = 'PPG';
-  // No reliable free defRank source for NBA without 30 more fetches per team
-  // game logs — leave def fields null so UI shows '—'.
-  base.source = 'ESPN (NBA)';
-  return base;
+  let data;
+  try { data = await getNbaSeasonData(); } catch { data = null; }
+  const t = data?.[teamId];
+  if (!t) {
+    // Fallback to raw ESPN if the bulk fetch failed
+    const base = await fetchEspn('nba', teamId);
+    base.source = 'ESPN (NBA fallback)';
+    return base;
+  }
+  const last10 = t.games.slice(0, 10);
+  let w = 0, l = 0;
+  for (const g of last10) {
+    if (g.win) w++; else if (g.loss) l++;
+  }
+  return {
+    offRank: t.offRank, offValue: t.ppg.toFixed(1), offLabel: 'PPG',
+    defRank: t.defRank, defValue: t.oppPpg.toFixed(1), defLabel: 'OPP PPG',
+    last10: { wins: w, losses: l, pushes: 0 },
+    source: 'ESPN (NBA)',
+  };
 }
 
 // ====================================================================
