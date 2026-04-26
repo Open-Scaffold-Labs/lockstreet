@@ -149,8 +149,12 @@ function parseVsin(html) {
     const lines = Array.from(inner.matchAll(/class="sp-badge sp-badge-line"[^>]*>([^<]+)<\/span>/g))
       .map((m) => m[1].trim());
 
-    // Percentages (six of them — handle/bet for each of spread/total/ml)
-    const pcts = Array.from(inner.matchAll(/class="sp-badge"[^>]*>(\d+)%<\/span>/g))
+    // Percentages (six of them — handle/bet for each of spread/total/ml).
+    // VSiN highlights the leading side with extra classes like
+    // `sp-badge sp-badge-green` — so we match any class that STARTS with
+    // sp-badge (not just exactly sp-badge). Excludes line spans because
+    // their content is the line value (e.g. "-1.5"), not "<digits>%".
+    const pcts = Array.from(inner.matchAll(/class="sp-badge[^"]*"[^>]*>(\d+)%<\/span>/g))
       .map((m) => Number(m[1]));
 
     rows.push({
