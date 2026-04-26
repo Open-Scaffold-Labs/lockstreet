@@ -41,10 +41,22 @@ export default function ScoresRoute() {
   const sub = useSubscription();
   const [sport, setSport] = useState('all');
 
-  const filtered = useMemo(
-    () => games.filter((g) => sport === 'all' || g.league === sport),
-    [games, sport]
-  );
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    return games.filter((g) => {
+      if (sport !== 'all' && g.league !== sport) return false;
+      // Hide stale NFL/CFB final games — ESPN returns the most-recent past
+      // game (e.g. last season's Super Bowl) during football off-season.
+      // If a football game finished more than 7 days ago, skip it. Live and
+      // upcoming games always render.
+      if ((g.league === 'nfl' || g.league === 'cfb') && g.status === 'final') {
+        const k = new Date(g.kickoff || 0).getTime();
+        if (k && now - k > sevenDays) return false;
+      }
+      return true;
+    });
+  }, [games, sport]);
 
   // Show the football off-season banner only when football is actually
   // off and the user is on ALL or NFL/CFB filters (not when they're

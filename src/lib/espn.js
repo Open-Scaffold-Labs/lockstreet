@@ -103,7 +103,8 @@ function normalizeEvent(e, league) {
   return {
     id: e.id,
     league,
-    week: e.week?.number ? `Week ${e.week.number}` : '',
+    week: weekLabel(e, league),
+    seasonType: e.season?.type ?? null,
     status: statusMap[status] || 'upcoming',
     period: e.status?.type?.shortDetail || '',
     kickoff: e.date, // ISO
@@ -114,6 +115,25 @@ function normalizeEvent(e, league) {
     ou,
     move: null,
   };
+}
+
+/**
+ * Friendlier week label. ESPN's postseason indexes weeks 1-5 for NFL
+ * (Wild Card / Divisional / Conf / [bye] / Super Bowl), so "Week 5"
+ * during off-season was actually the Super Bowl. Map those out.
+ */
+function weekLabel(e, league) {
+  const wk = e.week?.number;
+  if (!wk) return '';
+  const seasonType = e.season?.type;
+  if (seasonType === 3) {
+    if (league === 'nfl') {
+      const map = { 1: 'Wild Card', 2: 'Divisional', 3: 'Conf Champ', 5: 'Super Bowl' };
+      return map[wk] || `Postseason wk ${wk}`;
+    }
+    if (league === 'cfb') return 'Bowl';
+  }
+  return `Week ${wk}`;
 }
 
 function makeTeam(c) {
