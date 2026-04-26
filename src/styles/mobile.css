@@ -29,7 +29,9 @@
   .tab { font-size: 11px; padding: 12px 10px; letter-spacing: 0.04em; }
 
   /* ----- Layout ----- */
-  .wrap { padding: 14px 12px 60px; }
+  /* Top padding compensates for the fixed .hdr. On mobile the header wraps
+     (brand row + tagline + scrollable tabs) so it's taller than desktop. */
+  .wrap { padding: 150px 12px 60px; }
 
   /* ----- Cards / grids ----- */
   .grid { grid-template-columns: 1fr; gap: 10px; }

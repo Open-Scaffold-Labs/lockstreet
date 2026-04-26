@@ -55,7 +55,10 @@ body {
   background:
     radial-gradient(1200px 600px at 20% -10%, rgba(192, 132, 252, 0.07), transparent 60%),
     radial-gradient(900px 500px at 90% 10%, rgba(255, 128, 0, 0.05), transparent 60%),
-    radial-gradient(800px 420px at 50% 0%, rgba(192, 132, 252, 0.13), transparent 65%),
+    /* Centered halo: pinned to viewport center via background-attachment: fixed,
+       so it always reads as a soft warm-white wash in the middle of whatever the
+       user is currently looking at, not the top of the page. */
+    radial-gradient(1100px 600px at 50% 50%, rgba(192, 132, 252, 0.15), transparent 65%),
     var(--bg);
   background-attachment: fixed;
 }
@@ -66,10 +69,15 @@ body {
 *::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
 /* ----- Header ----- */
-.hdr { position: sticky; top: 0; z-index: 50;
+/* Pinned with position: fixed (not sticky) because sticky was failing to pin
+   in this layout — the body is the scrolling container and several flex/grid
+   ancestors inside route components create new containing blocks for the
+   sticky element, sometimes letting the header scroll out of view. Fixed is
+   bulletproof at the cost of needing top-padding on .wrap to compensate. */
+.hdr { position: fixed; top: 0; left: 0; right: 0; z-index: 50;
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.85);
   border-bottom: 1px solid var(--border); }
 .hdr-row { display: flex; align-items: center; gap: 18px; padding: 14px 22px; max-width: 1180px; margin: 0 auto; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 26px; letter-spacing: -0.02em; text-decoration: none; }
@@ -200,7 +208,9 @@ body {
 .tab.active .count { color: var(--gold); background: rgba(192, 132, 252, 0.08); }
 
 /* ----- Layout ----- */
-.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 22px 80px; }
+/* Top padding compensates for the fixed .hdr (hdr-row + tabs ≈ 100px on
+   desktop, override in mobile.css). */
+.wrap { max-width: 1180px; margin: 0 auto; padding: 124px 22px 80px; }
 
 /* ----- Cards grid ----- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
