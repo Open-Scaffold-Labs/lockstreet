@@ -41,22 +41,17 @@ export default function ScoresRoute() {
   const sub = useSubscription();
   const [sport, setSport] = useState('all');
 
-  const filtered = useMemo(() => {
-    const now = Date.now();
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    return games.filter((g) => {
-      if (sport !== 'all' && g.league !== sport) return false;
-      // Hide stale NFL/CFB final games — ESPN returns the most-recent past
-      // game (e.g. last season's Super Bowl) during football off-season.
-      // If a football game finished more than 7 days ago, skip it. Live and
-      // upcoming games always render.
-      if ((g.league === 'nfl' || g.league === 'cfb') && g.status === 'final') {
-        const k = new Date(g.kickoff || 0).getTime();
-        if (k && now - k > sevenDays) return false;
-      }
-      return true;
-    });
-  }, [games, sport]);
+  const filtered = useMemo(
+    () => games.filter((g) => sport === 'all' || g.league === sport),
+    [games, sport]
+  );
+
+  // Show a notice on NFL/ALL filters during football off-season pointing at
+  // the projected 2026 NFL schedule release. Last season's Super Bowl
+  // still renders below it (correctly labeled by the espn.js postseason
+  // mapper).
+  const showNflScheduleNotice = (sport === 'all' || sport === 'nfl') &&
+    !loading && !error && isFootballOffSeason(games);
 
   // Show the football off-season banner only when football is actually
   // off and the user is on ALL or NFL/CFB filters (not when they're
@@ -102,6 +97,13 @@ export default function ScoresRoute() {
           </button>
         ))}
       </div>
+
+      {showNflScheduleNotice && (
+        <div className="empty" style={{ padding: '14px 18px', marginBottom: 14, fontSize: 13 }}>
+          <strong style={{ color: 'var(--orange)' }}>Projected 2026 NFL schedule release: May 13–14.</strong>{' '}
+          <span style={{ color: 'var(--ink-dim)' }}>Last season's Super Bowl below.</span>
+        </div>
+      )}
 
       {loading && <SkeletonCardGrid count={6} />}
       {error   && <div className="empty">Couldn't reach ESPN right now. Retrying in 30s.</div>}
