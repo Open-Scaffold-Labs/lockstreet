@@ -1,7 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { fetchGameSummary, fetchTeamStats } from '../lib/espnSummary.js';
+import { fetchGameSummary } from '../lib/espnSummary.js';
 import { fantasyPoints } from '../lib/fantasy.js';
+
+/**
+ * Hit our /api/team-intel proxy which fans out to the best free per-sport
+ * source (NBA Stats / MLB Stats API / NHL API / ESPN). Returns a unified
+ * shape with offRank / defRank / last10. Server-side caches 6 hours.
+ */
+async function fetchTeamIntel(league, teamId, teamAbbr) {
+  const params = new URLSearchParams({ league });
+  if (teamId) params.set('teamId', teamId);
+  if (teamAbbr) params.set('teamAbbr', teamAbbr);
+  try {
+    const r = await fetch(`/api/team-intel?${params}`, { cache: 'no-store' });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
 
 /**
  * Per-game detail page.
@@ -38,20 +54,20 @@ export default function GameDetailRoute() {
     return () => { cancelled = true; clearInterval(interval); };
   }, [league, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Once we have summary data, pull each team's season stats in parallel
-  // for the Off/Def rank lines on the preview cards. Best-effort — failures
+  // Once we have summary data, pull each team's intel in parallel via our
+  // /api/team-intel proxy (sport-specific free APIs). Best-effort — failures
   // fall back to '—' in the UI.
   useEffect(() => {
     if (!data?.away?.id || !data?.home?.id) return;
     let cancelled = false;
     Promise.all([
-      fetchTeamStats(league, data.away.id),
-      fetchTeamStats(league, data.home.id),
+      fetchTeamIntel(league, data.away.id, data.away.abbr),
+      fetchTeamIntel(league, data.home.id, data.home.abbr),
     ]).then(([away, home]) => {
       if (!cancelled) setTeamStats({ away, home });
     });
     return () => { cancelled = true; };
-  }, [league, data?.away?.id, data?.home?.id]);
+  }, [league, data?.away?.id, data?.home?.id, data?.away?.abbr, data?.home?.abbr]);
 
   // Build sorted "top fantasy" list across both teams
   const topFantasy = useMemo(() => {
@@ -173,11 +189,15 @@ export default function GameDetailRoute() {
  * "—" for now.
  */
 function TeamPreview({ side, label, stats }) {
-  const lf = side.lastFive;
   const injuries = side.injuries || [];
-  const lastFiveLine = lf
-    ? `${lf.wins}-${lf.losses}${lf.pushes ? `-${lf.pushes}` : ''}`
-    : '—';
+  // Prefer the proxy's last10 (real number from sport-specific APIs);
+  // fall back to ESPN summary's last5 if proxy hasn't responded yet.
+  const last10 = stats?.last10;
+  const last5 = side.lastFive;
+  const recentLine = last10
+    ? `${last10.wins}-${last10.losses}${last10.pushes ? `-${last10.pushes}` : ''}`
+    : last5 ? `${last5.wins}-${last5.losses}` : '—';
+  const recentLabel = last10 ? 'Last 10 SU' : 'Last 5 SU';
   const offRank = stats?.offRank ? `#${stats.offRank}` : '—';
   const defRank = stats?.defRank ? `#${stats.defRank}` : '—';
 
@@ -193,11 +213,11 @@ function TeamPreview({ side, label, stats }) {
 
       <div className="gd-preview-stat-row">
         <div className="gd-preview-stat">
-          <div className="gd-preview-label">Last 5 SU</div>
-          <div className="gd-preview-value">{lastFiveLine}</div>
+          <div className="gd-preview-label">{recentLabel}</div>
+          <div className="gd-preview-value">{recentLine}</div>
         </div>
         <div className="gd-preview-stat">
-          <div className="gd-preview-label">Last 5 ATS</div>
+          <div className="gd-preview-label">Last 10 ATS</div>
           <div className="gd-preview-value gd-preview-muted">—</div>
         </div>
       </div>
