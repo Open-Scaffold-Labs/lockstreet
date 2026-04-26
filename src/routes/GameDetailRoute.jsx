@@ -112,19 +112,10 @@ export default function GameDetailRoute() {
         </div>
       </div>
 
-      {/* Side-by-side team preview: last-5 SU record + injuries.
-          Always rendered when ESPN provides any of the data — works for
-          upcoming games (when boxscore is empty) and pre-game research. */}
-      {(away.lastFive || home.lastFive || away.injuries.length || home.injuries.length) && (
-        <div className="gd-preview-grid">
-          <TeamPreview side={away} label="AWAY" stats={teamStats.away} />
-          <TeamPreview side={home} label="HOME" stats={teamStats.home} />
-        </div>
-      )}
-
       {/* Live Play Tracker — only while the game is in progress and ESPN
-          is shipping plays. Auto-refreshes via the 30s polling already in
-          place above. */}
+          is shipping plays. Sits ABOVE team stats so the most actionable
+          info (current state of the game) is the first thing the user sees
+          after the header. Auto-refreshes via the 30s polling above. */}
       {data.status === 'live' && data.recentPlays?.length > 0 && (
         <div className="gd-section">
           <h3 className="gd-h3">Live Play Tracker</h3>
@@ -141,6 +132,16 @@ export default function GameDetailRoute() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Side-by-side team preview: last-5 SU record + injuries.
+          Always rendered when ESPN provides any of the data — works for
+          upcoming games (when boxscore is empty) and pre-game research. */}
+      {(away.lastFive || home.lastFive || away.injuries.length || home.injuries.length) && (
+        <div className="gd-preview-grid">
+          <TeamPreview side={away} label="AWAY" stats={teamStats.away} />
+          <TeamPreview side={home} label="HOME" stats={teamStats.home} />
         </div>
       )}
 
