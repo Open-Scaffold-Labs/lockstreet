@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
+import { supabase } from '../lib/supabase.js';
 
 /**
  * Line shopping page.
@@ -87,6 +88,61 @@ function useLiveOdds(sport) {
   return { data, status, error };
 }
 
+// ---------- consensus picks (from supabase consensus_picks table) ----------
+function useConsensusPicks(sport) {
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    if (sport === 'all') { setRows([]); return; }
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase
+        .from('consensus_picks')
+        .select('*')
+        .eq('sport', sport)
+        .order('fetched_at', { ascending: false });
+      if (!cancel) setRows(data || []);
+    })();
+    return () => { cancel = true; };
+  }, [sport]);
+  return rows;
+}
+
+// Index consensus picks by team-name pair so we can look up by Odds-API
+// team names like "Detroit Pistons" / "Atlanta Braves" etc.
+function indexConsensusByGame(rows) {
+  const idx = new Map();
+  // Group by game_code → 2 rows
+  const byGame = new Map();
+  for (const r of rows) {
+    if (!r.game_code) continue;
+    const arr = byGame.get(r.game_code) || [];
+    arr.push(r);
+    byGame.set(r.game_code, arr);
+  }
+  for (const [, pair] of byGame) {
+    const home = pair.find((p) => p.is_home === true) || pair[1] || pair[0];
+    const away = pair.find((p) => p.is_home === false) || pair[0];
+    if (!home || !away) continue;
+    const key = `${away.team}|${home.team}`;
+    idx.set(key, { home, away });
+    idx.set(key.toLowerCase(), { home, away });
+    // Also index by last-word pairs (e.g., "Phillies|Braves") since
+    // ESPN uses full names but VSiN sometimes uses short names.
+    const a2 = lastWord(away.team);
+    const h2 = lastWord(home.team);
+    if (a2 && h2) {
+      idx.set(`${a2}|${h2}`, { home, away });
+      idx.set(`${a2}|${h2}`.toLowerCase(), { home, away });
+    }
+  }
+  return idx;
+}
+function lastWord(s) {
+  if (!s) return '';
+  const parts = String(s).trim().split(/\s+/);
+  return parts[parts.length - 1];
+}
+
 function indexLiveEvents(events) {
   const idx = new Map();
   for (const ev of events || []) {
@@ -133,6 +189,8 @@ export default function LinesRoute() {
   const { games, loading } = useEspnScoreboard();
   const [sport, setSport] = useState('mlb'); // default to in-season sport
   const live = useLiveOdds(sport);
+  const consensusRows = useConsensusPicks(sport);
+  const consensusIdx = useMemo(() => indexConsensusByGame(consensusRows), [consensusRows]);
 
   const sportConfig = SPORTS.find((s) => s.k === sport);
   const useEspnMerge = !!sportConfig?.espn && sport !== 'all' || sport === 'all';
@@ -212,6 +270,12 @@ export default function LinesRoute() {
 
       {gamesToRender.map((g) => {
         const liveEv = liveOnlyMode ? g._live : (usingLive ? findLiveEventForGame(liveIdx, g) : null);
+        const awayName = liveEv?.away || g.away?.name;
+        const homeName = liveEv?.home || g.home?.name;
+        const consensus = consensusIdx.get(`${awayName}|${homeName}`)
+          || consensusIdx.get(`${awayName}|${homeName}`.toLowerCase())
+          || consensusIdx.get(`${lastWord(awayName)}|${lastWord(homeName)}`)
+          || null;
         const books = liveEv
           ? FALLBACK_BOOKS.map((b) => {
               const lb = liveEv.books?.find((x) => x.key === b.key);
@@ -278,6 +342,31 @@ export default function LinesRoute() {
                   <td className="lines-market">ML away</td>
                   {mlsAway.map((c) => <td key={c.book.id} className="lines-cell">{fmtPrice(c.val)}</td>)}
                 </tr>
+                {consensus && (
+                  <tr>
+                    <td className="lines-market" style={{ color: 'var(--gold)' }}>Consensus picks</td>
+                    <td className="lines-cell" colSpan={books.length} style={{ textAlign: 'left', paddingLeft: 14, color: 'var(--ink)', fontSize: 13 }}>
+                      {consensus.home?.spread_bet_pct != null && consensus.away?.spread_bet_pct != null && (
+                        <span style={{ marginRight: 18 }}>
+                          Spread: <strong>{consensus.away.spread_bet_pct}%</strong> {g.away?.abbr} ·{' '}
+                          <strong>{consensus.home.spread_bet_pct}%</strong> {g.home?.abbr}
+                        </span>
+                      )}
+                      {consensus.home?.total_bet_pct != null && consensus.away?.total_bet_pct != null && (
+                        <span style={{ marginRight: 18 }}>
+                          Total: <strong>{Math.max(consensus.home.total_bet_pct, consensus.away.total_bet_pct)}%</strong> O ·{' '}
+                          <strong>{Math.min(consensus.home.total_bet_pct, consensus.away.total_bet_pct)}%</strong> U
+                        </span>
+                      )}
+                      {consensus.home?.ml_bet_pct != null && consensus.away?.ml_bet_pct != null && (
+                        <span>
+                          ML: <strong>{consensus.away.ml_bet_pct}%</strong> {g.away?.abbr} ·{' '}
+                          <strong>{consensus.home.ml_bet_pct}%</strong> {g.home?.abbr}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

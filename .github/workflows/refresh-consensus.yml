@@ -1,0 +1,28 @@
+name: Refresh Consensus
+
+# Daily public-betting splits refresh (VSiN scrape).
+# Runs at 8am Eastern. Cron in UTC: 13:00 covers 8am EST (winter).
+# Eastern Daylight (summer) is UTC-4 so this fires at 9am ET — close
+# enough; we don't need split-second timing for daily data.
+#
+# Required GitHub repo secrets:
+#   VERCEL_DEPLOY_URL  (e.g. https://lockstreet.vercel.app)
+#   CRON_SECRET        (matches Vercel env var of the same name)
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:  # manual trigger from the Actions tab
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit /api/refresh-consensus
+        run: |
+          set -e
+          response=$(curl --silent --show-error --fail \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.VERCEL_DEPLOY_URL }}/api/refresh-consensus")
+          echo "Response: $response"
