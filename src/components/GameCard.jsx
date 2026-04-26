@@ -113,21 +113,17 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0, hideLeag
           {move &&   <span className="pill move"><span className="k">MOVE</span>{move}</span>}
         </div>
 
-        <div className="pick">
-          <div className="pick-label">Lock Street {pick?.visibility === 'public' ? 'Free Pick' : 'Pick'}</div>
-          {pick ? (
-            <>
-              <div className="pick-side">{pick.side}</div>
-              <div className="pick-units">{pick.units} units</div>
-              {pick.result && pick.result !== 'pending' && (
-                <span className={`pick-result-badge ${pick.result}`}>{pick.result}</span>
-              )}
-              {!pickUnlocked && <PickLockOverlay />}
-            </>
-          ) : (
-            <div className="pick-units" style={{ color: 'var(--ink-faint)' }}>No pick on this game</div>
-          )}
-        </div>
+        {pick && (
+          <div className="pick">
+            <div className="pick-label">Lock Street {pick.visibility === 'public' ? 'Free Pick' : 'Pick'}</div>
+            <div className="pick-side">{pick.side}</div>
+            <div className="pick-units">{pick.units} units</div>
+            {pick.result && pick.result !== 'pending' && (
+              <span className={`pick-result-badge ${pick.result}`}>{pick.result}</span>
+            )}
+            {!pickUnlocked && <PickLockOverlay />}
+          </div>
+        )}
       </article>
     </Link>
   );
