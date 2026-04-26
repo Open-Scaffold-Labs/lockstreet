@@ -7,7 +7,7 @@ import { TIERS } from '../lib/pricing.js';
  */
 export default function HomeRoute() {
   return (
-    <div className="home">
+    <div className="home route-syne">
       <section className="home-hero">
         <span className="hero-eyebrow">Premium NFL + CFB picks · subscribers only</span>
         <h1>“Be fearful when others are greedy.<br /><span className="accent">Be greedy when others are fearful.”</span></h1>
