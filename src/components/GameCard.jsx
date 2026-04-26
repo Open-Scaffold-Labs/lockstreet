@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import TeamOrb from './TeamOrb.jsx';
 import PickLockOverlay from './PickLockOverlay.jsx';
 
@@ -97,37 +98,39 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
   }
 
   return (
-    <article className="card" style={{ animationDelay: `${delay}s` }}>
-      <div className="card-top">
-        <span className={`lg-badge ${league}`}>{league.toUpperCase()}</span>
-        <span className="wk">{week}</span>
-        {stateEl}
-      </div>
-      <div className="teams">
-        <TeamRow team={away} score={score?.away} side={aSide} showScore={showScore} />
-        <TeamRow team={home} score={score?.home} side={hSide} showScore={showScore} />
-      </div>
-      <div className="lines">
-        {spread && <span className="pill"><span className="k">SPREAD</span>{spread}</span>}
-        {ou &&     <span className="pill"><span className="k">O/U</span>{ou}</span>}
-        {move &&   <span className="pill move"><span className="k">MOVE</span>{move}</span>}
-      </div>
+    <Link to={`/game/${league}/${game.id}`} className="card-link" style={{ animationDelay: `${delay}s` }}>
+      <article className="card">
+        <div className="card-top">
+          <span className={`lg-badge ${league}`}>{league.toUpperCase()}</span>
+          <span className="wk">{week}</span>
+          {stateEl}
+        </div>
+        <div className="teams">
+          <TeamRow team={away} score={score?.away} side={aSide} showScore={showScore} />
+          <TeamRow team={home} score={score?.home} side={hSide} showScore={showScore} />
+        </div>
+        <div className="lines">
+          {spread && <span className="pill"><span className="k">SPREAD</span>{spread}</span>}
+          {ou &&     <span className="pill"><span className="k">O/U</span>{ou}</span>}
+          {move &&   <span className="pill move"><span className="k">MOVE</span>{move}</span>}
+        </div>
 
-      <div className="pick">
-        <div className="pick-label">Lock Street Pick</div>
-        {pick ? (
-          <>
-            <div className="pick-side">{pick.side}</div>
-            <div className="pick-units">
-              {pick.units} units · {status === 'upcoming' ? 'drops at kickoff' : 'locked in'}
-            </div>
-            <TailBadge gameId={game.id} />
-            {!pickUnlocked && <PickLockOverlay />}
-          </>
-        ) : (
-          <div className="pick-units" style={{ color: 'var(--ink-faint)' }}>No pick on this game</div>
-        )}
-      </div>
-    </article>
+        <div className="pick">
+          <div className="pick-label">Lock Street Pick</div>
+          {pick ? (
+            <>
+              <div className="pick-side">{pick.side}</div>
+              <div className="pick-units">
+                {pick.units} units · {status === 'upcoming' ? 'drops at kickoff' : 'locked in'}
+              </div>
+              <TailBadge gameId={game.id} />
+              {!pickUnlocked && <PickLockOverlay />}
+            </>
+          ) : (
+            <div className="pick-units" style={{ color: 'var(--ink-faint)' }}>No pick on this game</div>
+          )}
+        </div>
+      </article>
+    </Link>
   );
 }

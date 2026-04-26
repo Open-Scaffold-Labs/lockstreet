@@ -78,6 +78,76 @@ body {
 .gopro:hover { transform: translateY(-1px); }
 .gopro.active { background: var(--green); color: #062e15; }
 
+/* ----- Game detail page (/game/:league/:id) ----- */
+.gd { display: flex; flex-direction: column; gap: 18px; }
+.gd-back {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-dim); text-decoration: none;
+  align-self: flex-start;
+}
+.gd-back:hover { color: var(--gold); }
+
+.gd-header {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px;
+  align-items: center;
+  padding: 18px 14px; background: linear-gradient(160deg, #141114, #0a0a0a);
+  border: 1px solid var(--border); border-radius: 14px;
+}
+.gd-team { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.gd-team-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.gd-team-record { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); }
+.gd-team-score { font-family: var(--disp); font-weight: 800; font-size: 44px; color: var(--ink); line-height: 1; }
+.gd-status { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 90px; }
+.gd-status-line { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
+.gd-live-dot { font-family: var(--mono); font-size: 11px; color: var(--orange); letter-spacing: 0.1em; }
+
+.gd-section { padding: 14px 12px; background: linear-gradient(160deg, #141114, #0a0a0a);
+  border: 1px solid var(--border); border-radius: 12px; }
+.gd-h3 { margin: 0 0 12px; font-family: var(--disp); font-size: 14px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--orange); }
+
+/* Top fantasy performers */
+.gd-fantasy-grid { display: flex; flex-direction: column; gap: 8px; }
+.gd-fantasy-card {
+  display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center;
+  padding: 10px 12px;
+  background: rgba(192, 132, 252, 0.04);
+  border: 1px solid rgba(192, 132, 252, 0.18); border-radius: 8px;
+}
+.gd-fantasy-card:first-child { background: rgba(255, 128, 0, 0.06); border-color: rgba(255, 128, 0, 0.4); }
+.gd-fantasy-rank { font-family: var(--mono); font-size: 14px; color: var(--orange); text-align: center; font-weight: 700; }
+.gd-fantasy-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gd-fantasy-name { font-weight: 700; font-size: 14px; }
+.gd-fantasy-meta { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 0.05em; }
+.gd-fantasy-line { font-size: 12px; color: var(--ink-dim); }
+.gd-fantasy-pts { display: flex; flex-direction: column; align-items: flex-end; gap: 0; }
+.gd-fantasy-pts span { font-family: var(--disp); font-weight: 800; font-size: 22px; color: var(--orange); line-height: 1; }
+.gd-fantasy-pts em { font-family: var(--mono); font-size: 9px; color: var(--ink-faint); font-style: normal; letter-spacing: 0.1em; margin-top: 2px; }
+.gd-fantasy-note { font-size: 11px; color: var(--ink-faint); margin: 10px 0 0; font-style: italic; }
+
+/* Per-team player tables */
+.gd-player-list { display: flex; flex-direction: column; gap: 4px; }
+.gd-player-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px; padding: 8px 10px;
+  border-radius: 6px; background: rgba(255, 255, 255, 0.02);
+}
+.gd-player-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gd-player-info strong { font-size: 13px; font-weight: 700; }
+.gd-player-pos { font-family: var(--mono); font-size: 9px; color: var(--ink-faint); letter-spacing: 0.06em; }
+.gd-player-stats { grid-column: 1 / -1; font-size: 12px; color: var(--ink-dim); }
+.gd-player-fp { font-family: var(--disp); font-weight: 800; font-size: 16px; color: var(--orange); align-self: center; }
+
+/* Make game cards on /scores feel clickable */
+.card-link { display: block; text-decoration: none; color: inherit; transition: transform .12s ease; }
+.card-link:hover { transform: translateY(-2px); }
+
+/* Desktop: side-by-side player layout */
+@media (min-width: 700px) {
+  .gd-player-row { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 14px; }
+  .gd-player-stats { grid-column: auto; }
+}
+
 /* ----- Date tab on /scores ----- */
 .date-tab {
   display: flex; align-items: center; justify-content: center;
