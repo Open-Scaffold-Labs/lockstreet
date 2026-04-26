@@ -11,7 +11,6 @@ export default function HomeRoute() {
       <section className="home-hero">
         <span className="hero-eyebrow">Premium NFL + CFB picks · subscribers only</span>
         <h1>“Be fearful when others are greedy.<br /><span className="accent">Be greedy when others are fearful.”</span></h1>
-        <p className="hero-attribution">— Warren Buffett</p>
         <p>
           4 NFL + 4 college picks against the spread, every week.
           Locked until kickoff, never made public. The same handicap that won

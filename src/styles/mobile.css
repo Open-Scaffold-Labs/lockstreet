@@ -5,12 +5,22 @@
 
 @media (max-width: 600px) {
   body {
-    /* Respect iPhone notch / safe areas */
-    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    /* Safe-area: keep horizontal + bottom padding, but DROP top padding
+       because the now-fixed header handles the notch area itself. */
+    padding: 0 env(safe-area-inset-right)
              env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 
-  /* ----- Header ----- */
+  /* ----- Header (mobile) -----
+     position: sticky was failing on iOS Safari (the body's safe-area-inset-top
+     padding was breaking the sticky containing block). Switch to fixed on
+     mobile only — desktop keeps sticky which works fine there. */
+  .hdr {
+    position: fixed; top: 0; left: 0; right: 0;
+    /* Header eats the notch area itself so it appears flush to the top edge. */
+    padding-top: env(safe-area-inset-top);
+    background: rgba(0, 0, 0, 0.85);
+  }
   .hdr-row { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
   .brand { font-size: 20px; gap: 6px; }
   .badge-ats { font-size: 9px; padding: 2px 5px; }
@@ -28,8 +38,12 @@
   .tabs { padding: 0 8px; gap: 0; }
   .tab { font-size: 11px; padding: 12px 10px; letter-spacing: 0.04em; }
 
-  /* ----- Layout ----- */
-  .wrap { padding: 14px 12px 60px; }
+  /* ----- Layout (mobile) -----
+     Top padding compensates for the now-fixed .hdr. The header is roughly
+     ~110px (brand row + tagline row + tabs row) plus the notch (which the
+     header swallows via its own padding-top: env(safe-area-inset-top)).
+     calc() lets it stretch on phones with bigger notches. */
+  .wrap { padding: calc(120px + env(safe-area-inset-top)) 12px 60px; }
 
   /* ----- Cards / grids ----- */
   .grid { grid-template-columns: 1fr; gap: 10px; }
