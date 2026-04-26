@@ -119,6 +119,9 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
             <>
               <div className="pick-side">{pick.side}</div>
               <div className="pick-units">{pick.units} units</div>
+              {pick.result && pick.result !== 'pending' && (
+                <span className={`pick-result-badge ${pick.result}`}>{pick.result}</span>
+              )}
               {!pickUnlocked && <PickLockOverlay />}
             </>
           ) : (

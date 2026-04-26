@@ -19,7 +19,7 @@ export function usePicks() {
     try {
       const { data, error } = await supabase
         .from('picks')
-        .select('id, game_id, league, season, week, side, units, reasoning, visibility, result, posted_at, locks_at, home_abbr, away_abbr, home_logo, away_logo, spread_home, total_taken, ml_home, ml_away')
+        .select('id, game_id, league, season, week, side, units, reasoning, visibility, result, posted_at, locks_at, graded_at, home_abbr, away_abbr, home_logo, away_logo, spread_home, total_taken, ml_home, ml_away')
         .order('posted_at', { ascending: false });
       if (error) throw error;
       const byId = {};
@@ -37,6 +37,7 @@ export function usePicks() {
           result: p.result,
           postedAt: p.posted_at,
           locksAt: p.locks_at,
+          gradedAt: p.graded_at,
           homeAbbr:   p.home_abbr,
           awayAbbr:   p.away_abbr,
           homeLogo:   p.home_logo,

@@ -7,28 +7,27 @@ import { isFootballOffSeason, nextSeasonStart, daysUntil } from '../lib/offseaso
 import GameCard from '../components/GameCard.jsx';
 import { SkeletonCardGrid } from '../components/Skeleton.jsx';
 
+// Closed picks linger on /picks for 6 days after the game graded, then drop off.
+const CLOSED_TTL_MS = 6 * 24 * 60 * 60 * 1000;
+
+function isOpen(p)   { return p.result === 'pending'; }
+function isClosed(p) {
+  if (p.result === 'pending') return false;
+  if (!p.gradedAt) return true; // graded with no timestamp -- keep showing for now
+  return Date.now() - new Date(p.gradedAt).getTime() < CLOSED_TTL_MS;
+}
+
 export default function PicksRoute() {
   const { games, loading } = useEspnScoreboard();
   const { picks, loading: picksLoading } = usePicks();
   const sub = useSubscription();
 
-  const [q, setQ]            = useState('');
-  const [league, setLeague]  = useState('all');     // all | nfl | cfb | mlb | nba | nhl
-  const [result, setResult]  = useState('all');     // all | win | loss | push | pending
-  const [vis, setVis]        = useState('all');     // all | public | paid
+  const [view, setView] = useState('open'); // 'open' | 'closed'
 
   const allPicks = useMemo(() => Object.values(picks), [picks]);
-
-  const filteredPicks = useMemo(() => {
-    return allPicks.filter((p) => {
-      if (league !== 'all' && p.league !== league) return false;
-      if (result !== 'all' && p.result !== result) return false;
-      if (vis    !== 'all' && p.visibility !== vis) return false;
-      if (q && !p.side?.toLowerCase().includes(q.toLowerCase())
-            && !p.reasoning?.toLowerCase().includes(q.toLowerCase())) return false;
-      return true;
-    });
-  }, [allPicks, league, result, vis, q]);
+  const openPicks   = useMemo(() => allPicks.filter(isOpen),   [allPicks]);
+  const closedPicks = useMemo(() => allPicks.filter(isClosed), [allPicks]);
+  const filteredPicks = view === 'open' ? openPicks : closedPicks;
 
   // Match filtered picks to ESPN games (so we can render GameCard).
   // When the live ESPN scoreboard has the game, merge: keep ESPN's score/status,
@@ -63,15 +62,14 @@ export default function PicksRoute() {
   return (
     <section>
       <SystemInfoBanner games={games} />
-      <PicksFilterBar
-        q={q} setQ={setQ}
-        league={league} setLeague={setLeague}
-        result={result} setResult={setResult}
-        vis={vis} setVis={setVis}
-        total={allPicks.length} shown={filteredPicks.length}
+      <PicksTabs
+        view={view} setView={setView}
+        openCount={openPicks.length} closedCount={closedPicks.length}
       />
       {cards.length === 0 ? (
-        <div className="empty">No picks match those filters.</div>
+        <div className="empty">
+          {view === 'open' ? 'No open picks right now.' : 'No closed picks in the last 6 days.'}
+        </div>
       ) : (
         <div className="grid">
           {cards.map(({ game, pick }, i) => (
@@ -182,43 +180,25 @@ function PicksEmptyState() {
 }
 
 
-function PicksFilterBar({ q, setQ, league, setLeague, result, setResult, vis, setVis, total, shown }) {
-  const Btn = ({ active, onClick, children }) => (
-    <button onClick={onClick} className={'filter-btn' + (active ? ' active' : '')}>{children}</button>
-  );
+/** Open / Closed tab nav for /picks. Open = pending; Closed = graded picks
+ *  inside the 6-day display window (older closed picks are filtered out). */
+function PicksTabs({ view, setView, openCount, closedCount }) {
   return (
-    <div className="picks-filter">
-      <input
-        className="picks-search"
-        type="search" value={q} onChange={(e) => setQ(e.target.value)}
-        placeholder={`Search ${total} picks (team, side, reasoning)...`}
-      />
-      <div className="picks-filter-row">
-        <div className="picks-filter-group">
-          <span className="picks-filter-label">League</span>
-          <Btn active={league === 'all'} onClick={() => setLeague('all')}>All</Btn>
-          <Btn active={league === 'nfl'} onClick={() => setLeague('nfl')}>NFL</Btn>
-          <Btn active={league === 'cfb'} onClick={() => setLeague('cfb')}>CFB</Btn>
-          <Btn active={league === 'mlb'} onClick={() => setLeague('mlb')}>MLB</Btn>
-          <Btn active={league === 'nba'} onClick={() => setLeague('nba')}>NBA</Btn>
-          <Btn active={league === 'nhl'} onClick={() => setLeague('nhl')}>NHL</Btn>
-        </div>
-        <div className="picks-filter-group">
-          <span className="picks-filter-label">Result</span>
-          <Btn active={result === 'all'}     onClick={() => setResult('all')}>All</Btn>
-          <Btn active={result === 'pending'} onClick={() => setResult('pending')}>Pending</Btn>
-          <Btn active={result === 'win'}     onClick={() => setResult('win')}>Win</Btn>
-          <Btn active={result === 'loss'}    onClick={() => setResult('loss')}>Loss</Btn>
-          <Btn active={result === 'push'}    onClick={() => setResult('push')}>Push</Btn>
-        </div>
-        <div className="picks-filter-group">
-          <span className="picks-filter-label">Tier</span>
-          <Btn active={vis === 'all'}    onClick={() => setVis('all')}>All</Btn>
-          <Btn active={vis === 'public'} onClick={() => setVis('public')}>Free</Btn>
-          <Btn active={vis === 'paid'}   onClick={() => setVis('paid')}>Paid</Btn>
-        </div>
-      </div>
-      <div className="picks-filter-count">{shown} of {total} picks</div>
+    <div className="picks-tabs">
+      <button
+        type="button"
+        className={'picks-tab' + (view === 'open' ? ' active' : '')}
+        onClick={() => setView('open')}
+      >
+        Open <span className="picks-tab-count">{openCount}</span>
+      </button>
+      <button
+        type="button"
+        className={'picks-tab' + (view === 'closed' ? ' active' : '')}
+        onClick={() => setView('closed')}
+      >
+        Closed <span className="picks-tab-count">{closedCount}</span>
+      </button>
     </div>
   );
 }
