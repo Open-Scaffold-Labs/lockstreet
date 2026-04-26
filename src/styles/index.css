@@ -9,8 +9,11 @@
   --bg-2: #0a0a0a;
   --bg-3: #141114;
   --ink: #f4eeff;
-  --ink-dim: #9a8fb3;
-  --ink-faint: #5a4f6f;
+  /* All gray text upgraded to white — every rule that references --ink-dim
+     or --ink-faint now reads in full ink color. Visual hierarchy comes from
+     size/weight/spacing rather than color desaturation. */
+  --ink-dim: #f4eeff;
+  --ink-faint: #f4eeff;
   /* Primary brand accent — neon purple. The legacy --gold variable is
      re-aliased to purple so existing rules don't need to change. */
   --gold: #c084fc;

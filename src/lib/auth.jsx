@@ -111,7 +111,7 @@ export function UserButton() {
       </button>
       {open && (
         <div style={{ position:'absolute', right:0, top:38, background:'#0f172a', border:'1px solid rgba(192, 132, 252, 0.35)', borderRadius:8, padding:8, minWidth:160, zIndex:10 }}>
-          <div style={{ padding:'6px 8px', fontSize:12, color:'#94a3b8' }}>{user?.primaryEmailAddress?.emailAddress}</div>
+          <div style={{ padding:'6px 8px', fontSize:12, color:'#f4eeff' }}>{user?.primaryEmailAddress?.emailAddress}</div>
           <button type="button" onClick={signOut} style={{ width:'100%', padding:'6px 8px', background:'transparent', border:'none', color:'#fff', textAlign:'left', cursor:'pointer' }}>Sign out</button>
         </div>
       )}
