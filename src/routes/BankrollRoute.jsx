@@ -206,9 +206,9 @@ function BankrollChart({ series }) {
       },
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: '#f4eeff', font: { size: 10 } } },
+      x: { grid: { display: false }, ticks: { color: '#5a4f6f', font: { size: 10 } } },
       y: { grid: { color: 'rgba(255,255,255,0.04)' },
-           ticks: { color: '#f4eeff', font: { size: 10 }, callback: (v) => (v >= 0 ? '+' : '') + '$' + v } },
+           ticks: { color: '#5a4f6f', font: { size: 10 }, callback: (v) => (v >= 0 ? '+' : '') + '$' + v } },
     },
   };
   return <div style={{ height: 220 }}><Line data={data} options={options} /></div>;

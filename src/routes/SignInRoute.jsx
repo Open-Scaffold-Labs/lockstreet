@@ -59,7 +59,7 @@ export default function SignInRoute() {
           {busy ? 'Working...' : (mode === 'signin' ? 'Sign in' : 'Sign up')}
         </button>
         <button type="button" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setErr(null); setInfo(null); }}
-          style={{ background: 'transparent', border: 'none', color: '#f4eeff', fontSize: 12, cursor: 'pointer' }}>
+          style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer' }}>
           {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
         </button>
       </form>

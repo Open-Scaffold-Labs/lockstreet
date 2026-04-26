@@ -95,9 +95,9 @@ export default function TrackRecordChart({ data = SAMPLE, isSample = true }) {
       },
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: '#f4eeff', font: { size: 10 } } },
+      x: { grid: { display: false }, ticks: { color: '#5a4f6f', font: { size: 10 } } },
       y: { grid: { color: 'rgba(255,255,255,0.04)' },
-           ticks: { color: '#f4eeff', font: { size: 10 }, callback: (v) => (v >= 0 ? '+' : '') + v + 'u' },
+           ticks: { color: '#5a4f6f', font: { size: 10 }, callback: (v) => (v >= 0 ? '+' : '') + v + 'u' },
            suggestedMin: Math.floor(min - 2), suggestedMax: Math.ceil(max + 2) },
     },
     animation: { duration: 900, easing: 'easeOutQuart' },

@@ -54,14 +54,14 @@ export default function RecordRoute() {
       options: {
         responsive: true, maintainAspectRatio: false,
         scales: {
-          y:  { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#f4eeff' } },
+          y:  { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9a8fb3' } },
           y2: { position: 'right', grid: { display: false }, ticks: { color: '#cc7733', callback: (v) => '+' + v + 'u' } },
-          x:  { grid: { display: false }, ticks: { color: '#f4eeff' } },
+          x:  { grid: { display: false }, ticks: { color: '#9a8fb3' } },
         },
         plugins: {
           legend: { labels: { color: '#f4eeff' } },
           tooltip: { backgroundColor: '#0a0a0a', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
-            titleColor: '#f4eeff', bodyColor: '#f4eeff' },
+            titleColor: '#f4eeff', bodyColor: '#9a8fb3' },
         },
       },
     });
