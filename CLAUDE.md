@@ -203,30 +203,34 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 ---
 
-## Current state (as of 2026-04-25)
+## Current state (as of 2026-04-26)
 
 ### ✅ Working / done
 
-- Frontend: landing page, /scores (ESPN data + off-season banner), /picks (marketing empty state when no picks), /about (Track Record), /subscribe (3 tiers), /sign-in (custom form), /admin scaffolded.
-- Backend (code only — not running until `vercel dev` or deploy): all `/api/*` routes migrated from `@vercel/kv` to Supabase tables.
-- Database: 3 tables created in Supabase with RLS.
-- Auth: confirmed working via direct API. Email confirmation **disabled** in Auth settings for dev convenience — re-enable before launch.
-- PWA: manifest, all icons, iOS meta tags, mobile.css overrides, InstallPrompt component.
-- Test admin user: `lockstreet.matt.test@gmail.com` (password `TestLockMatt2026!`) — promoted to admin via SQL.
-- VAPID push keys: generated and stored in `.env.local`.
-- Odds infra: `api/odds.js` + `api/odds-props.js` server proxies, `/lines` and `/props` consume live data with mock fallback. Needs `ODDS_API_KEY` to go live.
-- GitHub: pushed to `main` branch. Latest commit: see `git log`.
+- **Deployed live: https://lockstreet.vercel.app** (Vercel Hobby, free, repo went public on GitHub to satisfy Hobby tier rule).
+- Frontend: landing page (Buffett quote hero), /scores (ESPN data + date tab + off-season banner + projected NFL schedule notice), /picks, /about (Track Record), /subscribe (3 tiers), /sign-in, /admin (with contest panel), /lines (live odds + Action-Network-fail-safe consensus), /props (live MLB/NBA props during football off-season), /bankroll, /contest, /leaderboard, /weekly, **/game/:league/:gameId** (new — game detail with live fantasy scoring).
+- Year-round support: ESPN integration covers NFL/CFB/MLB/NBA/NHL. /scores filter buttons for all 5. GamePicker supports date-driven sports.
+- **Brand rebrand:** pure black bg, neon purple primary (`#c084fc`), neon orange `#ff8000` accent (eyebrows, big stat numbers, hero accent, league badges). All borders purple. Scrollbars hidden. Buffett quote on hero/header/footer.
+- Database: 6 tables in Supabase with RLS — picks, subscriptions, push_subscriptions, bets, contests, contest_entries, contest_picks, consensus_picks. Bankroll view security_invoker fix applied.
+- Auth: working. Email confirmation disabled in Auth settings for dev — **re-enable before launch.**
+- PWA: manifest (`#000000` theme), icons, iOS meta, mobile.css, InstallPrompt.
+- Test admin: `lockstreet.matt.test@gmail.com` / `TestLockMatt2026!` promoted to admin.
+- All env vars set in Vercel: VITE_SUPABASE_URL/ANON_KEY, SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY, VITE_VAPID_*, VAPID_PRIVATE_KEY, VAPID_SUBJECT, ADMIN_PASSWORD, ODDS_API_KEY, CRON_SECRET, VITE_APP_URL, APP_URL.
+- GitHub Actions cron: `refresh-consensus.yml` runs daily at 8am ET via VSiN scrape → `consensus_picks` table → /lines renders the row. CRON_SECRET + VERCEL_DEPLOY_URL in GitHub repo secrets.
+- Game detail page: /game/:league/:gameId pulls ESPN summary, computes fantasy points client-side (PPR football, DK-style elsewhere), shows Top Fantasy Performers + per-team player tables. 30s polling for live games. Mobile-first.
+- Date tab on /scores: ◀ / ▶ shifts ±1 day, max ±7 days from today. Auto-hides for NFL/CFB during off-season.
+- Removed: /parlay route (deemed not useful at top level).
 
 ### ⚠ Open / next-up
 
-- **Stripe wiring** — need real keys + 3 Price IDs. Subscription flow won't work without them.
-- **Odds API key** — sign up at https://the-odds-api.com (free), drop into `ODDS_API_KEY` in Vercel env + `.env.local` for `vercel dev`. Until then `/lines` and `/props` show sample data.
-- `SUPABASE_SERVICE_ROLE_KEY` — needed in `.env.local` for `api/stripe-webhook.js` and `api/send-notifications.js` to bypass RLS for server work.
-- `vercel dev` — set up to run /api/\* locally (or just deploy and test against deployed URL).
-- **Real admin user** — Matt should sign up via the form with his real email; promote that user to admin via the same SQL pattern, then we can delete the test user.
-- **First real picks** — once admin can post via /admin, add a test pick to validate the full pipeline.
-- **Real on-device PWA test** — `http://192.168.1.119:5174` from an iPhone on the same wifi to confirm install + look. Push notifications need HTTPS so won't work locally — wait for deploy.
-- **Mobile app (Step 2 of plan)** — pre-season (July/Aug 2026), build React Native via Expo using "reader app" pattern (subscriptions on web, content viewer on native).
+- **Service-role key rotation** — Supabase service-role JWT was pasted in chat during setup. Rotate via Supabase → Settings → Data API → "Reset service_role secret", update Vercel env, redeploy. 30-second task.
+- **Stripe wiring** — still need real keys + 3 Price IDs. Subscription flow won't work without them.
+- **Real admin user** — Matt should sign up via the form with his real email; promote that user to admin via the same SQL pattern, then delete the test user.
+- **First real picks** — once admin posts via /admin, validate the full pipeline (RLS gating, push notifications, weekly email).
+- **On-device PWA test** — visit lockstreet.vercel.app on phone, "Add to Home Screen", confirm install + look. Push notifications now work since HTTPS is live.
+- **Re-enable Supabase email confirmation** before launch (Auth → Providers → Email).
+- **Set Site URL in Supabase** to `https://lockstreet.vercel.app` so password-reset emails redirect correctly.
+- **Mobile app (Step 2 of plan)** — pre-season (July/Aug 2026), build React Native via Expo using "reader app" pattern.
 
 ### 📦 Cleanup pending (not urgent)
 
@@ -237,7 +241,9 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 ## Conventions
 
-- Dark theme. Gold accent (`--gold: #fbbf24`). Display font Syne, mono JetBrains Mono.
+- Pure black background (`--bg: #000000`). Neon purple primary (`--gold: #c084fc` — variable kept as `--gold` for backward-compat, value is purple). Neon orange accent (`--orange: #ff8000`) for stat numbers / eyebrows / hero / league badges. Display font Syne, mono JetBrains Mono. All borders purple. Scrollbars hidden globally.
+- **Slogan:** "Be fearful when others are greedy. Be greedy when others are fearful." — Warren Buffett. Lives on hero h1, header tagline, footer, meta description.
+- "Two generations. One system." stays on /about as the brand-narrative line — that's the Matt+Shawn story, separate from the positioning slogan.
 - All money/cost mentions link to the corresponding pricing tier or webhook event for traceability.
 - Disclaimers always include "1-800-GAMBLER" line.
 - About page is the credibility anchor — when in doubt about voice, match its tone (concrete, receipt-driven, no overclaiming).
