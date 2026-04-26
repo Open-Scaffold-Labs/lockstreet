@@ -27,7 +27,6 @@ export default function Header() {
           <span className="b1">Lock</span>
           <span className="b2">Street</span>
         </Link>
-        <span className="tagline">“Be fearful when others are greedy. Be greedy when others are fearful.”</span>
         <div className="spacer" />
 
         <SignedOut>

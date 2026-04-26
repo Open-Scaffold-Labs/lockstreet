@@ -121,8 +121,8 @@ body {
   border-bottom: 1px solid var(--border); }
 .route-syne { font-family: var(--disp); }
 .hdr-row { display: flex; align-items: center; gap: 18px; padding: 14px 22px; max-width: 1180px; margin: 0 auto; }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 32px;
-  letter-spacing: -0.01em; text-decoration: none; text-transform: uppercase;
+.brand { display: flex; align-items: center; gap: 6px; font-weight: 900; font-size: 40px;
+  letter-spacing: -0.02em; text-decoration: none; text-transform: uppercase;
   /* Tighter line-height keeps the row from growing taller when font-size
      grows — preserves the original placement of every other header item. */
   line-height: 1; }
