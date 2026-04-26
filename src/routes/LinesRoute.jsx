@@ -363,7 +363,7 @@ export default function LinesRoute() {
 
       <p className="footnote-disclaimer" style={{ maxWidth: 600 }}>
         {usingLive
-          ? 'Live odds via The Odds API. Public splits via Action Network. Both server-cached 24h.'
+          ? 'Live odds via The Odds API (server-cached 24h to conserve free-tier quota).'
           : 'Sample lines (ESPN consensus + deterministic jitter). Football off-season → no live data; switch to MLB/NBA/NHL to see live multi-book lines.'}
       </p>
     </section>

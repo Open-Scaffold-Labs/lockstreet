@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
   try {
     const r = await fetch(`${AN_BASE}/${anLeague}`, {
-      headers: { 'User-Agent': 'LockStreet/1.0 (+https://lockstreet.vercel.app)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; node-fetch)' },
     });
     if (!r.ok) {
       return res.status(r.status).json({ error: `Action Network returned ${r.status}` });
