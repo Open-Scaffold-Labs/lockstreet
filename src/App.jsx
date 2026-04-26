@@ -23,6 +23,10 @@ import SignInRoute from './routes/SignInRoute.jsx';
 export default function App() {
   return (
     <ToastProvider>
+      {/* Centered ambient halo — sits above content backgrounds but below the
+          header, so the glow is consistently visible on every page (not just
+          ones where the body gradient happens to bleed through). */}
+      <div className="bg-halo" aria-hidden="true" />
       <Header />
       <main className="wrap">
         <Routes>

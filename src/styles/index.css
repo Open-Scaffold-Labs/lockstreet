@@ -53,11 +53,27 @@ body {
        wash in the upper middle.
      All layers pinned to the viewport via fixed attachment. */
   background:
+    /* Top-corner accents only — the centered halo now lives on .bg-halo
+       so it can sit above page content (cards/banners) and read consistently
+       on every route, not just ones where the page bg happens to be transparent. */
     radial-gradient(1200px 600px at 20% -10%, rgba(192, 132, 252, 0.07), transparent 60%),
     radial-gradient(900px 500px at 90% 10%, rgba(255, 128, 0, 0.05), transparent 60%),
-    radial-gradient(800px 420px at 50% 0%, rgba(192, 132, 252, 0.13), transparent 65%),
     var(--bg);
   background-attachment: fixed;
+}
+
+/* ----- Centered ambient halo -----
+   Fixed to the viewport so it always reads as a soft warm-white wash in the
+   middle of whatever the user is looking at. z-index: 1 sits above route
+   content (default z-index 0) but below the sticky header (z-index 50), so
+   the header stays crisp at the top. pointer-events: none so the halo never
+   intercepts clicks. */
+.bg-halo {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(900px 600px at 50% 50%, rgba(192, 132, 252, 0.13), transparent 65%);
 }
 
 /* Hide browser scrollbars across the whole app while keeping scroll behavior.
