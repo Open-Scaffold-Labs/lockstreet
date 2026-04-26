@@ -34,7 +34,10 @@
   --nfl: var(--orange);
   --cfb: var(--orange);
   --disp: 'Syne', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* --mono kept as a token for backward compat, but pointed at the Syne
+     display stack — JetBrains Mono made the app feel like a tech paper.
+     Stat numbers and labels now share the brand sans-serif tone. */
+  --mono: 'Syne', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
