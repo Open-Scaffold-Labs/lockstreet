@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { adminClient } from './_utils.js';
+import { sendEmail, emailLayout } from './_email.js';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
@@ -27,11 +28,38 @@ async function upsertSubscription(supa, payload) {
  * link via email + show it in-app (a notifications row). For now we just log it;
  * email/notification delivery is a follow-up once we wire SMTP/transactional email.
  */
-async function maybeSendDiscordInvite({ userId, tier }) {
+async function maybeSendDiscordInvite({ supa, userId, tier }) {
   const inviteUrl = process.env.DISCORD_INVITE_URL;
-  if (!inviteUrl || tier !== 'season') return;
-  console.log('[stripe-webhook] Discord invite for user', userId, '->', inviteUrl);
-  // TODO: insert into a `notifications` table or queue an email send.
+  if (!inviteUrl) return;
+  if (tier !== 'season') return; // Annual only
+
+  // Get the user's email
+  const { data, error } = await supa.auth.admin.getUserById(userId);
+  if (error || !data?.user?.email) {
+    console.warn('[stripe-webhook] Discord invite skipped: no email for user', userId);
+    return;
+  }
+
+  const html = emailLayout({
+    heading: 'Welcome to the Lock Street Discord',
+    body: `
+      <p>You're now an Annual subscriber — thanks for locking in.</p>
+      <p>Use the link below to join the private Discord server. This is where pick reasoning gets discussed in real time, line moves get flagged, and Sunday game-day threads run live.</p>
+      <p><strong>This link is for you. Don't share it.</strong> Re-uses are fine, but if you pass it around we'll regenerate.</p>
+    `.trim(),
+    ctaUrl: inviteUrl,
+    ctaLabel: 'Join Discord',
+    footnote: 'You are receiving this because you just subscribed to Lock Street Annual. Reply to this email if anything looks off.',
+  });
+
+  const result = await sendEmail({
+    to: data.user.email,
+    subject: 'Your private Discord access · Lock Street',
+    html,
+  });
+  if (!result.ok) {
+    console.error('[stripe-webhook] Discord invite email failed', result);
+  }
 }
 
 export default async function handler(req, res) {
@@ -63,7 +91,7 @@ export default async function handler(req, res) {
           tier,
           status:                 'active',
         });
-        await maybeSendDiscordInvite({ userId, tier });
+        await maybeSendDiscordInvite({ supa, userId, tier });
         break;
       }
       case 'customer.subscription.updated':

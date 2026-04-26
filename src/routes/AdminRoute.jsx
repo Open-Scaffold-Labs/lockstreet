@@ -36,6 +36,7 @@ function AdminInner() {
   const [picks, setPicks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [postOpen, setPostOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const loadPicks = useCallback(async () => {
     if (!supabase) return;
@@ -101,7 +102,10 @@ function AdminInner() {
             {picks.length}<span className="trc-final-sub">picks posted · <Link to="/picks" style={{ color: 'var(--gold)', textDecoration: 'underline' }}>view live at /picks →</Link></span>
           </div>
         </div>
-        <button className="btn-gold" onClick={() => setPostOpen(true)}>+ Post pick</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-ghost" onClick={() => setEmailOpen(true)}>Email subs</button>
+          <button className="btn-gold" onClick={() => setPostOpen(true)}>+ Post pick</button>
+        </div>
       </div>
 
       <div className="about-block">
@@ -146,7 +150,68 @@ function AdminInner() {
       </div>
 
       {postOpen && <PostPickModal onSave={handleSave} onCancel={() => setPostOpen(false)} />}
+      {emailOpen && <EmailSubsModal onCancel={() => setEmailOpen(false)} toast={toast} />}
     </>
+  );
+}
+
+function EmailSubsModal({ onCancel, toast }) {
+  const [subject, setSubject] = useState('Lock Street — this week\'s preview');
+  const [headline, setHeadline] = useState('');
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function send() {
+    setBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/send-weekly', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ subject, headline, body }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`);
+      toast(`Sent to ${j.sent}/${j.total} subscribers`, { type: 'success', duration: 5000 });
+      onCancel();
+    } catch (e) {
+      toast(e.message || 'Send failed', { type: 'error', duration: 6000 });
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="onboarding-overlay" onClick={(e) => e.target === e.currentTarget && onCancel()}>
+      <div className="onboarding-card lbf-card lbf-multi">
+        <button className="ob-skip" onClick={onCancel}>Cancel</button>
+        <div className="ob-eyebrow">Email blast · active subscribers only</div>
+        <h2 className="ob-title" style={{ fontSize: 22 }}>Weekly email</h2>
+        <p style={{ color: 'var(--ink-dim)', fontSize: 13, marginBottom: 12 }}>
+          Free users won't receive this. Goes only to users with active subscriptions.
+        </p>
+        <div className="lbf-form">
+          <label>Subject
+            <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject line" />
+          </label>
+          <label>Headline (in-email H1)
+            <input value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="Your week 5 picks are live" />
+          </label>
+          <label>Body (HTML allowed)
+            <textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)}
+              placeholder="<p>Quick preview of this week's slate...</p>"
+              style={{ padding: 10, borderRadius: 8, border: '1px solid var(--border-strong)', background: '#0a0e17', color: 'var(--ink)', fontFamily: 'var(--mono)', fontSize: 13, resize: 'vertical' }} />
+          </label>
+        </div>
+        <div className="ob-actions" style={{ marginTop: 12 }}>
+          <button className="btn-ghost" onClick={onCancel}>Cancel</button>
+          <button className="btn-gold" onClick={send} disabled={busy || !subject || !body}>
+            {busy ? 'Sending...' : 'Send to subscribers'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
