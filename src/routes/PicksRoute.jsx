@@ -12,7 +12,7 @@ export default function PicksRoute() {
   const sub = useSubscription();
 
   const [q, setQ]            = useState('');
-  const [league, setLeague]  = useState('all');     // all | nfl | cfb
+  const [league, setLeague]  = useState('all');     // all | nfl | cfb | mlb | nba | nhl
   const [result, setResult]  = useState('all');     // all | win | loss | push | pending
   const [vis, setVis]        = useState('all');     // all | public | paid
 
@@ -29,12 +29,30 @@ export default function PicksRoute() {
     });
   }, [allPicks, league, result, vis, q]);
 
-  // Match filtered picks to ESPN games (so we can render GameCard)
+  // Match filtered picks to ESPN games (so we can render GameCard).
+  // When the live ESPN scoreboard has the game, merge: keep ESPN's score/status,
+  // but prefer the pick's stored matchup snapshot for team logos and the
+  // SPREAD / O/U / ML pill row (so the card shows what was taken at post time,
+  // not the current/closing line).
   const cards = useMemo(() => {
-    return filteredPicks.map((p) => ({
-      pick: p,
-      game: games.find((g) => g.id === p.gameId) || synthesizeGame(p),
-    }));
+    return filteredPicks.map((p) => {
+      const live = games.find((g) => g.id === p.gameId);
+      const synth = synthesizeGame(p);
+      if (!live) return { pick: p, game: synth };
+      return {
+        pick: p,
+        game: {
+          ...live,
+          // Prefer pick snapshot for line pills + team identity
+          spread: synth.spread || live.spread,
+          ou:     synth.ou     || live.ou,
+          mlHome: p.mlHome ?? live.mlHome ?? null,
+          mlAway: p.mlAway ?? live.mlAway ?? null,
+          home: { ...live.home, ...(p.homeAbbr ? { abbr: p.homeAbbr } : {}), logo: live.home?.logo || p.homeLogo || null },
+          away: { ...live.away, ...(p.awayAbbr ? { abbr: p.awayAbbr } : {}), logo: live.away?.logo || p.awayLogo || null },
+        },
+      };
+    });
   }, [filteredPicks, games]);
 
   if (loading || picksLoading) return <SkeletonCardGrid count={6} />;
@@ -147,6 +165,9 @@ function PicksFilterBar({ q, setQ, league, setLeague, result, setResult, vis, se
           <Btn active={league === 'all'} onClick={() => setLeague('all')}>All</Btn>
           <Btn active={league === 'nfl'} onClick={() => setLeague('nfl')}>NFL</Btn>
           <Btn active={league === 'cfb'} onClick={() => setLeague('cfb')}>CFB</Btn>
+          <Btn active={league === 'mlb'} onClick={() => setLeague('mlb')}>MLB</Btn>
+          <Btn active={league === 'nba'} onClick={() => setLeague('nba')}>NBA</Btn>
+          <Btn active={league === 'nhl'} onClick={() => setLeague('nhl')}>NHL</Btn>
         </div>
         <div className="picks-filter-group">
           <span className="picks-filter-label">Result</span>
@@ -170,15 +191,31 @@ function PicksFilterBar({ q, setQ, league, setLeague, result, setResult, vis, se
 
 /** Build a minimal "game" object from a pick when ESPN's current scoreboard doesn't have it (past games). */
 function synthesizeGame(pick) {
+  const lg = pick.league || 'nfl';
+  // Only football has a meaningful weekly slate. MLB/NBA/NHL regular-season
+  // 'week' is misleading; only show postseason round (which we don't store
+  // explicitly yet -- just hide the badge for non-football regular season).
+  const isFootball = lg === 'nfl' || lg === 'cfb';
   return {
     id: pick.gameId,
-    league: pick.league || 'nfl',
-    week: pick.week ? `Week ${pick.week}` : '',
+    league: lg,
+    week: isFootball && pick.week ? `Week ${pick.week}` : '',
     status: pick.result === 'pending' ? 'upcoming' : 'final',
     period: pick.result === 'pending' ? '' : 'Final',
     kickoff: pick.locksAt || pick.postedAt,
-    home: { abbr: '?', city: '', name: '' },
-    away: { abbr: '?', city: '', name: '' },
-    score: null, spread: null, ou: null, move: null,
+    home: pick.homeAbbr
+      ? { abbr: pick.homeAbbr, logo: pick.homeLogo || null, city: '', name: '' }
+      : { abbr: '?', city: '', name: '' },
+    away: pick.awayAbbr
+      ? { abbr: pick.awayAbbr, logo: pick.awayLogo || null, city: '', name: '' }
+      : { abbr: '?', city: '', name: '' },
+    score: null,
+    spread: pick.spreadHome != null && pick.homeAbbr
+      ? `${pick.homeAbbr} ${pick.spreadHome > 0 ? '+' : ''}${pick.spreadHome}`
+      : null,
+    ou: pick.totalTaken != null ? String(pick.totalTaken) : null,
+    mlHome: pick.mlHome ?? null,
+    mlAway: pick.mlAway ?? null,
+    move: null,
   };
 }

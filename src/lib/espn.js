@@ -106,8 +106,11 @@ function normalizeEvent(e, league) {
   const home = competitors.find((c) => c.homeAway === 'home') || competitors[0];
   const away = competitors.find((c) => c.homeAway === 'away') || competitors[1];
 
-  const spread = comp.odds?.[0]?.details || null;
-  const ou = comp.odds?.[0]?.overUnder != null ? String(comp.odds[0].overUnder) : null;
+  const odds0 = comp.odds?.[0] || {};
+  const spread = odds0.details || null;
+  const ou = odds0.overUnder != null ? String(odds0.overUnder) : null;
+  const mlHome = numOrNull(odds0.homeTeamOdds?.moneyLine);
+  const mlAway = numOrNull(odds0.awayTeamOdds?.moneyLine);
 
   return {
     id: e.id,
@@ -122,6 +125,8 @@ function normalizeEvent(e, league) {
     score: { home: num(home?.score), away: num(away?.score) },
     spread,
     ou,
+    mlHome,
+    mlAway,
     move: null,
   };
 }
@@ -130,19 +135,46 @@ function normalizeEvent(e, league) {
  * Friendlier week label. ESPN's postseason indexes weeks 1-5 for NFL
  * (Wild Card / Divisional / Conf / [bye] / Super Bowl), so "Week 5"
  * during off-season was actually the Super Bowl. Map those out.
+ *
+ * MLB/NBA/NHL don't have weeks during the regular season -- ESPN does
+ * return a week.number, but it's misleading (e.g., NBA "Week 27"). We
+ * suppress those and only show a label for postseason rounds.
  */
 function weekLabel(e, league) {
   const wk = e.week?.number;
-  if (!wk) return '';
   const seasonType = e.season?.type;
-  if (seasonType === 3) {
+  // Postseason mapping (sport-specific)
+  if (seasonType === 3 && wk) {
     if (league === 'nfl') {
       const map = { 1: 'Wild Card', 2: 'Divisional', 3: 'Conf Champ', 5: 'Super Bowl' };
       return map[wk] || `Postseason wk ${wk}`;
     }
     if (league === 'cfb') return 'Bowl';
+    if (league === 'nba') {
+      const map = { 1: 'Round 1', 2: 'Conf Semis', 3: 'Conf Finals', 4: 'NBA Finals' };
+      return map[wk] || `Playoffs wk ${wk}`;
+    }
+    if (league === 'nhl') {
+      const map = { 1: 'Round 1', 2: 'Round 2', 3: 'Conf Finals', 4: 'Stanley Cup' };
+      return map[wk] || `Playoffs wk ${wk}`;
+    }
+    if (league === 'mlb') {
+      const map = { 1: 'Wild Card', 2: 'Division Series', 3: 'LCS', 4: 'World Series' };
+      return map[wk] || `Postseason wk ${wk}`;
+    }
   }
-  return `Week ${wk}`;
+  // Regular season: only football has meaningful weekly slates.
+  if (league === 'nfl' || league === 'cfb') {
+    return wk ? `Week ${wk}` : '';
+  }
+  // MLB/NBA/NHL regular season -- no week label.
+  return '';
+}
+
+function numOrNull(x) {
+  if (x == null || x === '') return null;
+  const n = Number(x);
+  return Number.isFinite(n) ? n : null;
 }
 
 function makeTeam(c) {

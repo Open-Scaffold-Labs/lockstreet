@@ -84,6 +84,15 @@ function AdminInner() {
         visibility: payload.visibility,
         locks_at:   payload.locksAt || null,
         created_by: user.id,
+        // Snapshot of the matchup at post time so /picks renders self-contained
+        home_abbr:   payload.homeAbbr   || null,
+        away_abbr:   payload.awayAbbr   || null,
+        home_logo:   payload.homeLogo   || null,
+        away_logo:   payload.awayLogo   || null,
+        spread_home: payload.spreadHome ?? null,
+        total_taken: payload.totalTaken ?? null,
+        ml_home:     payload.mlHome     ?? null,
+        ml_away:     payload.mlAway     ?? null,
       }, { onConflict: 'game_id' })
       .select()
       .single();
@@ -439,6 +448,9 @@ function PostPickModal({ onSave, onCancel }) {
     setBusy(true); setErr(null);
     try {
       const sideStr = describePickSide(game, side, betType, spreadTaken, totalTaken);
+      // spread_home is the home team's spread number (e.g., -7.5 = home favored).
+      const sh = spreadTaken !== '' && spreadTaken != null ? Number(spreadTaken) : null;
+      const tt = totalTaken !== '' && totalTaken != null ? Number(totalTaken) : null;
       const payload = {
         gameId: game.id,
         league: game.league,
@@ -449,6 +461,15 @@ function PostPickModal({ onSave, onCancel }) {
         visibility,
         reasoning,
         locksAt: game.kickoff,
+        // Matchup snapshot
+        homeAbbr:   game.home?.abbr || null,
+        awayAbbr:   game.away?.abbr || null,
+        homeLogo:   game.home?.logo || null,
+        awayLogo:   game.away?.logo || null,
+        spreadHome: Number.isFinite(sh) ? sh : null,
+        totalTaken: Number.isFinite(tt) ? tt : null,
+        mlHome:     Number.isFinite(game.mlHome) ? game.mlHome : null,
+        mlAway:     Number.isFinite(game.mlAway) ? game.mlAway : null,
       };
       await onSave(payload);
     } catch (e) { setErr(e.message || 'Failed'); setBusy(false); }

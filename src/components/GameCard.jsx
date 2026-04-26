@@ -2,17 +2,9 @@ import { Link } from 'react-router-dom';
 import TeamOrb from './TeamOrb.jsx';
 import PickLockOverlay from './PickLockOverlay.jsx';
 
-// Mock tail % until we have real subscriber action data.
-// Deterministic per game so it doesn't flicker on re-render.
-function tailPctFor(gameId) {
-  const s = String(gameId || '');
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return 55 + ((h >>> 0) % 35); // 55-89%
-}
-function TailBadge({ gameId }) {
-  const pct = tailPctFor(gameId);
-  return <div className="tail-badge"><span>{pct}%</span> of subs tailed</div>;
+function fmtMl(n) {
+  if (n == null || !Number.isFinite(n)) return '';
+  return n > 0 ? `+${n}` : String(n);
 }
 
 function atsPct(rec) {
@@ -73,7 +65,8 @@ function TeamRow({ team, score, side, showScore }) {
 }
 
 export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
-  const { league, week, status, period, kickoff, home, away, score, spread, ou, move } = game;
+  const { league, week, status, period, kickoff, home, away, score, spread, ou, move, mlHome, mlAway } = game;
+  const hasMl = (mlHome != null && Number.isFinite(mlHome)) || (mlAway != null && Number.isFinite(mlAway));
 
   let hSide = '', aSide = '';
   if (status === 'final' && score) {
@@ -102,7 +95,7 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
       <article className="card">
         <div className="card-top">
           <span className={`lg-badge ${league}`}>{league.toUpperCase()}</span>
-          <span className="wk">{week}</span>
+          {week && <span className="wk">{week}</span>}
           {stateEl}
         </div>
         <div className="teams">
@@ -112,6 +105,11 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
         <div className="lines">
           {spread && <span className="pill"><span className="k">SPREAD</span>{spread}</span>}
           {ou &&     <span className="pill"><span className="k">O/U</span>{ou}</span>}
+          {hasMl && (
+            <span className="pill"><span className="k">ML</span>
+              {away?.abbr || ''} {fmtMl(mlAway)}{mlHome != null ? ` / ${home?.abbr || ''} ${fmtMl(mlHome)}` : ''}
+            </span>
+          )}
           {move &&   <span className="pill move"><span className="k">MOVE</span>{move}</span>}
         </div>
 
@@ -120,10 +118,7 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
           {pick ? (
             <>
               <div className="pick-side">{pick.side}</div>
-              <div className="pick-units">
-                {pick.units} units · {status === 'upcoming' ? 'drops at kickoff' : 'locked in'}
-              </div>
-              <TailBadge gameId={game.id} />
+              <div className="pick-units">{pick.units} units</div>
               {!pickUnlocked && <PickLockOverlay />}
             </>
           ) : (
