@@ -146,7 +146,37 @@ function normalizeSummary(json, league) {
     away: buildTeam(away),
     players,                                  // raw shape, parsed in extractPlayers()
     parsed: extractPlayers(players, league),  // [{teamId, teamAbbr, players: [{name, position, stats, fp}]}]
+    recentPlays: extractRecentPlays(json),    // last 15 plays for live game tracker
   };
+}
+
+/**
+ * Pull recent plays from the ESPN summary response. Path varies by sport:
+ *   - NBA / NHL / soccer: `json.plays` is a flat array
+ *   - NFL / CFB:          `json.drives.{current,previous}[*].plays`
+ *   - MLB:                no flat plays; would need atBats traversal — punt.
+ * Returns the last 15 plays, newest first.
+ */
+function extractRecentPlays(json) {
+  let raw = [];
+  if (Array.isArray(json.plays) && json.plays.length) {
+    raw = json.plays;
+  } else if (json.drives) {
+    const prev = Array.isArray(json.drives.previous) ? json.drives.previous : [];
+    const cur  = json.drives.current ? [json.drives.current] : [];
+    for (const d of [...prev, ...cur]) {
+      if (Array.isArray(d.plays)) raw = raw.concat(d.plays);
+    }
+  }
+  return raw.slice(-15).reverse().map((p, i) => ({
+    id:          p.id || `${p.sequenceNumber || i}`,
+    text:        p.text || p.shortText || '',
+    clock:       p.clock?.displayValue || '',
+    period:      p.period?.number || p.period?.displayValue || '',
+    scoringPlay: !!p.scoringPlay,
+    awayScore:   p.awayScore,
+    homeScore:   p.homeScore,
+  }));
 }
 
 /**

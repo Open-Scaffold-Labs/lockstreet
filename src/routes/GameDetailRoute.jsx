@@ -122,6 +122,28 @@ export default function GameDetailRoute() {
         </div>
       )}
 
+      {/* Live Play Tracker — only while the game is in progress and ESPN
+          is shipping plays. Auto-refreshes via the 30s polling already in
+          place above. */}
+      {data.status === 'live' && data.recentPlays?.length > 0 && (
+        <div className="gd-section">
+          <h3 className="gd-h3">Live Play Tracker</h3>
+          <div className="gd-plays">
+            {data.recentPlays.map((p) => (
+              <div key={p.id} className={'gd-play' + (p.scoringPlay ? ' scoring' : '')}>
+                <div className="gd-play-time">
+                  {p.period ? `Q${p.period}` : ''}{p.period && p.clock ? ' ' : ''}{p.clock}
+                </div>
+                <div className="gd-play-text">{p.text}</div>
+                {(p.awayScore != null && p.homeScore != null) && (
+                  <div className="gd-play-score">{p.awayScore}–{p.homeScore}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Top fantasy performers (live or final) */}
       {topFantasy.length > 0 && (
         <div className="gd-section">
@@ -260,8 +282,12 @@ function TeamPreview({ side, label, stats }) {
 
 function statusLabel(data) {
   if (data.status === 'final') return 'FINAL';
-  if (data.status === 'live')  return data.statusText || `${data.clock || ''} · Q${data.period || ''}`;
-  // upcoming
+  if (data.status === 'live') {
+    // Always show the live clock — never the date — when the game is live.
+    if (data.clock && data.period) return `Q${data.period} · ${data.clock}`;
+    if (data.statusText) return data.statusText;
+    return 'LIVE';
+  }
   if (data.date) {
     return new Date(data.date).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   }
