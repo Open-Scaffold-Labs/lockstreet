@@ -50,9 +50,8 @@ export default async function handler(req, res) {
   try {
     if (league === 'mlb') payload = await fetchMlb(teamAbbr, teamId);
     else if (league === 'nhl') payload = await fetchNhl(teamAbbr, teamId);
-    // NBA: stats.nba.com blocks Vercel/AWS data center IPs — use ESPN instead.
-    // It's less rich (no Off/Def Rating, just PPG/Opp-PPG) but reliable.
-    else payload = await fetchEspn(league, teamId);
+    else if (league === 'nba') payload = await fetchNbaViaEspn(teamId);
+    else payload = await fetchEspn(league, teamId); // nfl/cfb
   } catch (e) {
     payload = { error: String(e?.message || e), offRank: null, defRank: null, last10: null, source: 'error' };
   }
@@ -217,32 +216,29 @@ async function fetchMlb(abbr) {
       defValue = String(pitStat.era ?? '').replace(/^\./, '0.');
     }
   }
-  // Compute league ranks: fetch every MLB team's season stats and rank-sort.
-  // Correct query is sportIds=1 (1=MLB) — leagueListId=mlb returns empty.
+  // League ranks: fetch all 30 teams' season totals (sportIds=1 = MLB).
+  // The response shape is stats[0].splits[]: one split per team.
   try {
     const allHit = await fetch(`https://statsapi.mlb.com/api/v1/teams/stats?stats=season&group=hitting&season=${yr}&sportIds=1`, { headers: BROWSER_HEADERS });
     if (allHit.ok) {
       const j = await allHit.json();
-      // Each team is its own stats[] entry, with a single splits[0] containing the team's totals.
-      const teams = (j.stats || []).map((entry) => {
-        const split = entry.splits?.[0];
-        if (!split) return null;
-        const games = Number(split.stat?.gamesPlayed) || 1;
-        const runs  = Number(split.stat?.runs) || 0;
-        return { id: split.team?.id, rpg: runs / games };
-      }).filter(Boolean).sort((a, b) => b.rpg - a.rpg);
-      const i = teams.findIndex((r) => r.id === tid);
+      const splits = j?.stats?.[0]?.splits || [];
+      const ranked = splits.map((s) => ({
+        id: s.team?.id,
+        rpg: (Number(s.stat?.runs) || 0) / Math.max(Number(s.stat?.gamesPlayed) || 1, 1),
+      })).sort((a, b) => b.rpg - a.rpg);
+      const i = ranked.findIndex((r) => r.id === tid);
       if (i >= 0) offRank = i + 1;
     }
     const allPit = await fetch(`https://statsapi.mlb.com/api/v1/teams/stats?stats=season&group=pitching&season=${yr}&sportIds=1`, { headers: BROWSER_HEADERS });
     if (allPit.ok) {
       const j = await allPit.json();
-      const teams = (j.stats || []).map((entry) => {
-        const split = entry.splits?.[0];
-        if (!split) return null;
-        return { id: split.team?.id, era: Number(split.stat?.era) || 99 };
-      }).filter(Boolean).sort((a, b) => a.era - b.era);
-      const i = teams.findIndex((r) => r.id === tid);
+      const splits = j?.stats?.[0]?.splits || [];
+      const ranked = splits.map((s) => ({
+        id: s.team?.id,
+        era: Number(s.stat?.era) || 99,
+      })).sort((a, b) => a.era - b.era);
+      const i = ranked.findIndex((r) => r.id === tid);
       if (i >= 0) defRank = i + 1;
     }
   } catch {}
@@ -284,6 +280,70 @@ async function fetchNhl(abbr) {
     defRank: defRank || null, defValue, defLabel: 'GA/G',
     last10, source: 'NHL API',
   };
+}
+
+// ====================================================================
+// NBA via ESPN — fetch all 30 teams in parallel to compute offRank from
+// avgPoints (since ESPN doesn't ship rank fields for NBA stats and there's
+// no public points-allowed stat exposed). Cached at module level for the
+// lifetime of the warm Vercel function.
+// ====================================================================
+let NBA_RANKS_CACHE = { at: 0, ranks: null }; // { teamId: { offRank, ppg } }
+
+async function getNbaOffRanks() {
+  if (NBA_RANKS_CACHE.ranks && Date.now() - NBA_RANKS_CACHE.at < CACHE_MS) {
+    return NBA_RANKS_CACHE.ranks;
+  }
+  // Fetch list of 30 teams
+  const teamsRes = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams', { headers: BROWSER_HEADERS });
+  if (!teamsRes.ok) return null;
+  const teamsJson = await teamsRes.json();
+  const teams = (teamsJson?.sports?.[0]?.leagues?.[0]?.teams || [])
+    .map((t) => t.team?.id).filter(Boolean);
+
+  // Fetch each team's stats in parallel; bail out gracefully if any fail.
+  const results = await Promise.all(teams.map(async (id) => {
+    try {
+      const r = await fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${id}/statistics`, { headers: BROWSER_HEADERS });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const cats = j?.results?.stats?.categories || [];
+      let ppg = null;
+      for (const c of cats) {
+        for (const s of c.stats || []) {
+          if ((s.name || '').toLowerCase() === 'avgpoints') { ppg = Number(s.value ?? s.displayValue); break; }
+        }
+        if (ppg != null) break;
+      }
+      return { id, ppg };
+    } catch { return null; }
+  }));
+  const valid = results.filter((r) => r && Number.isFinite(r.ppg));
+  valid.sort((a, b) => b.ppg - a.ppg);
+  const ranks = {};
+  valid.forEach((r, i) => { ranks[r.id] = { offRank: i + 1, ppg: r.ppg }; });
+  NBA_RANKS_CACHE = { at: Date.now(), ranks };
+  return ranks;
+}
+
+async function fetchNbaViaEspn(teamId) {
+  if (!teamId) return empty();
+  // Get base ESPN payload (last10 from schedule + offValue from stats)
+  const base = await fetchEspn('nba', teamId);
+  // Overlay rank from our parallel-computed ranks
+  try {
+    const ranks = await getNbaOffRanks();
+    if (ranks && ranks[teamId]) {
+      base.offRank = ranks[teamId].offRank;
+      // Trust the centrally-computed PPG over the per-team fetch (consistency)
+      base.offValue = ranks[teamId].ppg.toFixed(1);
+    }
+  } catch {}
+  base.offLabel = 'PPG';
+  // No reliable free defRank source for NBA without 30 more fetches per team
+  // game logs — leave def fields null so UI shows '—'.
+  base.source = 'ESPN (NBA)';
+  return base;
 }
 
 // ====================================================================
