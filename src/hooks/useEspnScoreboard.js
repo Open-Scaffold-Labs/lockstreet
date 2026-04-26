@@ -3,7 +3,7 @@ import { fetchAll } from '../lib/espn.js';
 
 const ORDER = { live: 0, upcoming: 1, final: 2 };
 
-export function useEspnScoreboard({ refreshMs = 30_000 } = {}) {
+export function useEspnScoreboard({ refreshMs = 30_000, leagues = ['nfl', 'cfb'] } = {}) {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,7 +19,7 @@ export function useEspnScoreboard({ refreshMs = 30_000 } = {}) {
     let stop = false;
     async function load() {
       try {
-        const all = await fetchAll();
+        const all = await fetchAll(leagues);
         if (stop || !mounted.current) return;
         const sorted = all.slice().sort((a, b) => {
           const s = (ORDER[a.status] ?? 9) - (ORDER[b.status] ?? 9);
@@ -39,7 +39,7 @@ export function useEspnScoreboard({ refreshMs = 30_000 } = {}) {
     load();
     const t = setInterval(load, refreshMs);
     return () => { stop = true; clearInterval(t); };
-  }, [refreshMs]);
+  }, [refreshMs, leagues.join(',')]);  // re-run if leagues set changes
 
   return { games, loading, error, updatedAt };
 }

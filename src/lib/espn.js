@@ -2,57 +2,82 @@
 // Works directly from the browser — no key, no proxy required.
 // Docs (reverse-engineered): https://gist.github.com/akeaswaran/b48b02f1c94f873c6655e7129910fc3b
 
-const BASE = 'https://site.api.espn.com/apis/site/v2/sports/football';
+const BASE = 'https://site.api.espn.com/apis/site/v2/sports';
 
-const ENDPOINTS = {
-  nfl: `${BASE}/nfl/scoreboard`,
-  cfb: `${BASE}/college-football/scoreboard`,
+// Each league maps to its sport-prefix in the ESPN URL.
+const SPORT_PATH = {
+  nfl: 'football/nfl',
+  cfb: 'football/college-football',
+  mlb: 'baseball/mlb',
+  nba: 'basketball/nba',
+  nhl: 'hockey/nhl',
 };
+
+export const ALL_LEAGUES = ['nfl', 'cfb', 'mlb', 'nba', 'nhl'];
+
+function endpointFor(league, kind = 'scoreboard', extra = '') {
+  const prefix = SPORT_PATH[league];
+  if (!prefix) throw new Error(`Unknown league: ${league}`);
+  return `${BASE}/${prefix}/${kind}${extra}`;
+}
 
 /** @returns {Promise<NormalizedGame[]>} */
 export async function fetchScoreboard(league) {
-  const url = ENDPOINTS[league];
-  if (!url) throw new Error(`Unknown league: ${league}`);
+  const url = endpointFor(league, 'scoreboard');
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`ESPN ${league} ${res.status}`);
   const json = await res.json();
   return (json.events || []).map((e) => normalizeEvent(e, league));
 }
 
-export async function fetchAll() {
-  const [nfl, cfb] = await Promise.all([
-    fetchScoreboard('nfl').catch(() => []),
-    fetchScoreboard('cfb').catch(() => []),
-  ]);
-  return [...nfl, ...cfb];
+/**
+ * Fetch every league's scoreboard in parallel and merge.
+ * Defaults to football-only for backward compat with existing /lines logic
+ * that expects ESPN games to be NFL/CFB. Pass `leagues` explicitly to widen.
+ */
+export async function fetchAll(leagues = ['nfl', 'cfb']) {
+  const results = await Promise.all(
+    leagues.map((l) => fetchScoreboard(l).catch(() => []))
+  );
+  return results.flat();
 }
 
 /**
- * Fetch the games for a specific NFL/CFB week.
- * NFL: seasontype 2 = regular (weeks 1-18), 3 = postseason (WC=1, DIV=2, CONF=3, SB=5).
+ * Fetch the games for a specific NFL/CFB week. For MLB/NBA/NHL, "week"
+ * isn't a thing — those sports use a `dates` query param (YYYYMMDD or
+ * YYYYMMDD-YYYYMMDD range). For consistency the function accepts an
+ * optional `dates` string and falls back to the league's default
+ * scoreboard for the current day.
+ *
+ * NFL: seasontype 2 = regular (weeks 1-18), 3 = postseason (WC=1, DIV=2,
+ * CONF=3, SB=5).
  * CFB: seasontype 2 = regular (weeks 1-15), 3 = bowls.
  */
-export async function fetchScoreboardWeek({ league, seasontype = 2, week, year }) {
-  const base = ENDPOINTS[league];
-  if (!base) throw new Error(`Unknown league: ${league}`);
+export async function fetchScoreboardWeek({ league, seasontype = 2, week, year, dates }) {
+  const prefix = SPORT_PATH[league];
+  if (!prefix) throw new Error(`Unknown league: ${league}`);
+  const isFootball = league === 'nfl' || league === 'cfb';
   const params = new URLSearchParams();
-  if (week != null)  params.set('week', String(week));
-  if (year != null)  params.set('year', String(year));
-  if (seasontype != null) params.set('seasontype', String(seasontype));
-  const url = `${base}?${params.toString()}`;
+  if (isFootball) {
+    if (week != null)       params.set('week', String(week));
+    if (year != null)       params.set('year', String(year));
+    if (seasontype != null) params.set('seasontype', String(seasontype));
+  } else {
+    if (dates) params.set('dates', dates);
+    // ESPN MLB/NBA/NHL scoreboard returns "today's slate" if dates is omitted.
+  }
+  const url = `${BASE}/${prefix}/scoreboard${params.toString() ? '?' + params.toString() : ''}`;
   const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`ESPN ${league} week ${week}: ${res.status}`);
+  if (!res.ok) throw new Error(`ESPN ${league} ${res.status}`);
   const json = await res.json();
   return (json.events || []).map((e) => normalizeEvent(e, league));
 }
 
 /** Fetch a single game by its ESPN id (used by the auto-grader). */
 export async function fetchGameById(league, gameId) {
-  const base = ENDPOINTS[league];
-  if (!base) return null;
-  // ESPN doesn't expose direct /game/{id}; weekly scoreboard is the API.
-  // The summary endpoint works though:
-  const url = `${BASE}/${league === 'cfb' ? 'college-football' : 'nfl'}/summary?event=${gameId}`;
+  const prefix = SPORT_PATH[league];
+  if (!prefix) return null;
+  const url = `${BASE}/${prefix}/summary?event=${gameId}`;
   try {
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
@@ -87,7 +112,7 @@ function normalizeEvent(e, league) {
     score: { home: num(home?.score), away: num(away?.score) },
     spread,
     ou,
-    move: null, // Not exposed by ESPN public endpoint; wire via a paid odds feed later.
+    move: null,
   };
 }
 
@@ -95,7 +120,7 @@ function makeTeam(c) {
   if (!c) return null;
   const t = c.team || {};
   const rec = c.records?.find((r) => r.type === 'total')?.summary || c.records?.[0]?.summary || '';
-  const atsRec = c.records?.find((r) => r.name === 'ATS')?.summary || null; // often missing on free feed
+  const atsRec = c.records?.find((r) => r.name === 'ATS')?.summary || null;
   return {
     abbr: t.abbreviation || t.shortDisplayName || '',
     city: t.location || '',
@@ -110,19 +135,3 @@ function makeTeam(c) {
 }
 
 function num(x) { const n = Number(x); return Number.isFinite(n) ? n : 0; }
-
-/* Type sketch (JSDoc):
- * @typedef {Object} NormalizedGame
- * @property {string} id
- * @property {'nfl'|'cfb'} league
- * @property {string} week
- * @property {'live'|'upcoming'|'final'} status
- * @property {string} period
- * @property {string} kickoff
- * @property {Team} home
- * @property {Team} away
- * @property {{home:number,away:number}} score
- * @property {string|null} spread
- * @property {string|null} ou
- * @property {string|null} move
- */

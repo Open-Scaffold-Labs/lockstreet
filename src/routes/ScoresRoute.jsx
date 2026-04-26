@@ -1,24 +1,27 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
+import { ALL_LEAGUES } from '../lib/espn.js';
 import { usePicks } from '../hooks/usePicks.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import GameCard from '../components/GameCard.jsx';
 import { SkeletonCardGrid } from '../components/Skeleton.jsx';
 
-// Heuristic: if total games this week is small AND most kickoffs are > 7 days out,
-// treat as off-season for a friendlier display.
-function isOffSeason(games) {
-  if (!games?.length) return true;
+// Heuristic: if total football (NFL/CFB) games on the slate is small,
+// treat as football off-season for a friendlier display. Other sports
+// running daily means `games.length` could be 30+ even with no football,
+// so we narrow the heuristic to the football leagues specifically.
+function isFootballOffSeason(games) {
+  const football = (games || []).filter((g) => g.league === 'nfl' || g.league === 'cfb');
+  if (football.length === 0) return true;
   const now = Date.now();
   const sevenDays = 7 * 24 * 60 * 60 * 1000;
-  const upcomingSoon = games.filter((g) => {
+  const soon = football.filter((g) => {
     const k = new Date(g.kickoff || 0).getTime();
     return k - now < sevenDays && k - now > -3 * 24 * 60 * 60 * 1000;
   });
-  return upcomingSoon.length < 3;
+  return soon.length < 3;
 }
-
 function nextSeasonStart(league) {
   // Hardcoded for the 2026 season — adjust each summer.
   if (league === 'nfl') return new Date('2026-09-10T20:00:00-04:00');
@@ -33,7 +36,7 @@ function daysUntil(date) {
 }
 
 export default function ScoresRoute() {
-  const { games, loading, error } = useEspnScoreboard();
+  const { games, loading, error } = useEspnScoreboard({ leagues: ALL_LEAGUES });
   const { picks } = usePicks();
   const sub = useSubscription();
   const [sport, setSport] = useState('all');
@@ -43,7 +46,11 @@ export default function ScoresRoute() {
     [games, sport]
   );
 
-  const offSeason = useMemo(() => !loading && !error && isOffSeason(games), [games, loading, error]);
+  // Show the football off-season banner only when football is actually
+  // off and the user is on ALL or NFL/CFB filters (not when they're
+  // browsing MLB/NBA/NHL where it's irrelevant).
+  const footballOffSeason = useMemo(() => !loading && !error && isFootballOffSeason(games), [games, loading, error]);
+  const offSeason = footballOffSeason && (sport === 'all' || sport === 'nfl' || sport === 'cfb');
   const nflStart = nextSeasonStart('nfl');
   const cfbStart = nextSeasonStart('cfb');
   const nflDays = daysUntil(nflStart);
@@ -74,6 +81,9 @@ export default function ScoresRoute() {
           { k: 'all', label: 'ALL' },
           { k: 'nfl', label: 'NFL' },
           { k: 'cfb', label: 'CFB' },
+          { k: 'mlb', label: 'MLB' },
+          { k: 'nba', label: 'NBA' },
+          { k: 'nhl', label: 'NHL' },
         ].map((s) => (
           <button key={s.k} className={sport === s.k ? 'active' : ''} onClick={() => setSport(s.k)}>
             {s.label}
