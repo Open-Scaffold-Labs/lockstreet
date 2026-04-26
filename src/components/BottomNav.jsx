@@ -33,12 +33,21 @@ function IconStar() {
     </svg>
   );
 }
+function IconWallet() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+      <path d="M3 7l2-3h12l2 3" /><circle cx="17" cy="13" r="1.2" />
+    </svg>
+  );
+}
 
 const ITEMS = [
-  { to: '/scores',    label: 'Scores',  icon: <IconHome /> },
-  { to: '/picks',     label: 'Picks',   icon: <IconPicks /> },
-  { to: '/about',     label: 'Record',  icon: <IconRecord /> },
-  { to: '/subscribe', label: 'Pro',     icon: <IconStar /> },
+  { to: '/scores',    label: 'Scores',   icon: <IconHome /> },
+  { to: '/picks',     label: 'Picks',    icon: <IconPicks /> },
+  { to: '/bankroll',  label: 'Bankroll', icon: <IconWallet /> },
+  { to: '/about',     label: 'Record',   icon: <IconRecord /> },
+  { to: '/subscribe', label: 'Pro',      icon: <IconStar /> },
 ];
 
 export default function BottomNav() {

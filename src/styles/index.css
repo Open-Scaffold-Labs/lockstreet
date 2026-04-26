@@ -524,3 +524,75 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
    ================================================================ */
 .state.upcoming { color: var(--ink-dim); }
 .state-countdown { color: var(--gold); font-weight: 700; opacity: 0.85; }
+
+
+/* ================================================================
+   Bankroll tracker
+   ================================================================ */
+.bk-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 18px; padding: 22px 24px;
+  background: linear-gradient(160deg, #141926, #0f131e);
+  border: 1px solid var(--border); border-radius: 16px;
+}
+.bk-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  margin-bottom: 14px;
+}
+
+.bk-table { display: flex; flex-direction: column; gap: 8px; }
+.bk-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; background: rgba(11, 15, 26, 0.5);
+  border: 1px solid var(--border); border-radius: 10px;
+  position: relative;
+}
+.bk-row.res-win  { border-left: 3px solid var(--green); }
+.bk-row.res-loss { border-left: 3px solid var(--red); }
+.bk-row.res-push { border-left: 3px solid var(--ink-faint); }
+.bk-row.res-pending { border-left: 3px solid var(--gold); }
+.bk-row-main { flex: 1; min-width: 0; }
+.bk-row-desc { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.bk-row-desc strong { font-weight: 700; }
+.bk-odds { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); padding: 1px 6px; border-radius: 4px; background: rgba(255,255,255,0.04); }
+.bk-row-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); margin-top: 4px; }
+.bk-row-pl { display: flex; align-items: center; gap: 10px; }
+.bk-pl { font-family: var(--disp); font-weight: 700; font-size: 16px; min-width: 80px; text-align: right; color: var(--ink-dim); }
+.bk-pl.pos { color: var(--green); }
+.bk-pl.neg { color: var(--red); }
+.bk-actions { display: flex; gap: 4px; }
+.bk-actions .btn-ghost { padding: 5px 9px; font-size: 10px; }
+.bk-actions .win  { color: var(--green); border-color: rgba(74,222,128,0.3); }
+.bk-actions .loss { color: var(--red);   border-color: rgba(248,113,113,0.3); }
+.bk-x {
+  background: transparent; border: 0; color: var(--ink-faint);
+  cursor: pointer; padding: 4px 8px; font-size: 16px; line-height: 1;
+}
+.bk-x:hover { color: var(--red); }
+
+/* ----- LogBetForm ----- */
+.lbf-card { width: min(480px, 100%); }
+.lbf-form { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+.lbf-form label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint);
+}
+.lbf-form input, .lbf-form select {
+  padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--border-strong); background: #0a0e17;
+  color: var(--ink); font-family: var(--mono); font-size: 13px;
+  text-transform: none; letter-spacing: normal;
+}
+.lbf-form input:focus, .lbf-form select:focus { outline: 0; border-color: rgba(251,191,36,0.5); }
+.lbf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+@media (max-width: 600px) {
+  .bk-header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px 18px; }
+  .bk-stats  { grid-template-columns: 1fr 1fr; }
+  .bk-row    { flex-direction: column; align-items: stretch; gap: 8px; }
+  .bk-row-pl { justify-content: space-between; }
+  .bk-pl     { min-width: 0; }
+
+  .bn-item { font-size: 9px; padding: 6px 2px; }   /* shrink labels for 5 tabs */
+}

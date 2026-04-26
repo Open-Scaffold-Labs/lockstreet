@@ -9,6 +9,7 @@ import PicksRoute from './routes/PicksRoute.jsx';
 import SubscribeRoute from './routes/SubscribeRoute.jsx';
 import AboutRoute from './routes/AboutRoute.jsx';
 import HomeRoute from './routes/HomeRoute.jsx';
+import BankrollRoute from './routes/BankrollRoute.jsx';
 import AdminRoute from './routes/AdminRoute.jsx';
 import SuccessRoute from './routes/SuccessRoute.jsx';
 import SignInRoute from './routes/SignInRoute.jsx';
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/picks" element={<PicksRoute />} />
           <Route path="/record" element={<Navigate to="/about" replace />} />
           <Route path="/about" element={<AboutRoute />} />
+          <Route path="/bankroll" element={<BankrollRoute />} />
           <Route path="/subscribe" element={<SubscribeRoute />} />
           <Route path="/admin" element={<AdminRoute />} />
           <Route path="/success" element={<SuccessRoute />} />
