@@ -15,15 +15,40 @@ import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
 const SPORTS = [
   { k: 'nfl', label: 'NFL' },
   { k: 'cfb', label: 'NCAAF' },
+  { k: 'mlb', label: 'MLB' },
+  { k: 'nba', label: 'NBA' },
+  { k: 'nhl', label: 'NHL' },
 ];
 
 const STAT_LABELS = {
+  // Football
   player_pass_yds:       'Passing Yds',
   player_rush_yds:       'Rushing Yds',
   player_reception_yds:  'Receiving Yds',
   player_anytime_td:     'Anytime TD',
   player_pass_tds:       'Passing TDs',
+  // Baseball
+  batter_hits:           'Hits',
+  batter_total_bases:    'Total Bases',
+  batter_home_runs:      'HR',
+  pitcher_strikeouts:    'Strikeouts',
+  // Basketball
+  player_points:         'Points',
+  player_rebounds:       'Rebounds',
+  player_assists:        'Assists',
+  player_threes:         '3-Pointers',
+  // Hockey
+  player_goals:          'Goals',
+  player_shots_on_goal:  'Shots',
 };
+
+// Default to whatever sport is in season right now (April = MLB/NBA/NHL active).
+const DEFAULT_SPORT = (() => {
+  const month = new Date().getMonth() + 1; // 1-12
+  if (month >= 9 || month <= 1) return 'nfl';   // Sep-Jan: football
+  if (month >= 4 && month <= 6) return 'nba';   // Apr-Jun: NBA playoffs / MLB early
+  return 'mlb';                                  // Jul-Aug + fallback
+})();
 
 // ---------- mock fallback ----------
 const MOCK_PROPS = [
@@ -132,7 +157,7 @@ function shortTeam(name) {
 }
 
 export default function PropsRoute() {
-  const [sport, setSport] = useState('nfl');
+  const [sport, setSport] = useState(DEFAULT_SPORT);
   const [stat, setStat]   = useState('all');
   const live = useLiveProps(sport);
 
@@ -189,7 +214,7 @@ export default function PropsRoute() {
           <div key={i} className="bk-row res-pending">
             <div className="bk-row-main">
               <div className="bk-row-desc">
-                <span className={'lg-badge ' + (p.sport === 'nfl' ? 'nfl' : 'cfb')}>{p.sport === 'nfl' ? 'NFL' : 'NCAAF'}</span>
+                <span className={'lg-badge ' + (p.sport === 'nfl' ? 'nfl' : 'cfb')}>{(SPORTS.find((s) => s.k === p.sport)?.label) || p.sport.toUpperCase()}</span>
                 <strong>{p.player}</strong>
                 <span className="bk-odds">{p.team}</span>
                 <span className="bk-odds" style={{ color: 'var(--gold)' }}>{p.stat}</span>

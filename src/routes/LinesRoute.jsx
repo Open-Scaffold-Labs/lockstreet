@@ -3,11 +3,16 @@ import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
 
 /**
  * Line shopping page.
- * Fetches live book odds from /api/odds (server-side proxy to The Odds API,
- * 500/mo free tier) and shows spread / total / moneyline across up to 5 books
- * side-by-side. Falls back to seeded mock jitter off the ESPN consensus line
- * when the API key isn't set OR /api isn't running (e.g. plain `vite` without
- * `vercel dev`).
+ *
+ * For NFL + CFB (the brand): merges ESPN scoreboard games with live odds from
+ * /api/odds, matched by away|home|kickoff-day. Falls back to seeded mock jitter
+ * when ODDS_API_KEY is unset OR /api isn't running locally OR the selected
+ * sport has no upcoming games (off-season).
+ *
+ * For MLB / NBA / NHL: skips the ESPN merge entirely and renders straight from
+ * /api/odds events. This is what keeps /lines useful in football off-season —
+ * subscribers can still see live multi-book line shopping for whatever sport
+ * is in season right now.
  */
 
 const FALLBACK_BOOKS = [
@@ -18,12 +23,21 @@ const FALLBACK_BOOKS = [
   { id: 'br',  key: 'betrivers',  name: 'BetRivers',  short: 'BR'  },
 ];
 
-// ---------- mock-fallback helpers (kept so /lines never goes blank) ----------
+const SPORTS = [
+  { k: 'all', l: 'ALL',  espn: true  },
+  { k: 'nfl', l: 'NFL',  espn: true  },
+  { k: 'cfb', l: 'CFB',  espn: true  },
+  { k: 'mlb', l: 'MLB',  espn: false },
+  { k: 'nba', l: 'NBA',  espn: false },
+  { k: 'nhl', l: 'NHL',  espn: false },
+];
+
+// ---------- mock-fallback helpers (only used for football off-season) ----------
 function seededOffset(gameId, bookId) {
   const s = String(gameId) + bookId;
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return ((h >>> 0) % 7) - 3; // -3..+3 half-points
+  return ((h >>> 0) % 7) - 3;
 }
 function applySpreadJitter(spread, gameId, bookId) {
   if (!spread) return null;
@@ -46,8 +60,8 @@ function fakeMl(gameId, bookId, side) {
 
 // ---------- live data fetcher ----------
 function useLiveOdds(sport) {
-  const [data, setData] = useState(null);    // { sport, events, remaining }
-  const [status, setStatus] = useState('idle'); // idle | loading | ready | error
+  const [data, setData] = useState(null);
+  const [status, setStatus] = useState('idle');
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -73,13 +87,11 @@ function useLiveOdds(sport) {
   return { data, status, error };
 }
 
-// Build a quick lookup from the live feed: away+home+kickoff-day → event
 function indexLiveEvents(events) {
   const idx = new Map();
   for (const ev of events || []) {
     const day = ev.commenceTime ? new Date(ev.commenceTime).toISOString().slice(0, 10) : '';
     idx.set(`${ev.away}|${ev.home}|${day}`, ev);
-    // also team-only fallback (kickoff time may differ slightly between feeds)
     idx.set(`${ev.away}|${ev.home}`, ev);
   }
   return idx;
@@ -93,7 +105,6 @@ function findLiveEventForGame(idx, g) {
   return idx.get(fullKey) || idx.get(teamKey) || null;
 }
 
-// Pull the price for a given outcome from a book's market arrays
 function pickOutcome(outcomes, predicate) {
   return (outcomes || []).find(predicate) || null;
 }
@@ -106,12 +117,27 @@ function fmtSpread(homeAbbr, point) {
   return `${homeAbbr} ${point > 0 ? '+' : ''}${point}`;
 }
 
+// Short team name from a full Odds API name like "Philadelphia Phillies" → "Phillies"
+function shortName(name) {
+  if (!name) return '';
+  const parts = String(name).trim().split(/\s+/);
+  return parts[parts.length - 1];
+}
+function abbr(name) {
+  if (!name) return '';
+  const last = shortName(name);
+  return last.slice(0, 4).toUpperCase();
+}
+
 export default function LinesRoute() {
   const { games, loading } = useEspnScoreboard();
-  const [sport, setSport] = useState('all');
+  const [sport, setSport] = useState('mlb'); // default to in-season sport
   const live = useLiveOdds(sport);
 
-  const filtered = useMemo(
+  const sportConfig = SPORTS.find((s) => s.k === sport);
+  const useEspnMerge = !!sportConfig?.espn && sport !== 'all' || sport === 'all';
+
+  const filteredEspnGames = useMemo(
     () => games.filter((g) => g.status === 'upcoming' && (sport === 'all' || g.league === sport)),
     [games, sport]
   );
@@ -121,7 +147,26 @@ export default function LinesRoute() {
     [live.status, live.data]
   );
 
-  const usingLive = live.status === 'ready' && liveIdx && liveIdx.size > 0;
+  const usingLive = live.status === 'ready' && live.data?.events?.length > 0;
+  const isFootball = sport === 'nfl' || sport === 'cfb' || sport === 'all';
+  const liveOnlyMode = !isFootball && usingLive; // MLB/NBA/NHL render directly from API
+  const offSeason = isFootball && sport !== 'all' && live.status === 'ready' && (live.data?.events?.length || 0) === 0;
+
+  // For non-football sports, build a synthetic "games" list straight from live data
+  const liveOnlyGames = useMemo(() => {
+    if (!liveOnlyMode) return [];
+    return (live.data.events || []).slice(0, 20).map((ev) => ({
+      id: ev.id,
+      league: sport,
+      week: '',
+      home: { name: ev.home, abbr: abbr(ev.home) },
+      away: { name: ev.away, abbr: abbr(ev.away) },
+      kickoff: ev.commenceTime,
+      _live: ev,
+    }));
+  }, [liveOnlyMode, live.data, sport]);
+
+  const gamesToRender = liveOnlyMode ? liveOnlyGames : filteredEspnGames;
 
   return (
     <section>
@@ -129,18 +174,29 @@ export default function LinesRoute() {
         <div>
           <div className="trc-eyebrow">Line shopping · 5 books</div>
           <div className="trc-final">
-            {filtered.length}<span className="trc-final-sub">
+            {gamesToRender.length}<span className="trc-final-sub">
               upcoming games · {usingLive ? 'live odds' : 'sample lines'}
               {usingLive && live.data?.remaining != null ? ` · ${live.data.remaining} API calls left` : ''}
             </span>
           </div>
         </div>
         <div className="filter">
-          {[{ k: 'all', l: 'ALL' }, { k: 'nfl', l: 'NFL' }, { k: 'cfb', l: 'CFB' }].map((s) => (
+          {SPORTS.map((s) => (
             <button key={s.k} className={sport === s.k ? 'active' : ''} onClick={() => setSport(s.k)}>{s.l}</button>
           ))}
         </div>
       </div>
+
+      {offSeason && (
+        <div className="empty" style={{ padding: 18, marginBottom: 14 }}>
+          <strong>{sport.toUpperCase()} is off-season.</strong>{' '}
+          The Lock Street picks system focuses on football — but you can shop live MLB/NBA/NHL lines below to see the line shopping flow in action.
+          {' '}
+          <button onClick={() => setSport('mlb')} className="trc-btn-sm" style={{ marginLeft: 8 }}>
+            Show MLB lines →
+          </button>
+        </div>
+      )}
 
       {live.status === 'error' && (
         <p style={{ color: 'var(--ink-dim)', fontSize: 13, marginTop: -6, marginBottom: 12 }}>
@@ -150,22 +206,25 @@ export default function LinesRoute() {
 
       {(loading || live.status === 'loading') && <p style={{ color: 'var(--ink-dim)' }}>Loading lines...</p>}
 
-      {!loading && filtered.length === 0 && (
+      {!loading && gamesToRender.length === 0 && !offSeason && (
         <div className="empty">No upcoming games to compare.</div>
       )}
 
-      {filtered.map((g) => {
-        const liveEv = usingLive ? findLiveEventForGame(liveIdx, g) : null;
-        const books = usingLive && liveEv
-          ? FALLBACK_BOOKS.map((b) => liveEv.books?.find((lb) => lb.key === b.key) ? { ...b, live: liveEv.books.find((lb) => lb.key === b.key) } : b)
+      {gamesToRender.map((g) => {
+        const liveEv = liveOnlyMode ? g._live : (usingLive ? findLiveEventForGame(liveIdx, g) : null);
+        const books = liveEv
+          ? FALLBACK_BOOKS.map((b) => {
+              const lb = liveEv.books?.find((x) => x.key === b.key);
+              return lb ? { ...b, live: lb } : b;
+            })
           : FALLBACK_BOOKS;
 
         const spreads = books.map((b) => {
           if (b.live?.markets?.spreads) {
             const o = pickOutcome(b.live.markets.spreads, (x) => x.name === liveEv.home);
-            return { book: b, val: fmtSpread(g.home?.abbr, o?.point), price: o?.price };
+            return { book: b, val: fmtSpread(g.home?.abbr, o?.point) };
           }
-          return { book: b, val: applySpreadJitter(g.spread, g.id, b.id), price: null };
+          return { book: b, val: applySpreadJitter(g.spread, g.id, b.id) };
         });
         const ous = books.map((b) => {
           if (b.live?.markets?.totals) {
@@ -194,7 +253,7 @@ export default function LinesRoute() {
             <div className="lines-head">
               <span className={'lg-badge ' + g.league}>{g.league.toUpperCase()}</span>
               <strong>{g.away?.abbr} @ {g.home?.abbr}</strong>
-              <span className="wk">{g.week}</span>
+              {g.week && <span className="wk">{g.week}</span>}
               <span className="lines-time">{new Date(g.kickoff).toLocaleString([], { weekday: 'short', month: 'numeric', day: 'numeric', hour: 'numeric' })}</span>
               {liveEv && <span className="wk" style={{ color: 'var(--gold)' }}>LIVE</span>}
             </div>
@@ -227,8 +286,8 @@ export default function LinesRoute() {
 
       <p className="footnote-disclaimer" style={{ maxWidth: 600 }}>
         {usingLive
-          ? 'Live odds via The Odds API (server-cached 5 min). Best line per row not yet highlighted.'
-          : 'Sample lines (ESPN consensus + deterministic jitter). Set ODDS_API_KEY to enable live data from The Odds API (500/mo free).'}
+          ? 'Live odds via The Odds API (server-cached 24h to conserve free-tier quota).'
+          : 'Sample lines (ESPN consensus + deterministic jitter). Football off-season → no live data; switch to MLB/NBA/NHL to see live multi-book lines.'}
       </p>
     </section>
   );

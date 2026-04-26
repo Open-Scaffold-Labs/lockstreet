@@ -4,7 +4,23 @@
 // Markets: player_pass_yds, player_rush_yds, player_reception_yds, player_anytime_td, etc.
 
 const ODDS_BASE = 'https://api.the-odds-api.com/v4';
-const SPORT_KEYS = { nfl: 'americanfootball_nfl', ncaaf: 'americanfootball_ncaaf' };
+const SPORT_KEYS = {
+  nfl:  'americanfootball_nfl',
+  cfb:  'americanfootball_ncaaf',
+  ncaaf:'americanfootball_ncaaf', // alias
+  mlb:  'baseball_mlb',
+  nba:  'basketball_nba',
+  nhl:  'icehockey_nhl',
+};
+// Default markets per sport (the football defaults are the historical defaults).
+const DEFAULT_MARKETS = {
+  nfl:   'player_pass_yds,player_rush_yds,player_reception_yds,player_anytime_td',
+  cfb:   'player_pass_yds,player_rush_yds,player_reception_yds,player_anytime_td',
+  ncaaf: 'player_pass_yds,player_rush_yds,player_reception_yds,player_anytime_td',
+  mlb:   'batter_hits,batter_total_bases,batter_home_runs,pitcher_strikeouts',
+  nba:   'player_points,player_rebounds,player_assists,player_threes',
+  nhl:   'player_points,player_goals,player_assists,player_shots_on_goal',
+};
 
 const cache = new Map();
 // 24h cache - off-season + free 500/mo tier; bump down once subscribers exist.
@@ -18,6 +34,7 @@ export default async function handler(req, res) {
   const sport  = req.query?.sport  || url.searchParams.get('sport')  || 'nfl';
   const events = (req.query?.eventIds || url.searchParams.get('eventIds') || '').split(',').filter(Boolean);
   const markets = req.query?.markets || url.searchParams.get('markets')
+    || DEFAULT_MARKETS[sport]
     || 'player_pass_yds,player_rush_yds,player_reception_yds,player_anytime_td';
   const sportKey = SPORT_KEYS[sport];
   if (!sportKey) return res.status(400).json({ error: `Unknown sport: ${sport}` });
