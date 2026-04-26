@@ -27,6 +27,42 @@ export async function fetchAll() {
   return [...nfl, ...cfb];
 }
 
+/**
+ * Fetch the games for a specific NFL/CFB week.
+ * NFL: seasontype 2 = regular (weeks 1-18), 3 = postseason (WC=1, DIV=2, CONF=3, SB=5).
+ * CFB: seasontype 2 = regular (weeks 1-15), 3 = bowls.
+ */
+export async function fetchScoreboardWeek({ league, seasontype = 2, week, year }) {
+  const base = ENDPOINTS[league];
+  if (!base) throw new Error(`Unknown league: ${league}`);
+  const params = new URLSearchParams();
+  if (week != null)  params.set('week', String(week));
+  if (year != null)  params.set('year', String(year));
+  if (seasontype != null) params.set('seasontype', String(seasontype));
+  const url = `${base}?${params.toString()}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`ESPN ${league} week ${week}: ${res.status}`);
+  const json = await res.json();
+  return (json.events || []).map((e) => normalizeEvent(e, league));
+}
+
+/** Fetch a single game by its ESPN id (used by the auto-grader). */
+export async function fetchGameById(league, gameId) {
+  const base = ENDPOINTS[league];
+  if (!base) return null;
+  // ESPN doesn't expose direct /game/{id}; weekly scoreboard is the API.
+  // The summary endpoint works though:
+  const url = `${BASE}/${league === 'cfb' ? 'college-football' : 'nfl'}/summary?event=${gameId}`;
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const e = json.header || {};
+    if (!e.competitions) return null;
+    return normalizeEvent({ ...e, id: gameId, week: e.week, status: e.competitions?.[0]?.status }, league);
+  } catch { return null; }
+}
+
 // ---- Normalization -------------------------------------------------------
 function normalizeEvent(e, league) {
   const comp = e.competitions?.[0] || {};

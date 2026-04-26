@@ -596,3 +596,71 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
 
   .bn-item { font-size: 9px; padding: 6px 2px; }   /* shrink labels for 5 tabs */
 }
+
+
+/* ================================================================
+   LogBetForm v2 - multi-step
+   ================================================================ */
+.lbf-multi { width: min(540px, 100%); }
+.lbf-stepper { display: flex; gap: 6px; margin: 6px 0 16px; }
+.lbf-stepper .lbf-dot {
+  flex: 1; height: 3px; border-radius: 2px;
+  background: var(--border-strong);
+}
+.lbf-stepper .lbf-dot.done { background: var(--gold); }
+
+.lbf-game-list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 380px; overflow-y: auto; margin: 6px 0 0;
+  padding-right: 4px;
+}
+.lbf-game {
+  text-align: left; cursor: pointer;
+  background: rgba(11, 15, 26, 0.5);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: border-color .15s ease, transform .08s ease;
+}
+.lbf-game:hover { border-color: rgba(251, 191, 36, 0.35); transform: translateX(2px); }
+.lbf-game-head {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+}
+.lbf-game-status { letter-spacing: 0.06em; }
+.lbf-game-score { color: var(--ink); font-weight: 700; margin-left: auto; }
+.lbf-game-teams { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+.lbf-game-line { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); }
+
+.lbf-bettype-row { display: flex; gap: 6px; margin: 14px 0 12px; }
+.lbf-pill {
+  flex: 1; padding: 8px 10px;
+  background: rgba(11, 15, 26, 0.5); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--ink-dim);
+  font-family: var(--disp); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+}
+.lbf-pill.active { background: rgba(251, 191, 36, 0.12); color: var(--gold); border-color: rgba(251, 191, 36, 0.4); }
+
+.lbf-side-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lbf-side {
+  background: rgba(11, 15, 26, 0.5); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px; cursor: pointer; text-align: center;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: border-color .15s ease, transform .08s ease;
+}
+.lbf-side:hover { border-color: rgba(251, 191, 36, 0.35); transform: translateY(-1px); }
+.lbf-side.active {
+  background: rgba(251, 191, 36, 0.08); border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold) inset;
+}
+.lbf-side-team { font-family: var(--disp); font-weight: 800; font-size: 18px; color: var(--ink); letter-spacing: -0.01em; }
+.lbf-side-line { font-family: var(--mono); font-size: 13px; color: var(--ink-dim); }
+.lbf-side.active .lbf-side-line { color: var(--gold); }
+
+@media (max-width: 600px) {
+  .lbf-multi { padding: 22px 18px 16px; }
+  .lbf-game-list { max-height: 280px; }
+  .lbf-side { padding: 12px; }
+  .lbf-side-team { font-size: 16px; }
+}

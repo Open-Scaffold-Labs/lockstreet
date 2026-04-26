@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, SignedIn, SignedOut, SignInButton } from '../lib/auth.jsx';
-import { useBets } from '../hooks/useBets.js';
+import { useBets, autoGradePending } from '../hooks/useBets.js';
 import { useToast } from '../lib/toast.jsx';
+import { supabase } from '../lib/supabase.js';
 import LogBetForm from '../components/LogBetForm.jsx';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
@@ -33,9 +34,22 @@ export default function BankrollRoute() {
 }
 
 function BankrollDashboard() {
-  const { bets, loading, addBet, updateResult, deleteBet } = useBets();
+  const { bets, loading, reload, addBet, updateResult, deleteBet } = useBets();
   const [logOpen, setLogOpen] = useState(false);
   const toast = useToast();
+  const gradedRef = useRef(false);
+
+  // Auto-grade pending bets once per page mount (looks up ESPN final scores).
+  useEffect(() => {
+    if (gradedRef.current || loading || !bets.length) return;
+    gradedRef.current = true;
+    autoGradePending(bets, supabase).then((updates) => {
+      if (updates.length) {
+        toast(`${updates.length} pending bet${updates.length > 1 ? 's' : ''} auto-graded`, { type: 'success' });
+        reload();
+      }
+    });
+  }, [bets, loading, reload, toast]);
 
   const summary = useMemo(() => computeSummary(bets), [bets]);
   const series  = useMemo(() => computeSeries(bets),  [bets]);
