@@ -4,6 +4,7 @@ import {
   useCurrentContest,
   useContestLeaderboard,
   useContestArchive,
+  useContestGrader,
 } from '../hooks/useContest.js';
 
 /**
@@ -14,6 +15,7 @@ import {
 export default function LeaderboardRoute() {
   const { user } = useUser?.() || {};
   const { contest, loading } = useCurrentContest();
+  useContestGrader(contest?.id);   // lazy auto-grade on every leaderboard load
   const { rows } = useContestLeaderboard(contest);
   const archive = useContestArchive();
 

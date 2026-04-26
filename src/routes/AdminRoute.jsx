@@ -5,7 +5,7 @@ import { useToast } from '../lib/toast.jsx';
 import { supabase } from '../lib/supabase.js';
 import GamePicker from '../components/GamePicker.jsx';
 import { parseSpread } from '../components/LogBetForm.jsx';
-import { useCurrentContest, useContestLeaderboard } from '../hooks/useContest.js';
+import { useCurrentContest, useContestLeaderboard, useContestGrader } from '../hooks/useContest.js';
 
 /**
  * Admin pick-poster.
@@ -165,6 +165,7 @@ function AdminInner() {
 
 function ContestAdminPanel({ toast }) {
   const { contest, refresh: refreshContest } = useCurrentContest();
+  useContestGrader(contest?.id);   // lazy auto-grade on every admin load
   const { rows: leaderboard, refresh: refreshBoard } = useContestLeaderboard(contest);
 
   const [mnfTotal, setMnfTotal] = useState('');

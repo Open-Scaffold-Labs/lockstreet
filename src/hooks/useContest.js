@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase.js';
-import { fetchScoreboardWeek } from '../lib/espn.js';
+import { fetchScoreboardWeek, fetchGameById } from '../lib/espn.js';
 
 /**
  * Loads the current open contest + its slate of NFL/CFB games.
@@ -88,6 +88,11 @@ export function useMyContestEntry(contestId, userId) {
 export async function submitContestEntry(input) {
   const { contestId, userId, mnfTotalPrediction, mnfQbYdsPrediction, picks } = input;
 
+  // Frontend enforces the 20-pick rule, so by the time we get here we trust
+  // the entry is qualified if both tiebreakers are present and there's at
+  // least one pick.
+  const qualified = picks.length > 0 && mnfTotalPrediction != null && mnfQbYdsPrediction != null;
+
   // Upsert the entry first so we have an entry_id
   const { data: entry, error: entryErr } = await supabase
     .from('contest_entries')
@@ -98,7 +103,7 @@ export async function submitContestEntry(input) {
         mnf_total_prediction: mnfTotalPrediction,
         mnf_qb_yds_prediction: mnfQbYdsPrediction,
         picks_count: picks.length,
-        qualified: false, // computed server-side later, default false
+        qualified,
       },
       { onConflict: 'contest_id,user_id' }
     )
@@ -179,6 +184,161 @@ export function useContestLeaderboard(contest) {
 
   return { rows, loading, refresh };
 }
+
+// ====================================================================
+// PHASE 2: Auto-grading + auto-winner determination
+// ====================================================================
+
+/**
+ * Grades all pending contest picks for a contest. For each pick where
+ * the ESPN game has finished, fetches the final score and computes the
+ * ATS result. Updates the row in supabase. Skips games still in
+ * progress / not yet started.
+ *
+ * Returns { graded } — count of newly-graded picks.
+ */
+export async function gradeContestPicks(contestId) {
+  if (!contestId) return { graded: 0 };
+  const { data: pending, error } = await supabase
+    .from('contest_picks')
+    .select('*')
+    .eq('contest_id', contestId)
+    .eq('result', 'pending');
+  if (error || !pending?.length) return { graded: 0 };
+
+  let graded = 0;
+  for (const p of pending) {
+    try {
+      const game = await fetchGameById(p.league, p.game_id);
+      if (!game || !game.completed) continue;
+
+      const finalHome = game.home?.score;
+      const finalAway = game.away?.score;
+      if (finalHome == null || finalAway == null) continue;
+
+      // ATS math: spread_taken is from the picker's perspective on the
+      // side they took. They cover when (their score + spread) > opp score.
+      const tookHome = p.side === p.home_abbr;
+      const myScore  = tookHome ? Number(finalHome) : Number(finalAway);
+      const oppScore = tookHome ? Number(finalAway) : Number(finalHome);
+      const cover = (myScore + Number(p.spread_taken)) - oppScore;
+      const result = cover > 0 ? 'win' : cover < 0 ? 'loss' : 'push';
+
+      await supabase
+        .from('contest_picks')
+        .update({
+          result,
+          graded_at: new Date().toISOString(),
+          final_home: Math.round(Number(finalHome)),
+          final_away: Math.round(Number(finalAway)),
+        })
+        .eq('id', p.id);
+      graded++;
+    } catch (_) {
+      // skip failed grades; we'll retry next page load
+    }
+  }
+  return { graded };
+}
+
+/**
+ * After grading, recompute wins/losses/pushes per entry from the picks
+ * table and write them back onto contest_entries so the leaderboard
+ * has fresh totals without re-aggregating on every render.
+ */
+export async function rollupEntryStats(contestId) {
+  if (!contestId) return;
+  const { data: picks } = await supabase
+    .from('contest_picks')
+    .select('entry_id, result')
+    .eq('contest_id', contestId);
+  if (!picks) return;
+
+  const stats = new Map();
+  for (const p of picks) {
+    const s = stats.get(p.entry_id) || { wins: 0, losses: 0, pushes: 0 };
+    if (p.result === 'win')   s.wins++;
+    else if (p.result === 'loss')  s.losses++;
+    else if (p.result === 'push')  s.pushes++;
+    stats.set(p.entry_id, s);
+  }
+  for (const [entryId, s] of stats) {
+    await supabase.from('contest_entries').update(s).eq('id', entryId);
+  }
+}
+
+/**
+ * Determines the winning entry IF (a) MNF actuals are saved AND
+ * (b) all picks are graded. Sets contest.winner_user_id and
+ * status='graded'. The actual prize grant ('paid' status + sub
+ * extension) stays a manual click in /admin so a system bug never
+ * auto-extends someone's subscription.
+ */
+export async function determineWinner(contestId) {
+  if (!contestId) return null;
+
+  const { data: contest } = await supabase
+    .from('contests').select('*').eq('id', contestId).maybeSingle();
+  if (!contest) return null;
+  if (contest.status === 'graded' || contest.status === 'paid') return null;
+  if (contest.mnf_total_actual == null || contest.mnf_qb_yds_actual == null) return null;
+
+  // Bail out if any picks still pending
+  const { count: pendingCount } = await supabase
+    .from('contest_picks')
+    .select('id', { count: 'exact', head: true })
+    .eq('contest_id', contestId)
+    .eq('result', 'pending');
+  if (pendingCount && pendingCount > 0) return null;
+
+  const { data: entries } = await supabase
+    .from('contest_entries')
+    .select('*')
+    .eq('contest_id', contestId)
+    .eq('qualified', true);
+  if (!entries?.length) return null;
+
+  const enriched = entries.map((e) => ({
+    ...e,
+    mnf_total_diff: Math.abs(contest.mnf_total_actual - (e.mnf_total_prediction ?? 1e9)),
+    mnf_qb_yds_diff: Math.abs(contest.mnf_qb_yds_actual - (e.mnf_qb_yds_prediction ?? 1e9)),
+  }));
+  enriched.sort((a, b) => {
+    if (b.wins !== a.wins) return b.wins - a.wins;
+    if (a.losses !== b.losses) return a.losses - b.losses;
+    if (a.mnf_total_diff !== b.mnf_total_diff) return a.mnf_total_diff - b.mnf_total_diff;
+    return a.mnf_qb_yds_diff - b.mnf_qb_yds_diff;
+  });
+
+  const winner = enriched[0];
+  await supabase
+    .from('contests')
+    .update({ winner_user_id: winner.user_id, status: 'graded' })
+    .eq('id', contestId);
+
+  return winner;
+}
+
+/**
+ * Lazy auto-grader: runs once when a route mounts that cares about
+ * grading freshness (/leaderboard, /admin, /contest after lock).
+ * Cheap-no-op when there's nothing to grade.
+ */
+export function useContestGrader(contestId) {
+  useEffect(() => {
+    if (!contestId) return;
+    let cancelled = false;
+    (async () => {
+      const { graded } = await gradeContestPicks(contestId);
+      if (cancelled) return;
+      if (graded > 0) await rollupEntryStats(contestId);
+      if (!cancelled) await determineWinner(contestId);
+    })();
+    return () => { cancelled = true; };
+  }, [contestId]);
+}
+
+// ====================================================================
 
 /**
  * Fetches all past graded contests for the "wall of winners" / leaderboard
