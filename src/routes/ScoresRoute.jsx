@@ -64,8 +64,9 @@ export default function ScoresRoute() {
     [offset, games, loading, error]
   );
 
-  // Show NFL schedule notice when on TODAY + NFL/ALL filter + football off-season.
-  const showNflScheduleNotice = (sport === 'all' || sport === 'nfl') && footballOffSeason;
+  // Show NFL schedule notice only when the user has explicitly filtered to NFL
+  // (not on the All view) AND it's currently football off-season.
+  const showNflScheduleNotice = sport === 'nfl' && footballOffSeason;
 
   // Hide the date tab when the active filter is a football league AND it's
   // off-season — those filters fall back to the placeholder content. For ALL,
