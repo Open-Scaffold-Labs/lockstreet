@@ -17,11 +17,12 @@
   --gold-dim: #8b5cf6;
   --purple: #c084fc;
   --purple-dim: #8b5cf6;
-  /* Secondary accent — pure max-saturation neon orange (highlighter /
-     safety-vest territory). Used on stat numbers, eyebrow labels,
-     leaderboard winner row, hero highlight, league badges. */
-  --orange: #ff8000;
-  --orange-dim: #cc6600;
+  /* Secondary accent — neon green (replaced the previous neon orange).
+     Used on stat numbers, eyebrow labels, leaderboard winner row, hero
+     highlight, league badges. The variable name --orange is kept so
+     existing rules don't need to change. */
+  --orange: #4ade80;
+  --orange-dim: #16a34a;
   --green: #4ade80;
   --red: #ff5577;
   /* Borders: neon-purple tint at low alpha. Glows on pure black
@@ -57,7 +58,7 @@ body {
        so it can sit above page content (cards/banners) and read consistently
        on every route, not just ones where the page bg happens to be transparent. */
     radial-gradient(1200px 600px at 20% -10%, rgba(192, 132, 252, 0.07), transparent 60%),
-    radial-gradient(900px 500px at 90% 10%, rgba(255, 128, 0, 0.05), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(74, 222, 128, 0.05), transparent 60%),
     var(--bg);
   background-attachment: fixed;
 }
@@ -142,7 +143,7 @@ body {
   background: rgba(192, 132, 252, 0.04);
   border: 1px solid rgba(192, 132, 252, 0.18); border-radius: 8px;
 }
-.gd-fantasy-card:first-child { background: rgba(255, 128, 0, 0.06); border-color: rgba(255, 128, 0, 0.4); }
+.gd-fantasy-card:first-child { background: rgba(74, 222, 128, 0.06); border-color: rgba(74, 222, 128, 0.4); }
 .gd-fantasy-rank { font-family: var(--mono); font-size: 14px; color: var(--orange); text-align: center; font-weight: 700; }
 .gd-fantasy-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .gd-fantasy-name { font-weight: 700; font-size: 14px; }
