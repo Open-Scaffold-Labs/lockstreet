@@ -283,10 +283,17 @@ function TeamPreview({ side, label, stats }) {
 function statusLabel(data) {
   if (data.status === 'final') return 'FINAL';
   if (data.status === 'live') {
-    // Always show the live clock — never the date — when the game is live.
+    const lg = data.league;
+    // Baseball has no clock — surface ESPN's text ("Top 7th") directly.
+    if (lg === 'mlb') return data.statusText || 'LIVE';
+    // Hockey: P1 / P2 / P3 / OT.
+    if (lg === 'nhl') {
+      if (data.clock && data.period) return `P${data.period} · ${data.clock}`;
+      return data.statusText || 'LIVE';
+    }
+    // NBA / NFL / CFB — quarter + clock.
     if (data.clock && data.period) return `Q${data.period} · ${data.clock}`;
-    if (data.statusText) return data.statusText;
-    return 'LIVE';
+    return data.statusText || 'LIVE';
   }
   if (data.date) {
     return new Date(data.date).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });

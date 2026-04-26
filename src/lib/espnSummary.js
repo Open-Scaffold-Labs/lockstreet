@@ -102,8 +102,18 @@ function normalizeSummary(json, league) {
   const competitors = comp.competitors || [];
   const home = competitors.find((c) => c.homeAway === 'home') || competitors[0] || {};
   const away = competitors.find((c) => c.homeAway === 'away') || competitors[1] || {};
-  const status = header.status?.type?.state; // 'pre' | 'in' | 'post'
+  // Status path varies — sometimes it's only on competitions[0].status, not on
+  // header.status. Try both. MLB summaries in particular often blank header.status.
+  const statusType =
+    header.status?.type?.state ||
+    comp.status?.type?.state ||
+    header.competitions?.[0]?.status?.type?.state;
+  const statusCompleted =
+    header.status?.type?.completed ||
+    comp.status?.type?.completed;
   const statusMap = { pre: 'upcoming', in: 'live', post: 'final' };
+  // If state is missing but completed=true, treat as final.
+  const status = statusType || (statusCompleted ? 'post' : null);
 
   const players = (json.boxscore?.players || []).map((tp) => ({
     teamId:   tp.team?.id,
@@ -138,9 +148,12 @@ function normalizeSummary(json, league) {
     id:         header.id,
     league,
     status:     statusMap[status] || 'upcoming',
-    statusText: header.status?.type?.detail || header.status?.type?.shortDetail || '',
-    period:     header.status?.period ?? null,
-    clock:      header.status?.displayClock || '',
+    // Fall back to competitions[0].status when header.status is empty (MLB
+    // summaries often blank that out — pulls correctly from comp.status).
+    statusText: header.status?.type?.detail || header.status?.type?.shortDetail
+             || comp.status?.type?.detail || comp.status?.type?.shortDetail || '',
+    period:     header.status?.period ?? comp.status?.period ?? null,
+    clock:      header.status?.displayClock || comp.status?.displayClock || '',
     date:       header.competitions?.[0]?.date,
     home: buildTeam(home),
     away: buildTeam(away),
