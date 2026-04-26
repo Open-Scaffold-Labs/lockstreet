@@ -114,7 +114,7 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
         </div>
 
         <div className="pick">
-          <div className="pick-label">Lock Street Pick</div>
+          <div className="pick-label">Lock Street {pick?.visibility === 'public' ? 'Free Pick' : 'Pick'}</div>
           {pick ? (
             <>
               <div className="pick-side">{pick.side}</div>
