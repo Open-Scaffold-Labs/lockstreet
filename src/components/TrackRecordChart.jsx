@@ -62,13 +62,13 @@ export default function TrackRecordChart({ data = SAMPLE, isSample = true }) {
       {
         label: 'Cumulative units',
         data: cumulative,
-        borderColor: '#fbbf24',
+        borderColor: '#ffa766',
         backgroundColor: (ctx) => {
           const { ctx: c, chartArea } = ctx.chart;
-          if (!chartArea) return 'rgba(251,191,36,0.15)';
+          if (!chartArea) return 'rgba(255,167,102,0.15)';
           const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          g.addColorStop(0, 'rgba(251,191,36,0.32)');
-          g.addColorStop(1, 'rgba(251,191,36,0.00)');
+          g.addColorStop(0, 'rgba(255,167,102,0.32)');
+          g.addColorStop(1, 'rgba(255,167,102,0.00)');
           return g;
         },
         borderWidth: 2.5,
@@ -76,8 +76,8 @@ export default function TrackRecordChart({ data = SAMPLE, isSample = true }) {
         fill: true,
         pointRadius: 0,
         pointHoverRadius: 5,
-        pointHoverBackgroundColor: '#fbbf24',
-        pointHoverBorderColor: '#0b0f1a',
+        pointHoverBackgroundColor: '#ffa766',
+        pointHoverBorderColor: '#000000',
         pointHoverBorderWidth: 2,
       },
     ],
@@ -89,15 +89,15 @@ export default function TrackRecordChart({ data = SAMPLE, isSample = true }) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#0f131e', borderColor: '#334155', borderWidth: 1,
-        padding: 10, titleColor: '#fbbf24', bodyColor: '#e7ebf3',
+        backgroundColor: '#0a0a0a', borderColor: '#334155', borderWidth: 1,
+        padding: 10, titleColor: '#ffa766', bodyColor: '#f4eeff',
         callbacks: { label: (ctx) => `${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y}u` },
       },
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: '#525b6e', font: { size: 10 } } },
+      x: { grid: { display: false }, ticks: { color: '#5a4f6f', font: { size: 10 } } },
       y: { grid: { color: 'rgba(255,255,255,0.04)' },
-           ticks: { color: '#525b6e', font: { size: 10 }, callback: (v) => (v >= 0 ? '+' : '') + v + 'u' },
+           ticks: { color: '#5a4f6f', font: { size: 10 }, callback: (v) => (v >= 0 ? '+' : '') + v + 'u' },
            suggestedMin: Math.floor(min - 2), suggestedMax: Math.ceil(max + 2) },
     },
     animation: { duration: 900, easing: 'easeOutQuart' },

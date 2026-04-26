@@ -72,7 +72,7 @@ export default function HomeRoute() {
                 display: 'block', textAlign: 'center', padding: 12, borderRadius: 10,
                 border: '1px solid var(--border-strong)',
                 background: t.popular ? 'var(--gold)' : 'rgba(255,255,255,0.04)',
-                color: t.popular ? '#0b0f1a' : 'var(--ink)',
+                color: t.popular ? '#000000' : 'var(--ink)',
                 textDecoration: 'none', fontFamily: 'var(--disp)', fontWeight: 700,
                 fontSize: 13, letterSpacing: '0.08em', textTransform: 'uppercase'
               }}>{t.cta}</Link>

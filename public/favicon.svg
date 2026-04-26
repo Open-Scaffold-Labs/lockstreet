@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
     <linearGradient id="lsbg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0b0f1a"/>
-      <stop offset="100%" stop-color="#141926"/>
+      <stop offset="0%" stop-color="#000000"/>
+      <stop offset="100%" stop-color="#141114"/>
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="url(#lsbg)"/>
-  <rect x="3" y="3" width="58" height="58" rx="12" fill="none" stroke="#fbbf24" stroke-width="1.5" opacity="0.4"/>
+  <rect x="3" y="3" width="58" height="58" rx="12" fill="none" stroke="#c084fc" stroke-width="1.5" opacity="0.4"/>
   <text x="32" y="42" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="30" letter-spacing="-1">
-    <tspan fill="#ffffff">L</tspan><tspan fill="#fbbf24">S</tspan>
+    <tspan fill="#ffffff">L</tspan><tspan fill="#c084fc">S</tspan>
   </text>
 </svg>

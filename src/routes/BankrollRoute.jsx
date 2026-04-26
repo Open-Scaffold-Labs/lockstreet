@@ -181,13 +181,13 @@ function BankrollChart({ series }) {
     datasets: [{
       label: 'Cumulative profit',
       data: series.map((p) => Math.round(p.cum * 100) / 100),
-      borderColor: '#fbbf24',
+      borderColor: '#c084fc',
       backgroundColor: (ctx) => {
         const { ctx: c, chartArea } = ctx.chart;
-        if (!chartArea) return 'rgba(251,191,36,0.15)';
+        if (!chartArea) return 'rgba(192,132,252,0.15)';
         const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-        g.addColorStop(0, 'rgba(251,191,36,0.32)');
-        g.addColorStop(1, 'rgba(251,191,36,0.00)');
+        g.addColorStop(0, 'rgba(192,132,252,0.32)');
+        g.addColorStop(1, 'rgba(192,132,252,0.00)');
         return g;
       },
       borderWidth: 2.5, tension: 0.3, fill: true,
@@ -200,15 +200,15 @@ function BankrollChart({ series }) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#0f131e', borderColor: '#334155', borderWidth: 1,
-        titleColor: '#fbbf24', bodyColor: '#e7ebf3',
+        backgroundColor: '#0a0a0a', borderColor: '#334155', borderWidth: 1,
+        titleColor: '#c084fc', bodyColor: '#f4eeff',
         callbacks: { label: (ctx) => `${ctx.parsed.y >= 0 ? '+' : ''}$${ctx.parsed.y}` },
       },
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: '#525b6e', font: { size: 10 } } },
+      x: { grid: { display: false }, ticks: { color: '#5a4f6f', font: { size: 10 } } },
       y: { grid: { color: 'rgba(255,255,255,0.04)' },
-           ticks: { color: '#525b6e', font: { size: 10 }, callback: (v) => (v >= 0 ? '+' : '') + '$' + v } },
+           ticks: { color: '#5a4f6f', font: { size: 10 }, callback: (v) => (v >= 0 ? '+' : '') + '$' + v } },
     },
   };
   return <div style={{ height: 220 }}><Line data={data} options={options} /></div>;

@@ -40,8 +40,8 @@ export default function RecordRoute() {
             type: 'line',
             label: 'Cumulative',
             data: cum,
-            borderColor: '#fbbf24',
-            backgroundColor: 'rgba(251,191,36,0.08)',
+            borderColor: '#ffa766',
+            backgroundColor: 'rgba(255,167,102,0.08)',
             tension: 0.35,
             pointRadius: 0,
             borderWidth: 2,
@@ -54,14 +54,14 @@ export default function RecordRoute() {
       options: {
         responsive: true, maintainAspectRatio: false,
         scales: {
-          y:  { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8a93a6' } },
-          y2: { position: 'right', grid: { display: false }, ticks: { color: '#b8861a', callback: (v) => '+' + v + 'u' } },
-          x:  { grid: { display: false }, ticks: { color: '#8a93a6' } },
+          y:  { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#9a8fb3' } },
+          y2: { position: 'right', grid: { display: false }, ticks: { color: '#cc7733', callback: (v) => '+' + v + 'u' } },
+          x:  { grid: { display: false }, ticks: { color: '#9a8fb3' } },
         },
         plugins: {
-          legend: { labels: { color: '#e7ebf3' } },
-          tooltip: { backgroundColor: '#0f131e', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
-            titleColor: '#e7ebf3', bodyColor: '#8a93a6' },
+          legend: { labels: { color: '#f4eeff' } },
+          tooltip: { backgroundColor: '#0a0a0a', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+            titleColor: '#f4eeff', bodyColor: '#9a8fb3' },
         },
       },
     });
