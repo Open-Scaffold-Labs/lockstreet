@@ -29,7 +29,13 @@ function espnDate(d) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}${m}${day}`;
 }
-function formatDate(d) {
+function formatDate(d, offset) {
+  // For today/tomorrow/yesterday, swap the weekday for the human label.
+  // e.g. "Today, Apr 26" instead of "Sun, Apr 26 · TODAY".
+  const md = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  if (offset === 0)  return `Today, ${md}`;
+  if (offset === 1)  return `Tomorrow, ${md}`;
+  if (offset === -1) return `Yesterday, ${md}`;
   return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
@@ -93,10 +99,7 @@ export default function ScoresRoute() {
             aria-label="Previous day"
           >‹</button>
           <span className="date-tab-label">
-            {formatDate(selectedDate)}
-            {offset === 0  && <span className="date-tab-pill date-tab-pill-today">TODAY</span>}
-            {offset === 1  && <span className="date-tab-pill">TOMORROW</span>}
-            {offset === -1 && <span className="date-tab-pill">YESTERDAY</span>}
+            {formatDate(selectedDate, offset)}
           </span>
           <button
             type="button"
