@@ -22,7 +22,7 @@
     background: rgba(0, 0, 0, 0.85);
   }
   .hdr-row { padding: 18px 12px; gap: 8px; flex-wrap: wrap; }
-  .brand { font-size: 16px; gap: 4px; }
+  .brand { font-size: 26px; gap: 6px; }
   .badge-ats { font-size: 9px; padding: 2px 5px; }
   /* Tagline (Buffett quote) wraps onto its own line on mobile so the
      quote stays visible without crowding the brand + sign-in row. */
@@ -39,9 +39,9 @@
   .tab { font-size: 11px; padding: 12px 10px; letter-spacing: 0.04em; }
 
   /* ----- Layout (mobile) -----
-     Top padding compensates for the now-fixed .hdr. Tightened so the date
-     tab sits flush below the header bottom border. */
-  .wrap { padding: calc(76px + env(safe-area-inset-top)) 12px 60px; }
+     Top padding compensates for the now-fixed .hdr. Brand at 26px + 18px
+     row padding + tabs row puts header content at ~88px. */
+  .wrap { padding: calc(88px + env(safe-area-inset-top)) 12px 60px; }
 
   /* ----- Cards / grids ----- */
   .grid { grid-template-columns: 1fr; gap: 10px; }

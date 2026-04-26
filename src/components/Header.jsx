@@ -1,5 +1,5 @@
 import { NavLink, Link } from 'react-router-dom';
-import { SignInButton, SignedIn, SignedOut, UserButton, useUser } from '../lib/auth.jsx';
+import { SignInButton, SignedIn, SignedOut, UserButton } from '../lib/auth.jsx';
 import { useSubscription } from '../hooks/useSubscription.js';
 
 const TABS = [
@@ -17,8 +17,6 @@ const TABS = [
 
 export default function Header() {
   const sub = useSubscription();
-  const { user } = useUser?.() || {};
-  const isAdmin = user?.publicMetadata?.role === 'admin';
 
   return (
     <header className="hdr">
@@ -39,7 +37,6 @@ export default function Header() {
         </SignedOut>
 
         <SignedIn>
-          {isAdmin && <Link to="/admin" className="btn-ghost">Admin</Link>}
           {sub.active ? (
             <Link to="/subscribe" className="gopro active"><span>OK</span><span>ACTIVE</span></Link>
           ) : (
