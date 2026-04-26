@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
 import { usePicks } from '../hooks/usePicks.js';
 import { useSubscription } from '../hooks/useSubscription.js';
+import { isFootballOffSeason, nextSeasonStart, daysUntil } from '../lib/offseason.js';
 import GameCard from '../components/GameCard.jsx';
 import { SkeletonCardGrid } from '../components/Skeleton.jsx';
 
@@ -57,10 +58,11 @@ export default function PicksRoute() {
 
   if (loading || picksLoading) return <SkeletonCardGrid count={6} />;
 
-  if (allPicks.length === 0) return <PicksEmptyState />;
+  if (allPicks.length === 0) return <><SystemInfoBanner games={games} /><PicksEmptyState /></>;
 
   return (
     <section>
+      <SystemInfoBanner games={games} />
       <PicksFilterBar
         q={q} setQ={setQ}
         league={league} setLeague={setLeague}
@@ -84,6 +86,38 @@ export default function PicksRoute() {
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Always-visible info card at the top of /picks. Explains the system covers
+ * NFL / CFB / CBB only and reinforces the brand promise that every posted
+ * pick is one we're taking ourselves. During football off-season it also
+ * shows a countdown to NFL/CFB kickoff.
+ */
+function SystemInfoBanner({ games }) {
+  const offSeason = isFootballOffSeason(games);
+  const cfbDays = daysUntil(nextSeasonStart('cfb'));
+  const nflDays = daysUntil(nextSeasonStart('nfl'));
+  const showCountdown = offSeason && (cfbDays > 0 || nflDays > 0);
+
+  return (
+    <div className="off-season-banner">
+      {showCountdown && (
+        <div className="osb-row">
+          <div className="osb-label">FOOTBALL OFF-SEASON</div>
+          <div className="osb-stats">
+            {cfbDays > 0 && <span><strong>{cfbDays}</strong> days to CFB Week 1</span>}
+            {cfbDays > 0 && nflDays > 0 && <span className="osb-dot">·</span>}
+            {nflDays > 0 && <span><strong>{nflDays}</strong> days to NFL kickoff</span>}
+          </div>
+        </div>
+      )}
+      <div className="osb-cta">
+        Lock Street's edge is in three sports — <strong>NFL, College Football, and College Basketball</strong>.
+        We don't post picks we aren't taking ourselves. Your success is our success.
+      </div>
+    </div>
   );
 }
 
