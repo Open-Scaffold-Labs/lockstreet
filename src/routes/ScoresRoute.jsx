@@ -61,6 +61,22 @@ export default function ScoresRoute() {
     [games, sport]
   );
 
+  // When ALL is selected, group games by league and order playoff sports first
+  // (NBA + NHL active in late spring), then regular-season sports. Leagues
+  // with zero games on the day are dropped — no empty groups rendered.
+  const LEAGUE_ORDER = ['nba', 'nhl', 'mlb', 'nfl', 'cfb'];
+  const groupedByLeague = useMemo(() => {
+    if (sport !== 'all') return null;
+    const buckets = {};
+    for (const g of filtered) {
+      if (!buckets[g.league]) buckets[g.league] = [];
+      buckets[g.league].push(g);
+    }
+    return LEAGUE_ORDER
+      .filter((lg) => buckets[lg]?.length)
+      .map((lg) => ({ league: lg, games: buckets[lg] }));
+  }, [filtered, sport]);
+
   // Off-season detection — football has no current games. We only check
   // this against TODAY's slate (offset 0); on past/future dates the user is
   // explicitly browsing a specific day so the off-season fallback shouldn't
@@ -139,17 +155,40 @@ export default function ScoresRoute() {
         <div className="empty">No games on the slate.</div>
       )}
 
-      <div className="grid">
-        {filtered.map((g, i) => (
-          <GameCard
-            key={g.id}
-            game={g}
-            pick={picks[g.id]}
-            pickUnlocked={sub.active}
-            delay={Math.min(i, 10) * 0.04}
-          />
-        ))}
-      </div>
+      {sport === 'all' && groupedByLeague ? (
+        groupedByLeague.map((group) => (
+          <div key={group.league} className="scores-group">
+            <div className="scores-group-h">
+              <span className={'lg-badge ' + group.league}>{group.league.toUpperCase()}</span>
+              <span className="scores-group-count">{group.games.length} game{group.games.length === 1 ? '' : 's'}</span>
+            </div>
+            <div className="grid">
+              {group.games.map((g, i) => (
+                <GameCard
+                  key={g.id}
+                  game={g}
+                  pick={picks[g.id]}
+                  pickUnlocked={sub.active}
+                  delay={Math.min(i, 10) * 0.04}
+                  hideLeagueBadge
+                />
+              ))}
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="grid">
+          {filtered.map((g, i) => (
+            <GameCard
+              key={g.id}
+              game={g}
+              pick={picks[g.id]}
+              pickUnlocked={sub.active}
+              delay={Math.min(i, 10) * 0.04}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

@@ -267,6 +267,18 @@ body {
 }
 .gd-injury-status { color: var(--ink-dim); font-size: 11px; }
 
+/* ----- Grouped /scores view (when ALL is selected) ----- */
+.scores-group { margin-bottom: 22px; }
+.scores-group + .scores-group { margin-top: 4px; }
+.scores-group-h {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 10px;
+}
+.scores-group-count {
+  color: var(--ink-faint); font-size: 11px; letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 /* ----- Date tab on /scores ----- */
 .date-tab {
   display: flex; align-items: center; justify-content: center;

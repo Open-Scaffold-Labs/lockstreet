@@ -64,7 +64,7 @@ function TeamRow({ team, score, side, showScore }) {
   );
 }
 
-export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
+export default function GameCard({ game, pick, pickUnlocked, delay = 0, hideLeagueBadge = false }) {
   const { league, week, status, period, kickoff, home, away, score, spread, ou, move, mlHome, mlAway } = game;
   const hasMl = (mlHome != null && Number.isFinite(mlHome)) || (mlAway != null && Number.isFinite(mlAway));
 
@@ -94,7 +94,7 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
     <Link to={`/game/${league}/${game.id}`} className="card-link" style={{ animationDelay: `${delay}s` }}>
       <article className="card">
         <div className="card-top">
-          <span className={`lg-badge ${league}`}>{league.toUpperCase()}</span>
+          {!hideLeagueBadge && <span className={`lg-badge ${league}`}>{league.toUpperCase()}</span>}
           {week && <span className="wk">{week}</span>}
           {stateEl}
         </div>
