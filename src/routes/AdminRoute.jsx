@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase.js';
 import GamePicker from '../components/GamePicker.jsx';
 import { parseSpread } from '../components/LogBetForm.jsx';
 import { useCurrentContest, useContestLeaderboard, useContestGrader } from '../hooks/useContest.js';
+import { usePushNotifications } from '../hooks/usePushNotifications.js';
 
 /**
  * Admin pick-poster.
@@ -163,7 +164,75 @@ function AdminInner() {
       {emailOpen && <EmailSubsModal onCancel={() => setEmailOpen(false)} toast={toast} />}
 
       <ContestAdminPanel toast={toast} />
+      <PushTestPanel toast={toast} />
     </>
+  );
+}
+
+// =====================================================================
+// Push notification test panel: enable push on this device + broadcast a
+// test push to all subscribed devices. Used to verify the VAPID + service-
+// worker + /api/send-notifications pipeline end-to-end before launch.
+// =====================================================================
+function PushTestPanel({ toast }) {
+  const { perm, subscribed, enable } = usePushNotifications();
+  const [busy, setBusy] = useState(false);
+
+  async function handleEnable() {
+    setBusy(true);
+    try {
+      const ok = await enable();
+      if (ok) toast('Push enabled on this device.', { type: 'success' });
+      else toast('Push permission denied.', { type: 'error' });
+    } catch (e) {
+      toast(e.message || 'Push enable failed', { type: 'error' });
+    } finally { setBusy(false); }
+  }
+
+  async function handleBroadcast() {
+    setBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/send-notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        // audience='all' so we don't require an active subscription row to receive
+        body: JSON.stringify({ title: 'Lock Street test', body: 'If you see this, push works.', audience: 'all' }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`);
+      toast(`Sent to ${j.sent}/${j.total} devices`, { type: 'success', duration: 5000 });
+    } catch (e) {
+      toast(e.message || 'Broadcast failed', { type: 'error' });
+    } finally { setBusy(false); }
+  }
+
+  const supported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window;
+  return (
+    <div className="about-block" style={{ marginTop: 24 }}>
+      <h3>Push test</h3>
+      <p style={{ color: 'var(--ink-dim)', marginBottom: 12, fontSize: 13 }}>
+        Enable push on each device you want to test, then broadcast. The broadcast targets <strong>all</strong> push-subscribed devices (no active subscription row required).
+      </p>
+      {!supported ? (
+        <p style={{ color: 'var(--bad)' }}>This browser doesn't support Web Push.</p>
+      ) : (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn-ghost" onClick={handleEnable} disabled={busy || subscribed}>
+            {subscribed ? 'Push enabled here' : 'Enable push on this device'}
+          </button>
+          <button className="btn-gold" onClick={handleBroadcast} disabled={busy}>
+            Send test push
+          </button>
+          <span style={{ alignSelf: 'center', color: 'var(--ink-dim)', fontSize: 12 }}>
+            permission: <code>{perm}</code>
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 
