@@ -216,10 +216,8 @@ body {
 .tab.active .count { color: var(--gold); background: rgba(192, 132, 252, 0.08); }
 
 /* ----- Layout ----- */
-/* Top padding sits content directly under the (sticky) header on desktop —
-   minimal breathing room so the date-tab on /scores reads as flush to the
-   header without looking glued on. */
-.wrap { max-width: 1180px; margin: 0 auto; padding: 6px 22px 80px; }
+/* Zero top padding — content sits flush against the sticky header bottom. */
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 22px 80px; }
 
 /* ----- Cards grid ----- */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
