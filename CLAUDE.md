@@ -137,8 +137,8 @@ lockstreet/
 
 ### Odds API (the-odds-api.com)
 
-- `api/odds.js` proxies game odds (spreads/totals/h2h) for `?sport=nfl|cfb|nba|mlb|nhl`. **5-min in-memory cache** keyed by sport.
-- `api/odds-props.js` proxies player props per event (markets default `player_pass_yds,player_rush_yds,player_reception_yds,player_anytime_td`). **10-min cache** per event+market.
+- `api/odds.js` proxies game odds (spreads/totals/h2h) for `?sport=nfl|cfb|nba|mlb|nhl`. **24-hour in-memory cache** keyed by sport (off-season + free-tier conservation; bump back to 5-15min once subscribers exist and the season starts).
+- `api/odds-props.js` proxies player props per event (markets default `player_pass_yds,player_rush_yds,player_reception_yds,player_anytime_td`). **24-hour cache** per event+market.
 - Free tier is **500 requests/month** — each `/api/odds` hit = 1 call; each `/api/odds-props` hit = 1 call **per event** (so 6 events = 6 calls). `PropsRoute` caps to first 6 events to conserve quota.
 - Both endpoints return 503 with a `hint` when the key is missing, so the client falls back to mock data without breaking.
 - `LinesRoute` matches ESPN games to Odds API events by `away|home|kickoff-day` keys; `PropsRoute` does a 2-step fetch (odds → event IDs → props).

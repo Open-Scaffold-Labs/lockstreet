@@ -7,7 +7,8 @@ const ODDS_BASE = 'https://api.the-odds-api.com/v4';
 const SPORT_KEYS = { nfl: 'americanfootball_nfl', ncaaf: 'americanfootball_ncaaf' };
 
 const cache = new Map();
-const CACHE_TTL_MS = 10 * 60 * 1000;
+// 24h cache - off-season + free 500/mo tier; bump down once subscribers exist.
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export default async function handler(req, res) {
   const apiKey = process.env.ODDS_API_KEY;

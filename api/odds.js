@@ -3,7 +3,13 @@
 // ever talks to /api/odds, never to the-odds-api.com directly.
 //
 // In-memory cache to avoid burning through the rate limit on every page load.
-// Cache TTL: 5 minutes (lines don't move that often). Cache key: sport+markets.
+// Cache TTL: 24 hours (off-season + free 500/mo tier - prefer stale lines over
+// blowing quota; bump back down to 5-15min once the season starts and we have
+// real subscriber traffic). Cache key: sport+markets.
+//
+// Note: Vercel's serverless instances are stateless across cold starts, so
+// "24h" is a ceiling - in practice the cache resets when the function spins
+// down. Net effect: ~1 call per warm-instance lifecycle per sport.
 
 const ODDS_BASE = 'https://api.the-odds-api.com/v4';
 const SPORT_KEYS = {
@@ -15,7 +21,7 @@ const SPORT_KEYS = {
 };
 
 const cache = new Map(); // key -> { data, expires }
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h - free tier conservation
 
 export default async function handler(req, res) {
   const apiKey = process.env.ODDS_API_KEY;
