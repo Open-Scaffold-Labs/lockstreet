@@ -200,7 +200,7 @@ function BankrollChart({ series }) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#0a0a0a', borderColor: '#334155', borderWidth: 1,
+        backgroundColor: '#0a0a0a', borderColor: 'rgba(255, 167, 102, 0.35)', borderWidth: 1,
         titleColor: '#c084fc', bodyColor: '#f4eeff',
         callbacks: { label: (ctx) => `${ctx.parsed.y >= 0 ? '+' : ''}$${ctx.parsed.y}` },
       },

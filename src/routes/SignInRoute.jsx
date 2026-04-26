@@ -43,15 +43,15 @@ export default function SignInRoute() {
     <div style={{ display: 'grid', placeItems: 'center', padding: '40px 0' }}>
       <form onSubmit={submit} style={{
         width: 'min(380px, 92vw)', padding: 24, background: '#0f172a',
-        border: '1px solid #334155', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 12
+        border: '1px solid rgba(255, 167, 102, 0.35)', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 12
       }}>
         <h2 style={{ margin: 0 }}>{mode === 'signin' ? 'Sign in' : 'Create account'}</h2>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
           placeholder="email@example.com" required autoFocus
-          style={{ padding: 10, background: '#0a0e17', border: '1px solid #334155', borderRadius: 6, color: '#fff' }} />
+          style={{ padding: 10, background: '#0a0e17', border: '1px solid rgba(255, 167, 102, 0.35)', borderRadius: 6, color: '#fff' }} />
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
           placeholder="password (min 6 chars)" required minLength={6}
-          style={{ padding: 10, background: '#0a0e17', border: '1px solid #334155', borderRadius: 6, color: '#fff' }} />
+          style={{ padding: 10, background: '#0a0e17', border: '1px solid rgba(255, 167, 102, 0.35)', borderRadius: 6, color: '#fff' }} />
         {err && <div style={{ color: '#ef4444', fontSize: 13 }}>{err}</div>}
         {info && <div style={{ color: '#10b981', fontSize: 13 }}>{info}</div>}
         <button type="submit" disabled={busy} className="btn-gold"
