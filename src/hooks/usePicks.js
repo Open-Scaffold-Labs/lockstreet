@@ -1,8 +1,13 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase.js';
 
 /**
- * Loads picks from /api/picks (backed by Vercel KV).
- * Returns { picksByGameId: { [espnEventId]: { side, units, scheduledFor } } }
+ * Reads picks from Supabase (RLS-gated):
+ *   - public picks: visible to everyone
+ *   - paid picks: visible to active subscribers (per RLS policy)
+ *   - all picks: visible to admins (per RLS policy)
+ *
+ * Returns picks keyed by game_id for easy lookup from <GameCard>.
  */
 export function usePicks() {
   const [picks, setPicks] = useState({});
@@ -10,12 +15,30 @@ export function usePicks() {
   const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
+    if (!supabase) { setLoading(false); return; }
     try {
-      const res = await fetch('/api/picks', { cache: 'no-store' });
-      if (!res.ok) throw new Error(`picks ${res.status}`);
-      const list = await res.json();
+      const { data, error } = await supabase
+        .from('picks')
+        .select('id, game_id, league, season, week, side, units, reasoning, visibility, result, posted_at, locks_at')
+        .order('posted_at', { ascending: false });
+      if (error) throw error;
       const byId = {};
-      (list.picks || []).forEach((p) => { byId[p.gameId] = p; });
+      (data || []).forEach((p) => {
+        byId[p.game_id] = {
+          id: p.id,
+          gameId: p.game_id,
+          league: p.league,
+          season: p.season,
+          week: p.week,
+          side: p.side,
+          units: Number(p.units),
+          reasoning: p.reasoning,
+          visibility: p.visibility,
+          result: p.result,
+          postedAt: p.posted_at,
+          locksAt: p.locks_at,
+        };
+      });
       setPicks(byId);
       setError(null);
     } catch (e) {
