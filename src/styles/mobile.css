@@ -39,11 +39,12 @@
   .tab { font-size: 11px; padding: 12px 10px; letter-spacing: 0.04em; }
 
   /* ----- Layout (mobile) -----
-     Top padding compensates for the now-fixed .hdr. The header is roughly
-     ~110px (brand row + tagline row + tabs row) plus the notch (which the
-     header swallows via its own padding-top: env(safe-area-inset-top)).
-     calc() lets it stretch on phones with bigger notches. */
-  .wrap { padding: calc(120px + env(safe-area-inset-top)) 12px 60px; }
+     Top padding compensates for the now-fixed .hdr. Tightened to sit content
+     close beneath the header — the header is roughly ~108px (brand row +
+     tagline row + tabs row) plus the notch (which the header swallows via
+     its own padding-top: env(safe-area-inset-top)). calc() lets it stretch
+     on phones with bigger notches. */
+  .wrap { padding: calc(108px + env(safe-area-inset-top)) 12px 60px; }
 
   /* ----- Cards / grids ----- */
   .grid { grid-template-columns: 1fr; gap: 10px; }
