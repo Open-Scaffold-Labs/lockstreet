@@ -133,6 +133,15 @@ lockstreet/
 - `STRIPE_SECRET_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRICE_WEEKLY/MONTHLY/SEASON`, `STRIPE_WEBHOOK_SECRET` — from Stripe Dashboard. Use test mode keys until launch.
 - `RESEND_API_KEY` + `RESEND_FROM_EMAIL` — sign up at https://resend.com (3,000/mo free, no card). Powers Discord invite delivery + weekly email blast.
 - `DISCORD_INVITE_URL` — static invite link from your private Discord server. Auto-emailed to Annual subs via Stripe webhook.
+- `ODDS_API_KEY` — sign up at https://the-odds-api.com (500/mo free, no card). Powers /lines and /props with live data. Server-only (never prefix with `VITE_`). When unset, both pages fall back to sample data.
+
+### Odds API (the-odds-api.com)
+
+- `api/odds.js` proxies game odds (spreads/totals/h2h) for `?sport=nfl|cfb|nba|mlb|nhl`. **5-min in-memory cache** keyed by sport.
+- `api/odds-props.js` proxies player props per event (markets default `player_pass_yds,player_rush_yds,player_reception_yds,player_anytime_td`). **10-min cache** per event+market.
+- Free tier is **500 requests/month** — each `/api/odds` hit = 1 call; each `/api/odds-props` hit = 1 call **per event** (so 6 events = 6 calls). `PropsRoute` caps to first 6 events to conserve quota.
+- Both endpoints return 503 with a `hint` when the key is missing, so the client falls back to mock data without breaking.
+- `LinesRoute` matches ESPN games to Odds API events by `away|home|kickoff-day` keys; `PropsRoute` does a 2-step fetch (odds → event IDs → props).
 
 ### Email model
 
@@ -205,11 +214,13 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 - PWA: manifest, all icons, iOS meta tags, mobile.css overrides, InstallPrompt component.
 - Test admin user: `lockstreet.matt.test@gmail.com` (password `TestLockMatt2026!`) — promoted to admin via SQL.
 - VAPID push keys: generated and stored in `.env.local`.
+- Odds infra: `api/odds.js` + `api/odds-props.js` server proxies, `/lines` and `/props` consume live data with mock fallback. Needs `ODDS_API_KEY` to go live.
 - GitHub: pushed to `main` branch. Latest commit: see `git log`.
 
 ### ⚠ Open / next-up
 
 - **Stripe wiring** — need real keys + 3 Price IDs. Subscription flow won't work without them.
+- **Odds API key** — sign up at https://the-odds-api.com (free), drop into `ODDS_API_KEY` in Vercel env + `.env.local` for `vercel dev`. Until then `/lines` and `/props` show sample data.
 - `SUPABASE_SERVICE_ROLE_KEY` — needed in `.env.local` for `api/stripe-webhook.js` and `api/send-notifications.js` to bypass RLS for server work.
 - `vercel dev` — set up to run /api/\* locally (or just deploy and test against deployed URL).
 - **Real admin user** — Matt should sign up via the form with his real email; promote that user to admin via the same SQL pattern, then we can delete the test user.

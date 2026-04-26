@@ -1,30 +1,30 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
 
 /**
  * Line shopping page.
- * Shows the same game's spread / total / moneyline across 5 sportsbooks side-by-side.
- * Currently uses MOCK book data derived from the ESPN consensus line +/- a small jitter.
- * Wire a real odds feed (The Odds API has a 500 req/mo free tier) by replacing
- * `bookOdds()` below with a real fetch.
+ * Fetches live book odds from /api/odds (server-side proxy to The Odds API,
+ * 500/mo free tier) and shows spread / total / moneyline across up to 5 books
+ * side-by-side. Falls back to seeded mock jitter off the ESPN consensus line
+ * when the API key isn't set OR /api isn't running (e.g. plain `vite` without
+ * `vercel dev`).
  */
 
-const BOOKS = [
-  { id: 'mgm',  name: 'MGM',       short: 'MGM', color: '#1a8a4a' },
-  { id: 'fd',   name: 'FanDuel',   short: 'FD',  color: '#1493ff' },
-  { id: 'dk',   name: 'DraftKings',short: 'DK',  color: '#53d337' },
-  { id: 'cz',   name: 'Caesars',   short: 'CZR', color: '#d4af37' },
-  { id: 'br',   name: 'BetRivers', short: 'BR',  color: '#7b3fbf' },
+const FALLBACK_BOOKS = [
+  { id: 'mgm', key: 'betmgm',     name: 'MGM',        short: 'MGM' },
+  { id: 'fd',  key: 'fanduel',    name: 'FanDuel',    short: 'FD'  },
+  { id: 'dk',  key: 'draftkings', name: 'DraftKings', short: 'DK'  },
+  { id: 'cz',  key: 'caesars',    name: 'Caesars',    short: 'CZR' },
+  { id: 'br',  key: 'betrivers',  name: 'BetRivers',  short: 'BR'  },
 ];
 
-// Deterministic seeded jitter so reload doesn't shuffle book prices
+// ---------- mock-fallback helpers (kept so /lines never goes blank) ----------
 function seededOffset(gameId, bookId) {
   const s = String(gameId) + bookId;
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return ((h >>> 0) % 7) - 3; // -3..+3 half-points
 }
-
 function applySpreadJitter(spread, gameId, bookId) {
   if (!spread) return null;
   const m = String(spread).match(/([A-Z]{2,4})\s*([+-]?\d+(\.\d+)?)/);
@@ -44,14 +44,84 @@ function fakeMl(gameId, bookId, side) {
   return (side === 'home' ? -135 : 115) + off * 5;
 }
 
+// ---------- live data fetcher ----------
+function useLiveOdds(sport) {
+  const [data, setData] = useState(null);    // { sport, events, remaining }
+  const [status, setStatus] = useState('idle'); // idle | loading | ready | error
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (sport === 'all') {
+      setData(null); setStatus('idle'); setError(null);
+      return;
+    }
+    let cancelled = false;
+    setStatus('loading');
+    fetch(`/api/odds?sport=${sport}`)
+      .then(async (r) => {
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}));
+          throw new Error(j.error || `HTTP ${r.status}`);
+        }
+        return r.json();
+      })
+      .then((j) => { if (!cancelled) { setData(j); setStatus('ready'); } })
+      .catch((e) => { if (!cancelled) { setError(String(e.message || e)); setStatus('error'); } });
+    return () => { cancelled = true; };
+  }, [sport]);
+
+  return { data, status, error };
+}
+
+// Build a quick lookup from the live feed: away+home+kickoff-day → event
+function indexLiveEvents(events) {
+  const idx = new Map();
+  for (const ev of events || []) {
+    const day = ev.commenceTime ? new Date(ev.commenceTime).toISOString().slice(0, 10) : '';
+    idx.set(`${ev.away}|${ev.home}|${day}`, ev);
+    // also team-only fallback (kickoff time may differ slightly between feeds)
+    idx.set(`${ev.away}|${ev.home}`, ev);
+  }
+  return idx;
+}
+
+function findLiveEventForGame(idx, g) {
+  if (!idx || !g) return null;
+  const day = g.kickoff ? new Date(g.kickoff).toISOString().slice(0, 10) : '';
+  const fullKey = `${g.away?.name}|${g.home?.name}|${day}`;
+  const teamKey = `${g.away?.name}|${g.home?.name}`;
+  return idx.get(fullKey) || idx.get(teamKey) || null;
+}
+
+// Pull the price for a given outcome from a book's market arrays
+function pickOutcome(outcomes, predicate) {
+  return (outcomes || []).find(predicate) || null;
+}
+function fmtPrice(price) {
+  if (price == null) return '—';
+  return price > 0 ? `+${price}` : String(price);
+}
+function fmtSpread(homeAbbr, point) {
+  if (point == null) return '—';
+  return `${homeAbbr} ${point > 0 ? '+' : ''}${point}`;
+}
+
 export default function LinesRoute() {
   const { games, loading } = useEspnScoreboard();
   const [sport, setSport] = useState('all');
+  const live = useLiveOdds(sport);
 
   const filtered = useMemo(
     () => games.filter((g) => g.status === 'upcoming' && (sport === 'all' || g.league === sport)),
     [games, sport]
   );
+
+  const liveIdx = useMemo(
+    () => (live.status === 'ready' ? indexLiveEvents(live.data?.events) : null),
+    [live.status, live.data]
+  );
+
+  const usingLive = live.status === 'ready' && liveIdx && liveIdx.size > 0;
 
   return (
     <section>
@@ -59,7 +129,10 @@ export default function LinesRoute() {
         <div>
           <div className="trc-eyebrow">Line shopping · 5 books</div>
           <div className="trc-final">
-            {filtered.length}<span className="trc-final-sub">upcoming games · best line highlighted in gold</span>
+            {filtered.length}<span className="trc-final-sub">
+              upcoming games · {usingLive ? 'live odds' : 'sample lines'}
+              {usingLive && live.data?.remaining != null ? ` · ${live.data.remaining} API calls left` : ''}
+            </span>
           </div>
         </div>
         <div className="filter">
@@ -69,19 +142,53 @@ export default function LinesRoute() {
         </div>
       </div>
 
-      {loading && <p style={{ color: 'var(--ink-dim)' }}>Loading lines...</p>}
+      {live.status === 'error' && (
+        <p style={{ color: 'var(--ink-dim)', fontSize: 13, marginTop: -6, marginBottom: 12 }}>
+          Live odds unavailable ({live.error}). Showing sample lines.
+        </p>
+      )}
+
+      {(loading || live.status === 'loading') && <p style={{ color: 'var(--ink-dim)' }}>Loading lines...</p>}
 
       {!loading && filtered.length === 0 && (
         <div className="empty">No upcoming games to compare.</div>
       )}
 
       {filtered.map((g) => {
-        const spreads = BOOKS.map((b) => ({ book: b, val: applySpreadJitter(g.spread, g.id, b.id) }));
-        const ous     = BOOKS.map((b) => ({ book: b, val: applyOuJitter(g.ou, g.id, b.id) }));
-        const mlsHome = BOOKS.map((b) => ({ book: b, val: fakeMl(g.id, b.id, 'home') }));
-        const mlsAway = BOOKS.map((b) => ({ book: b, val: fakeMl(g.id, b.id, 'away') }));
-        // "Best" = closest to 0 for spread (least handicap), highest total for over, highest underdog ML, etc.
-        // Mark the most-bettor-friendly per row: for spread we'll just highlight the single biggest dog number.
+        const liveEv = usingLive ? findLiveEventForGame(liveIdx, g) : null;
+        const books = usingLive && liveEv
+          ? FALLBACK_BOOKS.map((b) => liveEv.books?.find((lb) => lb.key === b.key) ? { ...b, live: liveEv.books.find((lb) => lb.key === b.key) } : b)
+          : FALLBACK_BOOKS;
+
+        const spreads = books.map((b) => {
+          if (b.live?.markets?.spreads) {
+            const o = pickOutcome(b.live.markets.spreads, (x) => x.name === liveEv.home);
+            return { book: b, val: fmtSpread(g.home?.abbr, o?.point), price: o?.price };
+          }
+          return { book: b, val: applySpreadJitter(g.spread, g.id, b.id), price: null };
+        });
+        const ous = books.map((b) => {
+          if (b.live?.markets?.totals) {
+            const o = pickOutcome(b.live.markets.totals, (x) => x.name === 'Over');
+            return { book: b, val: o?.point != null ? String(o.point) : '—' };
+          }
+          return { book: b, val: applyOuJitter(g.ou, g.id, b.id) };
+        });
+        const mlsHome = books.map((b) => {
+          if (b.live?.markets?.h2h) {
+            const o = pickOutcome(b.live.markets.h2h, (x) => x.name === liveEv.home);
+            return { book: b, val: o?.price ?? null };
+          }
+          return { book: b, val: fakeMl(g.id, b.id, 'home') };
+        });
+        const mlsAway = books.map((b) => {
+          if (b.live?.markets?.h2h) {
+            const o = pickOutcome(b.live.markets.h2h, (x) => x.name === liveEv.away);
+            return { book: b, val: o?.price ?? null };
+          }
+          return { book: b, val: fakeMl(g.id, b.id, 'away') };
+        });
+
         return (
           <div key={g.id} className="lines-block">
             <div className="lines-head">
@@ -89,10 +196,11 @@ export default function LinesRoute() {
               <strong>{g.away?.abbr} @ {g.home?.abbr}</strong>
               <span className="wk">{g.week}</span>
               <span className="lines-time">{new Date(g.kickoff).toLocaleString([], { weekday: 'short', month: 'numeric', day: 'numeric', hour: 'numeric' })}</span>
+              {liveEv && <span className="wk" style={{ color: 'var(--gold)' }}>LIVE</span>}
             </div>
             <table className="lines-table">
               <thead>
-                <tr><th>Market</th>{BOOKS.map((b) => <th key={b.id}>{b.short}</th>)}</tr>
+                <tr><th>Market</th>{books.map((b) => <th key={b.id}>{b.short}</th>)}</tr>
               </thead>
               <tbody>
                 <tr>
@@ -105,11 +213,11 @@ export default function LinesRoute() {
                 </tr>
                 <tr>
                   <td className="lines-market">ML home</td>
-                  {mlsHome.map((c) => <td key={c.book.id} className="lines-cell">{c.val > 0 ? '+' : ''}{c.val}</td>)}
+                  {mlsHome.map((c) => <td key={c.book.id} className="lines-cell">{fmtPrice(c.val)}</td>)}
                 </tr>
                 <tr>
                   <td className="lines-market">ML away</td>
-                  {mlsAway.map((c) => <td key={c.book.id} className="lines-cell">{c.val > 0 ? '+' : ''}{c.val}</td>)}
+                  {mlsAway.map((c) => <td key={c.book.id} className="lines-cell">{fmtPrice(c.val)}</td>)}
                 </tr>
               </tbody>
             </table>
@@ -118,8 +226,9 @@ export default function LinesRoute() {
       })}
 
       <p className="footnote-disclaimer" style={{ maxWidth: 600 }}>
-        Demo data — book lines are seeded from the ESPN consensus with deterministic jitter.
-        Wire a real odds feed (e.g. The Odds API free tier) to replace.
+        {usingLive
+          ? 'Live odds via The Odds API (server-cached 5 min). Best line per row not yet highlighted.'
+          : 'Sample lines (ESPN consensus + deterministic jitter). Set ODDS_API_KEY to enable live data from The Odds API (500/mo free).'}
       </p>
     </section>
   );
