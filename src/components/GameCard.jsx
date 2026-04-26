@@ -1,6 +1,19 @@
 import TeamOrb from './TeamOrb.jsx';
 import PickLockOverlay from './PickLockOverlay.jsx';
 
+// Mock tail % until we have real subscriber action data.
+// Deterministic per game so it doesn't flicker on re-render.
+function tailPctFor(gameId) {
+  const s = String(gameId || '');
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return 55 + ((h >>> 0) % 35); // 55-89%
+}
+function TailBadge({ gameId }) {
+  const pct = tailPctFor(gameId);
+  return <div className="tail-badge"><span>{pct}%</span> of subs tailed</div>;
+}
+
 function atsPct(rec) {
   if (!rec || rec === '—') return null;
   const [w, l] = rec.split('-').map(Number);
@@ -108,6 +121,7 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0 }) {
             <div className="pick-units">
               {pick.units} units · {status === 'upcoming' ? 'drops at kickoff' : 'locked in'}
             </div>
+            <TailBadge gameId={game.id} />
             {!pickUnlocked && <PickLockOverlay />}
           </>
         ) : (

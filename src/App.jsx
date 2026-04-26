@@ -11,6 +11,9 @@ import AboutRoute from './routes/AboutRoute.jsx';
 import HomeRoute from './routes/HomeRoute.jsx';
 import BankrollRoute from './routes/BankrollRoute.jsx';
 import ParlayRoute from './routes/ParlayRoute.jsx';
+import LinesRoute from './routes/LinesRoute.jsx';
+import PropsRoute from './routes/PropsRoute.jsx';
+import WeeklyRoute from './routes/WeeklyRoute.jsx';
 import AdminRoute from './routes/AdminRoute.jsx';
 import SuccessRoute from './routes/SuccessRoute.jsx';
 import SignInRoute from './routes/SignInRoute.jsx';
@@ -28,6 +31,9 @@ export default function App() {
           <Route path="/about" element={<AboutRoute />} />
           <Route path="/bankroll" element={<BankrollRoute />} />
           <Route path="/parlay" element={<ParlayRoute />} />
+          <Route path="/lines" element={<LinesRoute />} />
+          <Route path="/props" element={<PropsRoute />} />
+          <Route path="/weekly" element={<WeeklyRoute />} />
           <Route path="/subscribe" element={<SubscribeRoute />} />
           <Route path="/admin" element={<AdminRoute />} />
           <Route path="/success" element={<SuccessRoute />} />

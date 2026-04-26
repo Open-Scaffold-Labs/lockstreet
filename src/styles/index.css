@@ -711,3 +711,68 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
 .ev-pct  { font-family: var(--mono); font-size: 14px; color: var(--ink-dim); margin-left: 14px; font-weight: 500; letter-spacing: 0.04em; }
 .about-block.ev-positive .ev-num { color: var(--green); }
 .about-block.ev-negative .ev-num { color: var(--red); }
+
+
+/* ================================================================
+   Line shopping
+   ================================================================ */
+.lines-block {
+  background: linear-gradient(160deg, #141926, #0f131e);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 14px 16px; margin-bottom: 14px;
+}
+.lines-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px; flex-wrap: wrap;
+}
+.lines-head strong { font-size: 16px; }
+.lines-time { color: var(--ink-faint); font-family: var(--mono); font-size: 11px; margin-left: auto; }
+.lines-table {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--mono); font-size: 12px;
+}
+.lines-table thead th {
+  text-align: center; color: var(--ink-faint); font-weight: 700;
+  letter-spacing: 0.06em; font-size: 10px; text-transform: uppercase;
+  padding: 6px 4px; border-bottom: 1px solid var(--border);
+}
+.lines-table thead th:first-child { text-align: left; }
+.lines-market { color: var(--ink-dim); padding: 8px 4px; font-size: 11px; }
+.lines-cell  { text-align: center; padding: 8px 4px; color: var(--ink); }
+
+/* ================================================================
+   Player props row
+   ================================================================ */
+.prop-side {
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(11, 15, 26, 0.6); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 9px; min-width: 56px;
+}
+.prop-label { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 0.08em; }
+.prop-odd   { font-family: var(--disp); font-weight: 700; font-size: 13px; color: var(--ink); }
+
+/* ================================================================
+   Tail tracker badge
+   ================================================================ */
+.tail-badge {
+  margin-top: 6px; padding: 3px 7px;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 4px; display: inline-block;
+  font-family: var(--mono); font-size: 10px;
+  color: var(--green); letter-spacing: 0.04em;
+}
+.tail-badge span { font-weight: 700; margin-right: 3px; }
+
+/* ================================================================
+   Weekly preview
+   ================================================================ */
+.weekly-list { display: flex; flex-direction: column; gap: 16px; }
+.weekly-post .weekly-body p { color: var(--ink-dim); line-height: 1.7; font-size: 14.5px; }
+.weekly-post .weekly-body p + p { margin-top: 14px; }
+
+@media (max-width: 600px) {
+  .lines-table { font-size: 11px; }
+  .lines-cell { padding: 6px 2px; }
+  .prop-side { min-width: 48px; padding: 4px 6px; }
+}

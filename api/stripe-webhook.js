@@ -21,6 +21,19 @@ async function upsertSubscription(supa, payload) {
   if (error) console.error('[stripe-webhook] upsert error', error);
 }
 
+/**
+ * Annual subscribers get the private Discord. We don't have a programmatic Discord
+ * invite-by-email API, so the simplest play is to hand them the static server invite
+ * link via email + show it in-app (a notifications row). For now we just log it;
+ * email/notification delivery is a follow-up once we wire SMTP/transactional email.
+ */
+async function maybeSendDiscordInvite({ userId, tier }) {
+  const inviteUrl = process.env.DISCORD_INVITE_URL;
+  if (!inviteUrl || tier !== 'season') return;
+  console.log('[stripe-webhook] Discord invite for user', userId, '->', inviteUrl);
+  // TODO: insert into a `notifications` table or queue an email send.
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   if (!stripe || !WEBHOOK_SECRET) return res.status(500).json({ error: 'Stripe env not configured' });
@@ -50,6 +63,7 @@ export default async function handler(req, res) {
           tier,
           status:                 'active',
         });
+        await maybeSendDiscordInvite({ userId, tier });
         break;
       }
       case 'customer.subscription.updated':
