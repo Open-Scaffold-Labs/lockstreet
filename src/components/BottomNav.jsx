@@ -41,10 +41,26 @@ function IconWallet() {
     </svg>
   );
 }
+function IconLines() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="14" y2="17" />
+    </svg>
+  );
+}
+function IconProps() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" /><path d="M5 21v-1a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v1" />
+    </svg>
+  );
+}
 
 const ITEMS = [
   { to: '/scores',    label: 'Scores',   icon: <IconHome /> },
   { to: '/picks',     label: 'Picks',    icon: <IconPicks /> },
+  { to: '/lines',     label: 'Lines',    icon: <IconLines /> },
+  { to: '/props',     label: 'Props',    icon: <IconProps /> },
   { to: '/bankroll',  label: 'Bankroll', icon: <IconWallet /> },
   { to: '/about',     label: 'Record',   icon: <IconRecord /> },
   { to: '/subscribe', label: 'Pro',      icon: <IconStar /> },

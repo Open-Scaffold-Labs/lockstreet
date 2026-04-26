@@ -5,7 +5,11 @@ import { useSubscription } from '../hooks/useSubscription.js';
 const TABS = [
   { to: '/scores',    label: 'Scores' },
   { to: '/picks',     label: 'Picks' },
+  { to: '/lines',     label: 'Lines' },
+  { to: '/props',     label: 'Props' },
+  { to: '/parlay',    label: 'Parlay' },
   { to: '/bankroll',  label: 'Bankroll' },
+  { to: '/weekly',    label: 'Weekly' },
   { to: '/about',     label: 'Track Record' },
   { to: '/subscribe', label: 'Subscribe' },
 ];
