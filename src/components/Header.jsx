@@ -9,6 +9,8 @@ const TABS = [
   { to: '/props',     label: 'Props' },
   { to: '/parlay',    label: 'Parlay' },
   { to: '/bankroll',  label: 'Bankroll' },
+  { to: '/contest',   label: 'Contest' },
+  { to: '/leaderboard', label: 'Leaders' },
   { to: '/weekly',    label: 'Weekly' },
   { to: '/about',     label: 'Track Record' },
   { to: '/subscribe', label: 'Subscribe' },

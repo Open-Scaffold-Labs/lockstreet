@@ -14,6 +14,8 @@ import ParlayRoute from './routes/ParlayRoute.jsx';
 import LinesRoute from './routes/LinesRoute.jsx';
 import PropsRoute from './routes/PropsRoute.jsx';
 import WeeklyRoute from './routes/WeeklyRoute.jsx';
+import ContestRoute from './routes/ContestRoute.jsx';
+import LeaderboardRoute from './routes/LeaderboardRoute.jsx';
 import AdminRoute from './routes/AdminRoute.jsx';
 import SuccessRoute from './routes/SuccessRoute.jsx';
 import SignInRoute from './routes/SignInRoute.jsx';
@@ -34,6 +36,8 @@ export default function App() {
           <Route path="/lines" element={<LinesRoute />} />
           <Route path="/props" element={<PropsRoute />} />
           <Route path="/weekly" element={<WeeklyRoute />} />
+          <Route path="/contest" element={<ContestRoute />} />
+          <Route path="/leaderboard" element={<LeaderboardRoute />} />
           <Route path="/subscribe" element={<SubscribeRoute />} />
           <Route path="/admin" element={<AdminRoute />} />
           <Route path="/success" element={<SuccessRoute />} />

@@ -5,6 +5,7 @@ import { useToast } from '../lib/toast.jsx';
 import { supabase } from '../lib/supabase.js';
 import GamePicker from '../components/GamePicker.jsx';
 import { parseSpread } from '../components/LogBetForm.jsx';
+import { useCurrentContest, useContestLeaderboard } from '../hooks/useContest.js';
 
 /**
  * Admin pick-poster.
@@ -151,7 +152,204 @@ function AdminInner() {
 
       {postOpen && <PostPickModal onSave={handleSave} onCancel={() => setPostOpen(false)} />}
       {emailOpen && <EmailSubsModal onCancel={() => setEmailOpen(false)} toast={toast} />}
+
+      <ContestAdminPanel toast={toast} />
     </>
+  );
+}
+
+// =====================================================================
+// Contest admin: create a contest, set MNF actuals, grant prize to winner.
+// Phase 1 — manual operations. Phase 2 will auto-grade + auto-grant.
+// =====================================================================
+
+function ContestAdminPanel({ toast }) {
+  const { contest, refresh: refreshContest } = useCurrentContest();
+  const { rows: leaderboard, refresh: refreshBoard } = useContestLeaderboard(contest);
+
+  const [mnfTotal, setMnfTotal] = useState('');
+  const [mnfQbYds, setMnfQbYds] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  // Hydrate from contest record
+  useEffect(() => {
+    if (contest) {
+      setMnfTotal(contest.mnf_total_actual != null ? String(contest.mnf_total_actual) : '');
+      setMnfQbYds(contest.mnf_qb_yds_actual != null ? String(contest.mnf_qb_yds_actual) : '');
+    }
+  }, [contest]);
+
+  async function handleCreateContest(season, week, firstKickoff) {
+    setCreating(true);
+    const { error } = await supabase.from('contests').insert({
+      season: Number(season),
+      week: Number(week),
+      status: 'open',
+      first_kickoff_at: firstKickoff || null,
+    });
+    setCreating(false);
+    if (error) {
+      toast.error?.(`Create failed: ${error.message}`);
+    } else {
+      toast.success?.('Contest created.');
+      refreshContest();
+    }
+  }
+
+  async function handleSaveMnfActuals() {
+    if (!contest) return;
+    const { error } = await supabase
+      .from('contests')
+      .update({
+        mnf_total_actual: mnfTotal !== '' ? Number(mnfTotal) : null,
+        mnf_qb_yds_actual: mnfQbYds !== '' ? Number(mnfQbYds) : null,
+      })
+      .eq('id', contest.id);
+    if (error) {
+      toast.error?.(`Save failed: ${error.message}`);
+    } else {
+      toast.success?.('MNF actuals saved.');
+      refreshContest();
+      refreshBoard();
+    }
+  }
+
+  async function handleGrantWinner(userId) {
+    if (!contest) return;
+    if (!confirm('Grant 1 free week to this user and mark contest paid?')) return;
+
+    // 1. Set winner_user_id and mark contest paid
+    const { error: e1 } = await supabase
+      .from('contests')
+      .update({ winner_user_id: userId, status: 'paid', end_at: new Date().toISOString() })
+      .eq('id', contest.id);
+    if (e1) { toast.error?.(`Mark winner failed: ${e1.message}`); return; }
+
+    // 2. Extend / create subscription row by 7 days
+    const { data: existing } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const newPeriodEnd = existing?.current_period_end && new Date(existing.current_period_end) > new Date()
+      ? new Date(new Date(existing.current_period_end).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      : sevenDaysFromNow;
+
+    const { error: e2 } = await supabase
+      .from('subscriptions')
+      .upsert(
+        {
+          user_id: userId,
+          tier: existing?.tier || 'weekly',
+          status: 'active',
+          current_period_end: newPeriodEnd,
+        },
+        { onConflict: 'user_id' }
+      );
+    if (e2) { toast.error?.(`Subscription update failed: ${e2.message}`); return; }
+
+    toast.success?.('Winner granted 1 free week.');
+    refreshContest();
+    refreshBoard();
+  }
+
+  return (
+    <div className="about-block" style={{ marginTop: 24 }}>
+      <h3>Contest admin</h3>
+
+      {!contest ? (
+        <CreateContestForm onCreate={handleCreateContest} creating={creating} />
+      ) : (
+        <>
+          <p style={{ color: 'var(--ink-dim)', marginBottom: 12 }}>
+            <strong style={{ color: 'var(--gold)' }}>{contest.season} Week {contest.week}</strong>
+            {' · '}status: {contest.status}
+            {' · '}{leaderboard.length} entries
+            {contest.first_kickoff_at ? ` · locks ${new Date(contest.first_kickoff_at).toLocaleString()}` : ''}
+          </p>
+
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, marginBottom: 16,
+            alignItems: 'end',
+          }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>MNF total points (actual)</span>
+              <input type="number" value={mnfTotal} onChange={(e) => setMnfTotal(e.target.value)}
+                style={{ padding: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--ink)' }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>MNF combined QB pass yds (actual)</span>
+              <input type="number" value={mnfQbYds} onChange={(e) => setMnfQbYds(e.target.value)}
+                style={{ padding: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--ink)' }} />
+            </label>
+            <button className="btn-ghost" onClick={handleSaveMnfActuals}>Save MNF</button>
+          </div>
+
+          <h4 style={{ marginBottom: 8 }}>Top of leaderboard</h4>
+          {leaderboard.length === 0 ? (
+            <p style={{ color: 'var(--ink-dim)' }}>No entries yet.</p>
+          ) : (
+            <div className="bk-table">
+              {leaderboard.slice(0, 10).map((r, i) => (
+                <div key={r.id} className="bk-row">
+                  <div className="bk-row-main">
+                    <div className="bk-row-desc">
+                      <span className="lg-badge nfl">{i + 1}</span>
+                      <strong>{String(r.user_id).slice(0, 8)}</strong>
+                      <span className="bk-odds">{r.wins}-{r.losses}{r.pushes ? `-${r.pushes}` : ''}</span>
+                      {!r.qualified && <span className="bk-odds" style={{ color: 'var(--bad)' }}>not qualified</span>}
+                    </div>
+                    <div className="bk-row-meta" style={{ color: 'var(--ink-dim)', fontSize: 12 }}>
+                      MNF guess: {r.mnf_total_prediction ?? '—'} pts / {r.mnf_qb_yds_prediction ?? '—'} yds
+                      {r.mnf_total_diff != null ? ` · diff: ${r.mnf_total_diff} / ${r.mnf_qb_yds_diff}` : ''}
+                    </div>
+                  </div>
+                  <div className="bk-row-pl">
+                    <button className="btn-gold" onClick={() => handleGrantWinner(r.user_id)} disabled={contest.status === 'paid'}>
+                      Grant week
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function CreateContestForm({ onCreate, creating }) {
+  const [season, setSeason] = useState(2026);
+  const [week, setWeek] = useState(1);
+  const [firstKickoff, setFirstKickoff] = useState('');
+
+  return (
+    <div style={{ padding: 14, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
+      <p style={{ marginBottom: 12, color: 'var(--ink-dim)' }}>No active contest. Create one to open entries.</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr auto', gap: 8, alignItems: 'end' }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>Season</span>
+          <input type="number" value={season} onChange={(e) => setSeason(e.target.value)}
+            style={{ padding: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--ink)' }} />
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>Week</span>
+          <input type="number" value={week} onChange={(e) => setWeek(e.target.value)}
+            style={{ padding: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--ink)' }} />
+        </label>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>First kickoff (lock time)</span>
+          <input type="datetime-local" value={firstKickoff} onChange={(e) => setFirstKickoff(e.target.value)}
+            style={{ padding: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--ink)' }} />
+        </label>
+        <button className="btn-gold" onClick={() => onCreate(season, week, firstKickoff ? new Date(firstKickoff).toISOString() : null)} disabled={creating}>
+          {creating ? '...' : 'Create'}
+        </button>
+      </div>
+    </div>
   );
 }
 
