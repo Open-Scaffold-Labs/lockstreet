@@ -664,3 +664,50 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   .lbf-side { padding: 12px; }
   .lbf-side-team { font-size: 16px; }
 }
+
+
+/* ================================================================
+   Picks search/filter bar
+   ================================================================ */
+.picks-filter { margin-bottom: 16px; }
+.picks-search {
+  width: 100%; padding: 12px 14px; border-radius: 10px;
+  border: 1px solid var(--border-strong); background: #0a0e17; color: var(--ink);
+  font-family: var(--mono); font-size: 13px; margin-bottom: 10px;
+}
+.picks-search:focus { outline: 0; border-color: rgba(251, 191, 36, 0.5); }
+.picks-filter-row {
+  display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
+  padding: 8px 0;
+}
+.picks-filter-group { display: flex; align-items: center; gap: 4px; }
+.picks-filter-label {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-faint);
+  letter-spacing: 0.1em; text-transform: uppercase; margin-right: 4px;
+}
+.filter-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--ink-dim); padding: 5px 10px; border-radius: 6px;
+  font-family: var(--mono); font-size: 11px; cursor: pointer;
+  letter-spacing: 0.04em;
+}
+.filter-btn.active {
+  background: rgba(251, 191, 36, 0.1); color: var(--gold);
+  border-color: rgba(251, 191, 36, 0.4);
+}
+.picks-filter-count {
+  margin-top: 6px; font-family: var(--mono); font-size: 10px;
+  color: var(--ink-faint); letter-spacing: 0.06em;
+}
+
+/* ================================================================
+   Parlay calculator
+   ================================================================ */
+.parlay-row { flex-direction: column; align-items: stretch; }
+.about-block.ev-positive { border-color: rgba(74, 222, 128, 0.3); background: linear-gradient(160deg, rgba(74, 222, 128, 0.06), rgba(15, 19, 30, 1)); }
+.about-block.ev-negative { border-color: rgba(248, 113, 113, 0.3); background: linear-gradient(160deg, rgba(248, 113, 113, 0.06), rgba(15, 19, 30, 1)); }
+.ev-result { padding-top: 4px; }
+.ev-num { font-family: var(--disp); font-weight: 800; font-size: 38px; letter-spacing: -0.02em; color: var(--gold); line-height: 1; }
+.ev-pct  { font-family: var(--mono); font-size: 14px; color: var(--ink-dim); margin-left: 14px; font-weight: 500; letter-spacing: 0.04em; }
+.about-block.ev-positive .ev-num { color: var(--green); }
+.about-block.ev-negative .ev-num { color: var(--red); }

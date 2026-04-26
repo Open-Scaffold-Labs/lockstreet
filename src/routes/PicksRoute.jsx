@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
 import { usePicks } from '../hooks/usePicks.js';
@@ -11,27 +11,61 @@ export default function PicksRoute() {
   const { picks, loading: picksLoading } = usePicks();
   const sub = useSubscription();
 
-  const list = useMemo(
-    () => games.filter((g) => picks[g.id]),
-    [games, picks]
-  );
+  const [q, setQ]            = useState('');
+  const [league, setLeague]  = useState('all');     // all | nfl | cfb
+  const [result, setResult]  = useState('all');     // all | win | loss | push | pending
+  const [vis, setVis]        = useState('all');     // all | public | paid
+
+  const allPicks = useMemo(() => Object.values(picks), [picks]);
+
+  const filteredPicks = useMemo(() => {
+    return allPicks.filter((p) => {
+      if (league !== 'all' && p.league !== league) return false;
+      if (result !== 'all' && p.result !== result) return false;
+      if (vis    !== 'all' && p.visibility !== vis) return false;
+      if (q && !p.side?.toLowerCase().includes(q.toLowerCase())
+            && !p.reasoning?.toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    });
+  }, [allPicks, league, result, vis, q]);
+
+  // Match filtered picks to ESPN games (so we can render GameCard)
+  const cards = useMemo(() => {
+    return filteredPicks.map((p) => ({
+      pick: p,
+      game: games.find((g) => g.id === p.gameId) || synthesizeGame(p),
+    }));
+  }, [filteredPicks, games]);
 
   if (loading || picksLoading) return <SkeletonCardGrid count={6} />;
 
-  if (list.length === 0) return <PicksEmptyState />;
+  if (allPicks.length === 0) return <PicksEmptyState />;
 
   return (
-    <div className="grid">
-      {list.map((g, i) => (
-        <GameCard
-          key={g.id}
-          game={g}
-          pick={picks[g.id]}
-          pickUnlocked={sub.active}
-          delay={Math.min(i, 10) * 0.04}
-        />
-      ))}
-    </div>
+    <section>
+      <PicksFilterBar
+        q={q} setQ={setQ}
+        league={league} setLeague={setLeague}
+        result={result} setResult={setResult}
+        vis={vis} setVis={setVis}
+        total={allPicks.length} shown={filteredPicks.length}
+      />
+      {cards.length === 0 ? (
+        <div className="empty">No picks match those filters.</div>
+      ) : (
+        <div className="grid">
+          {cards.map(({ game, pick }, i) => (
+            <GameCard
+              key={pick.id || pick.gameId}
+              game={game}
+              pick={pick}
+              pickUnlocked={sub.active || pick.visibility === 'public'}
+              delay={Math.min(i, 10) * 0.04}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -93,4 +127,58 @@ function PicksEmptyState() {
       </div>
     </section>
   );
+}
+
+
+function PicksFilterBar({ q, setQ, league, setLeague, result, setResult, vis, setVis, total, shown }) {
+  const Btn = ({ active, onClick, children }) => (
+    <button onClick={onClick} className={'filter-btn' + (active ? ' active' : '')}>{children}</button>
+  );
+  return (
+    <div className="picks-filter">
+      <input
+        className="picks-search"
+        type="search" value={q} onChange={(e) => setQ(e.target.value)}
+        placeholder={`Search ${total} picks (team, side, reasoning)...`}
+      />
+      <div className="picks-filter-row">
+        <div className="picks-filter-group">
+          <span className="picks-filter-label">League</span>
+          <Btn active={league === 'all'} onClick={() => setLeague('all')}>All</Btn>
+          <Btn active={league === 'nfl'} onClick={() => setLeague('nfl')}>NFL</Btn>
+          <Btn active={league === 'cfb'} onClick={() => setLeague('cfb')}>CFB</Btn>
+        </div>
+        <div className="picks-filter-group">
+          <span className="picks-filter-label">Result</span>
+          <Btn active={result === 'all'}     onClick={() => setResult('all')}>All</Btn>
+          <Btn active={result === 'pending'} onClick={() => setResult('pending')}>Pending</Btn>
+          <Btn active={result === 'win'}     onClick={() => setResult('win')}>Win</Btn>
+          <Btn active={result === 'loss'}    onClick={() => setResult('loss')}>Loss</Btn>
+          <Btn active={result === 'push'}    onClick={() => setResult('push')}>Push</Btn>
+        </div>
+        <div className="picks-filter-group">
+          <span className="picks-filter-label">Tier</span>
+          <Btn active={vis === 'all'}    onClick={() => setVis('all')}>All</Btn>
+          <Btn active={vis === 'public'} onClick={() => setVis('public')}>Free</Btn>
+          <Btn active={vis === 'paid'}   onClick={() => setVis('paid')}>Paid</Btn>
+        </div>
+      </div>
+      <div className="picks-filter-count">{shown} of {total} picks</div>
+    </div>
+  );
+}
+
+/** Build a minimal "game" object from a pick when ESPN's current scoreboard doesn't have it (past games). */
+function synthesizeGame(pick) {
+  return {
+    id: pick.gameId,
+    league: pick.league || 'nfl',
+    week: pick.week ? `Week ${pick.week}` : '',
+    status: pick.result === 'pending' ? 'upcoming' : 'final',
+    period: pick.result === 'pending' ? '' : 'Final',
+    kickoff: pick.locksAt || pick.postedAt,
+    home: { abbr: '?', city: '', name: '' },
+    away: { abbr: '?', city: '', name: '' },
+    score: null, spread: null, ou: null, move: null,
+  };
 }
