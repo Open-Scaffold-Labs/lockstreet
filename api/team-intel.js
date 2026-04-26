@@ -317,10 +317,15 @@ async function fetchNbaTeamCompletedGames(teamId, year) {
       const me = (c.competitors || []).find((x) => String(x.team?.id) === String(teamId));
       const opp = (c.competitors || []).find((x) => String(x.team?.id) !== String(teamId));
       if (!me || !opp) continue;
+      // ESPN gives score as an object { value, displayValue } on this endpoint.
+      // Pull the numeric .value and fall back to coercing the raw field.
+      const ourN = Number(me.score?.value ?? me.score?.displayValue ?? me.score);
+      const oppN = Number(opp.score?.value ?? opp.score?.displayValue ?? opp.score);
+      if (!Number.isFinite(ourN) || !Number.isFinite(oppN)) continue;
       events.push({
         date: e.date,
-        ourScore: Number(me.score),
-        oppScore: Number(opp.score),
+        ourScore: ourN,
+        oppScore: oppN,
         win: me.winner === true,
         loss: me.winner === false,
       });
