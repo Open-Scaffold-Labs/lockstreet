@@ -29,7 +29,7 @@ export default function Header() {
           <span className="b2">Street</span>
           <span className="badge-ats">61% ATS</span>
         </Link>
-        <span className="tagline">Be fearful when others are greedy. Be greedy when others are fearful.</span>
+        <span className="tagline">“Be fearful when others are greedy. Be greedy when others are fearful.” — Buffett</span>
         <div className="spacer" />
 
         <SignedOut>

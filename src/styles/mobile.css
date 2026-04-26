@@ -14,7 +14,13 @@
   .hdr-row { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
   .brand { font-size: 20px; gap: 6px; }
   .badge-ats { font-size: 9px; padding: 2px 5px; }
-  .tagline { display: none; }
+  /* Tagline (Buffett quote) wraps onto its own line on mobile so the
+     quote stays visible without crowding the brand + sign-in row. */
+  .tagline {
+    display: block; flex-basis: 100%; order: 99;
+    margin: 4px 0 0 0; font-size: 11px; line-height: 1.35;
+    white-space: normal; max-width: 100%; text-overflow: clip;
+  }
   .gopro { padding: 7px 10px; font-size: 11px; }
   .btn-ghost { padding: 6px 10px; font-size: 11px; }
 
