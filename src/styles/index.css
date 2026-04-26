@@ -212,6 +212,10 @@ body {
 .gd-preview-value {
   font-family: var(--disp); font-weight: 700; font-size: 16px; color: var(--orange);
 }
+.gd-preview-substat {
+  font-family: var(--mono); font-size: 9px; color: var(--ink-faint);
+  letter-spacing: 0.04em; margin-top: 2px;
+}
 .gd-preview-muted { color: var(--ink-faint); font-weight: 600; }
 
 .gd-injuries {

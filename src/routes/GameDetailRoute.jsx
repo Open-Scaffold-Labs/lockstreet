@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { fetchGameSummary } from '../lib/espnSummary.js';
+import { fetchGameSummary, fetchTeamStats } from '../lib/espnSummary.js';
 import { fantasyPoints } from '../lib/fantasy.js';
 
 /**
@@ -16,6 +16,7 @@ export default function GameDetailRoute() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [teamStats, setTeamStats] = useState({ home: null, away: null });
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +37,21 @@ export default function GameDetailRoute() {
     }, 30_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [league, gameId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Once we have summary data, pull each team's season stats in parallel
+  // for the Off/Def rank lines on the preview cards. Best-effort — failures
+  // fall back to '—' in the UI.
+  useEffect(() => {
+    if (!data?.away?.id || !data?.home?.id) return;
+    let cancelled = false;
+    Promise.all([
+      fetchTeamStats(league, data.away.id),
+      fetchTeamStats(league, data.home.id),
+    ]).then(([away, home]) => {
+      if (!cancelled) setTeamStats({ away, home });
+    });
+    return () => { cancelled = true; };
+  }, [league, data?.away?.id, data?.home?.id]);
 
   // Build sorted "top fantasy" list across both teams
   const topFantasy = useMemo(() => {
@@ -85,8 +101,8 @@ export default function GameDetailRoute() {
           upcoming games (when boxscore is empty) and pre-game research. */}
       {(away.lastFive || home.lastFive || away.injuries.length || home.injuries.length) && (
         <div className="gd-preview-grid">
-          <TeamPreview side={away} label="AWAY" />
-          <TeamPreview side={home} label="HOME" />
+          <TeamPreview side={away} label="AWAY" stats={teamStats.away} />
+          <TeamPreview side={home} label="HOME" stats={teamStats.home} />
         </div>
       )}
 
@@ -156,12 +172,14 @@ export default function GameDetailRoute() {
  * record — those would need separate team-stats fetches and are noted as
  * "—" for now.
  */
-function TeamPreview({ side, label }) {
+function TeamPreview({ side, label, stats }) {
   const lf = side.lastFive;
   const injuries = side.injuries || [];
   const lastFiveLine = lf
     ? `${lf.wins}-${lf.losses}${lf.pushes ? `-${lf.pushes}` : ''}`
     : '—';
+  const offRank = stats?.offRank ? `#${stats.offRank}` : '—';
+  const defRank = stats?.defRank ? `#${stats.defRank}` : '—';
 
   return (
     <div className="gd-preview-team">
@@ -187,11 +205,13 @@ function TeamPreview({ side, label }) {
       <div className="gd-preview-stat-row">
         <div className="gd-preview-stat">
           <div className="gd-preview-label">Off Rank</div>
-          <div className="gd-preview-value gd-preview-muted">—</div>
+          <div className={'gd-preview-value' + (stats?.offRank ? '' : ' gd-preview-muted')}>{offRank}</div>
+          {stats?.offValue && <div className="gd-preview-substat">{stats.offValue} {stats.offLabel || ''}</div>}
         </div>
         <div className="gd-preview-stat">
           <div className="gd-preview-label">Def Rank</div>
-          <div className="gd-preview-value gd-preview-muted">—</div>
+          <div className={'gd-preview-value' + (stats?.defRank ? '' : ' gd-preview-muted')}>{defRank}</div>
+          {stats?.defValue && <div className="gd-preview-substat">{stats.defValue} {stats.defLabel || ''}</div>}
         </div>
       </div>
 

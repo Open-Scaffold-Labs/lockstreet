@@ -22,6 +22,80 @@ export async function fetchGameSummary(league, gameId) {
   return normalizeSummary(json, league);
 }
 
+/**
+ * Fetch a team's season stats with league ranks. Used on the game-detail
+ * page to show off/def rank side-by-side. Free ESPN public endpoint, no key.
+ * Returns { offRank, offValue, offLabel, defRank, defValue, defLabel } or
+ * null on any failure (so the UI can fall back to '—').
+ */
+export async function fetchTeamStats(league, teamId) {
+  const prefix = SPORT_PATH[league];
+  if (!prefix || !teamId) return null;
+  const url = `${BASE}/${prefix}/teams/${teamId}/statistics`;
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return parseTeamStats(json, league);
+  } catch { return null; }
+}
+
+/**
+ * ESPN groups team season-stats into "categories" (general / passing /
+ * defense / etc.). Flatten everything, then look up the league-meaningful
+ * offensive + defensive headline stats by name. Each stat carries a `rank`
+ * field which is the league-wide rank we display.
+ */
+function parseTeamStats(json, league) {
+  const categories = json?.results?.stats?.categories || json?.categories || [];
+  const flat = [];
+  for (const cat of categories) {
+    for (const s of cat.stats || []) flat.push({ ...s, _cat: cat.name || '' });
+  }
+  const findStat = (names) => {
+    for (const n of names) {
+      const lc = n.toLowerCase();
+      const found = flat.find((s) => (s.name || '').toLowerCase() === lc
+        || (s.abbreviation || '').toLowerCase() === lc);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  let offStat = null, defStat = null;
+  if (league === 'nfl' || league === 'cfb') {
+    offStat = findStat(['avgPointsFor', 'pointsPerGame', 'totalPointsPerGame', 'avgGain']);
+    defStat = findStat(['avgPointsAgainst', 'pointsAllowed', 'pointsAgainst']);
+  } else if (league === 'nba') {
+    offStat = findStat(['avgPoints', 'pointsPerGame', 'points']);
+    defStat = findStat(['avgPointsAgainst', 'pointsAllowed', 'opponentPointsPerGame']);
+  } else if (league === 'mlb') {
+    offStat = findStat(['avgRuns', 'runsPerGame', 'runsScoredPerGame']);
+    defStat = findStat(['earnedRunAvg', 'ERA', 'earnedRunAverage', 'avgRunsAllowed']);
+  } else if (league === 'nhl') {
+    offStat = findStat(['avgGoals', 'goalsPerGame', 'goalsFor']);
+    defStat = findStat(['avgGoalsAgainst', 'goalsAgainst', 'goalsAllowedPerGame']);
+  }
+
+  // ESPN's rank field is sometimes a string ('5th') or number; normalize.
+  const normRank = (s) => {
+    if (s == null) return null;
+    if (s.rank != null) {
+      const n = Number(String(s.rank).replace(/[^\d]/g, ''));
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+    return null;
+  };
+  return {
+    offRank:  normRank(offStat),
+    offValue: offStat?.displayValue ?? offStat?.value ?? null,
+    offLabel: offStat?.displayName || offStat?.shortDisplayName || offStat?.abbreviation || '',
+    defRank:  normRank(defStat),
+    defValue: defStat?.displayValue ?? defStat?.value ?? null,
+    defLabel: defStat?.displayName || defStat?.shortDisplayName || defStat?.abbreviation || '',
+  };
+}
+
 function normalizeSummary(json, league) {
   const header = json.header || {};
   const comp = header.competitions?.[0] || {};
