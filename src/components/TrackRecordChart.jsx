@@ -62,13 +62,13 @@ export default function TrackRecordChart({ data = SAMPLE, isSample = true }) {
       {
         label: 'Cumulative units',
         data: cumulative,
-        borderColor: '#ffa766',
+        borderColor: '#ff8000',
         backgroundColor: (ctx) => {
           const { ctx: c, chartArea } = ctx.chart;
-          if (!chartArea) return 'rgba(255,167,102,0.15)';
+          if (!chartArea) return 'rgba(255,128,0,0.15)';
           const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          g.addColorStop(0, 'rgba(255,167,102,0.32)');
-          g.addColorStop(1, 'rgba(255,167,102,0.00)');
+          g.addColorStop(0, 'rgba(255,128,0,0.32)');
+          g.addColorStop(1, 'rgba(255,128,0,0.00)');
           return g;
         },
         borderWidth: 2.5,
@@ -76,7 +76,7 @@ export default function TrackRecordChart({ data = SAMPLE, isSample = true }) {
         fill: true,
         pointRadius: 0,
         pointHoverRadius: 5,
-        pointHoverBackgroundColor: '#ffa766',
+        pointHoverBackgroundColor: '#ff8000',
         pointHoverBorderColor: '#000000',
         pointHoverBorderWidth: 2,
       },
@@ -90,7 +90,7 @@ export default function TrackRecordChart({ data = SAMPLE, isSample = true }) {
       legend: { display: false },
       tooltip: {
         backgroundColor: '#0a0a0a', borderColor: 'rgba(192, 132, 252, 0.35)', borderWidth: 1,
-        padding: 10, titleColor: '#ffa766', bodyColor: '#f4eeff',
+        padding: 10, titleColor: '#ff8000', bodyColor: '#f4eeff',
         callbacks: { label: (ctx) => `${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y}u` },
       },
     },

@@ -17,10 +17,11 @@
   --gold-dim: #8b5cf6;
   --purple: #c084fc;
   --purple-dim: #8b5cf6;
-  /* Secondary accent — neon sherbet orange. Used selectively (stat
-     numbers, eyebrow labels, leaderboard winner row, hero highlight). */
-  --orange: #ffa766;
-  --orange-dim: #cc7733;
+  /* Secondary accent — pure max-saturation neon orange (highlighter /
+     safety-vest territory). Used on stat numbers, eyebrow labels,
+     leaderboard winner row, hero highlight, league badges. */
+  --orange: #ff8000;
+  --orange-dim: #cc6600;
   --green: #4ade80;
   --red: #ff5577;
   /* Borders: neon-purple tint at low alpha. Glows on pure black
