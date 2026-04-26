@@ -33,11 +33,12 @@
      badges now share the brand orange via the .lg-badge base style below. */
   --nfl: var(--orange);
   --cfb: var(--orange);
-  --disp: 'Syne', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
-  /* --mono kept as a token for backward compat, but pointed at the Syne
-     display stack — JetBrains Mono made the app feel like a tech paper.
-     Stat numbers and labels now share the brand sans-serif tone. */
-  --mono: 'Syne', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  /* App font: Inter. Clean, modern sans-serif with even baselines and
+     uniform numerals — replaces Syne (too stylized) and JetBrains Mono
+     (too techy). Both --disp and --mono point here so existing rules
+     pick it up automatically. */
+  --disp: 'Inter', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'Inter', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
