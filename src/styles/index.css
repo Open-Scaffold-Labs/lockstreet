@@ -33,11 +33,32 @@
      badges now share the brand orange via the .lg-badge base style below. */
   --nfl: var(--orange);
   --cfb: var(--orange);
-  --disp: 'Syne', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
-  /* --mono kept as a token for backward compat, but pointed at the Syne
-     display stack — JetBrains Mono made the app feel like a tech paper.
-     Stat numbers and labels now share the brand sans-serif tone. */
-  --mono: 'Syne', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  /* App typography:
+     - Default app font is Inter (clean modern sans-serif).
+     - Syne is reserved for the header, /about (Record), and /subscribe (Pro)
+       pages — those scopes override --disp to var(--syne-stack) below.
+     - Numbers ALWAYS render in Inter, even inside Syne scopes. The
+       'InterNum' @font-face declared below uses unicode-range to claim
+       digits + common math symbols, taking precedence over Syne for those
+       characters. */
+  --inter: 'Inter', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --syne-stack: 'InterNum', 'Syne', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --disp: var(--inter);
+  --mono: var(--inter);
+}
+
+/* Digit-only override: when used inside a Syne stack, the browser picks
+   InterNum for any character in the unicode-range and Syne for everything
+   else. local() lets users with Inter installed skip the network round-trip;
+   the url() falls back to Google's CDN copy of Inter Latin. */
+@font-face {
+  font-family: 'InterNum';
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  src: local('Inter'), local('Inter Regular'), local('InterVariable'),
+       url('https://fonts.gstatic.com/s/inter/v18/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1pL7Q5pY7DBgiH4U.woff2') format('woff2');
+  unicode-range: U+0030-0039, U+002E, U+002C, U+002B, U+002D, U+0024, U+0025, U+002F, U+0028, U+0029, U+003A;
 }
 
 * { box-sizing: border-box; }
@@ -85,14 +106,26 @@ body {
 * { scrollbar-width: none; }
 *::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
+/* ----- Syne scopes -----
+   Override --disp inside .hdr and .route-syne so existing rules that read
+   var(--disp) automatically render in Syne (with Inter digits). Everywhere
+   else --disp resolves to Inter, set at :root above. */
+.hdr, .route-syne { --disp: var(--syne-stack); }
+
 /* ----- Header ----- */
 .hdr { position: sticky; top: 0; z-index: 50;
+  font-family: var(--disp);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
   background: rgba(0, 0, 0, 0.72);
   border-bottom: 1px solid var(--border); }
+.route-syne { font-family: var(--disp); }
 .hdr-row { display: flex; align-items: center; gap: 18px; padding: 14px 22px; max-width: 1180px; margin: 0 auto; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 26px; letter-spacing: -0.02em; text-decoration: none; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 32px;
+  letter-spacing: -0.01em; text-decoration: none; text-transform: uppercase;
+  /* Tighter line-height keeps the row from growing taller when font-size
+     grows — preserves the original placement of every other header item. */
+  line-height: 1; }
 .brand .b1 { color: #fff; } .brand .b2 { color: var(--gold); }
 .badge-ats { font-family: var(--mono); font-size: 10px; font-weight: 700; color: var(--gold);
   background: rgba(192, 132, 252, 0.08); border: 1px solid rgba(192, 132, 252, 0.4);

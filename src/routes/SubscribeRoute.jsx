@@ -46,7 +46,7 @@ export default function SubscribeRoute() {
   }
 
   return (
-    <section>
+    <section className="route-syne">
       <div className="sub-hero">
         <h2>Unlock the <span className="accent">real picks</span>.</h2>
         <p>

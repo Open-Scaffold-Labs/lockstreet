@@ -10,7 +10,7 @@ import TrackRecordChart from '../components/TrackRecordChart.jsx';
  */
 export default function AboutRoute() {
   return (
-    <section className="about">
+    <section className="about route-syne">
       <div className="sub-hero">
         <h2>Two generations. <span className="accent">One system.</span></h2>
         <p>
