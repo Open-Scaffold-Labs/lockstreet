@@ -235,8 +235,9 @@ body {
 .date-tab {
   display: flex; align-items: center; justify-content: center;
   gap: 14px; padding: 0; margin: 0 0 10px;
-  font-family: var(--mono); font-size: 13px; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--ink); user-select: none;
+  font-family: var(--disp); font-weight: 700; font-size: 14px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink); user-select: none;
 }
 .date-tab-arrow {
   background: transparent; border: 1px solid var(--border);
