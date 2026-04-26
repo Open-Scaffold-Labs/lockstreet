@@ -129,8 +129,17 @@ lockstreet/
 
 **Still missing (need to add when ready):**
 
-- `SUPABASE_SERVICE_ROLE_KEY` — from Supabase Dashboard → Settings → API → "service_role" key. **Server-only, never commit.** Required for Stripe webhook + push broadcasts.
+- `SUPABASE_SERVICE_ROLE_KEY` — from Supabase Dashboard → Settings → API → "service_role" key. **Server-only, never commit.** Required for Stripe webhook, push broadcast, weekly email send.
 - `STRIPE_SECRET_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY`, `STRIPE_PRICE_WEEKLY/MONTHLY/SEASON`, `STRIPE_WEBHOOK_SECRET` — from Stripe Dashboard. Use test mode keys until launch.
+- `RESEND_API_KEY` + `RESEND_FROM_EMAIL` — sign up at https://resend.com (3,000/mo free, no card). Powers Discord invite delivery + weekly email blast.
+- `DISCORD_INVITE_URL` — static invite link from your private Discord server. Auto-emailed to Annual subs via Stripe webhook.
+
+### Email model
+
+- **Free users only get Supabase auth emails** (sign-up confirmation, password reset).
+- **Active subscribers get:** Discord invite (Annual tier only) + admin-triggered weekly email blast.
+- Weekly email is admin-triggered from `/admin → Email subs` button — calls `/api/send-weekly`, which queries `subscriptions.status='active'` and only emails those users. Free users are never included.
+- Re-enable Supabase email confirmation in Auth → Providers → Email **before launch** (we disabled for dev).
 
 ---
 
