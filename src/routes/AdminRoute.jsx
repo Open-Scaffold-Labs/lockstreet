@@ -103,6 +103,35 @@ function AdminInner() {
     toast('Pick posted', { type: 'success' });
     setPostOpen(false);
     loadPicks();
+
+    // Fire push notifications. Free picks → everyone with push enabled.
+    // Paid picks → only users with active subscription. /api/send-notifications
+    // handles the audience filtering server-side via the `audience` param.
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const audience = payload.visibility === 'public' ? 'all' : 'subs';
+      const matchup = payload.awayAbbr && payload.homeAbbr
+        ? `${payload.awayAbbr} @ ${payload.homeAbbr}`
+        : '';
+      const title = payload.visibility === 'public'
+        ? 'Free pick dropped'
+        : 'New pick dropped';
+      const body = `${payload.side} · ${payload.units}u${matchup ? ' · ' + matchup : ''}`;
+      const res = await fetch('/api/send-notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ gameId: payload.gameId, title, body, audience }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) toast(`Push sent to ${j.sent || 0} device${j.sent === 1 ? '' : 's'}`, { type: 'info' });
+    } catch (e) {
+      // Non-fatal: the pick is posted regardless. Surface a soft warning.
+      toast(`Pick posted, but push failed: ${e.message || e}`, { type: 'error', duration: 5000 });
+    }
+
     return data;
   }
 
