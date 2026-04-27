@@ -1087,31 +1087,128 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
 
 
 /* ================================================================
-   Line shopping
+   Line shopping — SAO public-betting cards
    ================================================================ */
-.lines-block {
-  background: linear-gradient(160deg, #141114, #0a0a0a);
-  border: 1px solid var(--border); border-radius: 14px;
-  padding: 14px 16px; margin-bottom: 14px;
+.lines-section { padding-bottom: 30px; }
+
+.lines-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
 }
-.lines-head {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 10px; flex-wrap: wrap;
+
+.line-card {
+  background: linear-gradient(160deg, #131017, #08070a);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px 14px;
+  display: flex; flex-direction: column; gap: 12px;
+  transition: border-color 180ms ease, transform 180ms ease;
 }
-.lines-head strong { font-size: 16px; }
-.lines-time { color: var(--ink-faint); font-family: var(--mono); font-size: 11px; margin-left: auto; }
-.lines-table {
-  width: 100%; border-collapse: collapse;
-  font-family: var(--mono); font-size: 12px;
+.line-card:hover { border-color: rgba(192, 132, 252, 0.45); }
+
+.lc-head {
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
 }
-.lines-table thead th {
-  text-align: center; color: var(--ink-faint); font-weight: 700;
-  letter-spacing: 0.06em; font-size: 10px; text-transform: uppercase;
-  padding: 6px 4px; border-bottom: 1px solid var(--border);
+.lc-matchup {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 18px;
 }
-.lines-table thead th:first-child { text-align: left; }
-.lines-market { color: var(--ink-dim); padding: 8px 4px; font-size: 11px; }
-.lines-cell  { text-align: center; padding: 8px 4px; color: var(--ink); }
+.lc-matchup .tabbr { font-size: 18px; letter-spacing: 0.04em; }
+.lc-at { color: var(--ink-faint); font-size: 13px; }
+
+.lc-lines {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.lc-line {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.lc-line-label {
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-faint); margin-bottom: 4px;
+}
+.lc-line-pair {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--mono); font-size: 13px;
+}
+.lc-side       { color: var(--ink-dim); }
+.lc-side.home  { color: var(--ink); }
+.lc-side .tabbr { font-size: 12px; letter-spacing: 0.04em; margin-right: 4px; }
+
+.lc-splits {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.lc-split {
+  border-top: 1px dashed var(--border);
+  padding-top: 10px;
+}
+.lc-split:first-child { border-top: none; padding-top: 0; }
+
+.lc-split-label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-dim); margin-bottom: 6px;
+}
+.lc-split-flag {
+  background: var(--orange);
+  color: #000; font-weight: 700; font-size: 9px;
+  padding: 2px 6px; border-radius: 4px; letter-spacing: 0.08em;
+}
+.lc-split-sharp .lc-split-label { color: var(--orange); }
+
+.lc-split-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 110px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.lc-split-row-tag {
+  font-size: 10px; color: var(--ink-faint); letter-spacing: 0.08em;
+  text-transform: uppercase; text-align: right;
+}
+.lc-split-bar {
+  display: flex; height: 22px; width: 100%;
+  border-radius: 6px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+.lc-bar-side {
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  min-width: 0;
+  transition: width 240ms ease;
+}
+.lc-bar-side.away { background: rgba(192, 132, 252, 0.20); color: #d8b4fe; }
+.lc-bar-side.home { background: rgba(192, 132, 252, 0.40); color: #fff; }
+.lc-bar-side.away.money { background: rgba(74, 222, 128, 0.18); color: #86efac; }
+.lc-bar-side.home.money { background: rgba(74, 222, 128, 0.42); color: #fff; }
+.lc-bar-num {
+  white-space: nowrap;
+  padding: 0 6px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.lc-bar-side[style*="width: 0%"] .lc-bar-num,
+.lc-bar-side[style*="width:0%"] .lc-bar-num { display: none; }
+
+.lc-split-row-side {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 10px; color: var(--ink-faint);
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 600px) {
+  .lines-grid { grid-template-columns: 1fr; gap: 12px; }
+  .line-card  { padding: 14px 14px 12px; }
+  .lc-split-row { grid-template-columns: 50px 1fr 90px; gap: 8px; }
+  .lc-matchup .tabbr { font-size: 16px; }
+}
 
 /* ================================================================
    Player props row
