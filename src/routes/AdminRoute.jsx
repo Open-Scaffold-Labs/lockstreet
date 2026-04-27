@@ -196,7 +196,88 @@ function AdminInner() {
 
       <ContestAdminPanel toast={toast} />
       <PushTestPanel toast={toast} />
+      <UserStatsPanel toast={toast} />
     </>
+  );
+}
+
+// =====================================================================
+// User stats panel: who's signed up, who's verified, who's a paid sub,
+// who has push enabled. Pulls from /api/admin-stats (service-role gated).
+// =====================================================================
+function UserStatsPanel({ toast }) {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch('/api/admin-stats', {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        });
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`);
+        if (!cancelled) setStats(j);
+      } catch (e) {
+        if (!cancelled) setErr(e.message || String(e));
+      } finally { if (!cancelled) setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <div className="about-block" style={{ marginTop: 24 }}>
+      <h3>User stats</h3>
+      {loading && <p style={{ color: 'var(--ink-dim)' }}>Loading...</p>}
+      {err && <p style={{ color: 'var(--bad)' }}>Failed to load: {err}</p>}
+      {stats && (
+        <>
+          <div className="bk-stats" style={{ marginTop: 4, marginBottom: 14 }}>
+            <Stat k="Total users"   v={stats.totalUsers}        sub={`${stats.confirmedUsers} verified · ${stats.unconfirmedUsers} unverified`} />
+            <Stat k="Active subs"   v={stats.totalActiveSubs}   sub={`W:${stats.tierCounts.weekly} · M:${stats.tierCounts.monthly} · Y:${stats.tierCounts.season}`} />
+            <Stat k="Push devices"  v={stats.pushDevices}       sub={`${stats.pushUsers} unique users`} />
+            <Stat k="Conv. rate"    v={stats.totalUsers ? `${Math.round((stats.totalActiveSubs / stats.totalUsers) * 100)}%` : '—'} sub="active subs / total" />
+          </div>
+
+          <h4 style={{ margin: '14px 0 8px', fontSize: 13, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-dim)' }}>Recent signups</h4>
+          {stats.recentSignups.length === 0 ? (
+            <p style={{ color: 'var(--ink-dim)' }}>No signups yet.</p>
+          ) : (
+            <div className="bk-table">
+              {stats.recentSignups.map((u) => (
+                <div key={u.email} className="bk-row">
+                  <div className="bk-row-main">
+                    <div className="bk-row-desc">
+                      <strong>{u.email}</strong>
+                      {u.confirmed
+                        ? <span className="bk-odds" style={{ color: 'var(--green)' }}>VERIFIED</span>
+                        : <span className="bk-odds" style={{ color: 'var(--bad)' }}>UNVERIFIED</span>}
+                    </div>
+                    <div className="bk-row-meta">
+                      Joined {new Date(u.createdAt).toLocaleString()}
+                      {u.lastSignInAt && ` · last seen ${new Date(u.lastSignInAt).toLocaleString()}`}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function Stat({ k, v, sub }) {
+  return (
+    <div className="stat">
+      <div className="k">{k}</div>
+      <div className="v gold">{v}</div>
+      <div className="s">{sub}</div>
+    </div>
   );
 }
 
