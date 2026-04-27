@@ -1181,7 +1181,11 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   justify-content: space-between;
   align-items: baseline;
 }
-.lc-split-team       { display: inline-flex; align-items: baseline; gap: 6px; }
+/* margin:0 important here: a global `.home { margin: 0 auto }` utility
+   would otherwise match `.lc-split-team.home` and consume the free space
+   `space-between` is trying to distribute, leaving home centered instead
+   of pinned to the bar's right edge. */
+.lc-split-team       { display: inline-flex; align-items: baseline; gap: 6px; margin: 0; max-width: none; }
 .tabbr-inline {
   font-family: var(--syne-stack);
   font-weight: 800;
@@ -1290,11 +1294,4 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
    Weekly preview
    ================================================================ */
 .weekly-list { display: flex; flex-direction: column; gap: 16px; }
-.weekly-post .weekly-body p { color: var(--ink-dim); line-height: 1.7; font-size: 14.5px; }
-.weekly-post .weekly-body p + p { margin-top: 14px; }
-
-@media (max-width: 600px) {
-  .lines-table { font-size: 11px; }
-  .lines-cell { padding: 6px 2px; }
-  .prop-side { min-width: 48px; padding: 4px 6px; }
-}
+.weekly-post
