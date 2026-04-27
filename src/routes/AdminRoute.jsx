@@ -94,6 +94,8 @@ function AdminInner() {
         total_taken: payload.totalTaken ?? null,
         ml_home:     payload.mlHome     ?? null,
         ml_away:     payload.mlAway     ?? null,
+        bet_type:    payload.betType    || 'spread',
+        picked_side: payload.pickedSide || null,
       }, { onConflict: 'game_id' })
       .select()
       .single();
@@ -539,6 +541,9 @@ function PostPickModal({ onSave, onCancel }) {
         totalTaken: Number.isFinite(tt) ? tt : null,
         mlHome:     Number.isFinite(game.mlHome) ? game.mlHome : null,
         mlAway:     Number.isFinite(game.mlAway) ? game.mlAway : null,
+        // Programmatic side + bet-type for the auto-grader
+        betType,
+        pickedSide: side,
       };
       await onSave(payload);
     } catch (e) { setErr(e.message || 'Failed'); setBusy(false); }
@@ -668,7 +673,11 @@ function describePickSide(game, side, betType, spread, total) {
   const a = game.away?.abbr || 'AWAY', h = game.home?.abbr || 'HOME';
   if (betType === 'spread') {
     const team = side === 'home' ? h : a;
-    return `${team} ${formatSpread(Number(spread)) || ''}`.trim();
+    // The form's spread input holds the HOME team's spread number. When the
+    // away team is the picked side, flip the sign so the side label reads
+    // correctly (e.g., home is +7.5 → away is -7.5).
+    const teamSpread = side === 'home' ? Number(spread) : -Number(spread);
+    return `${team} ${formatSpread(teamSpread) || ''}`.trim();
   }
   if (betType === 'total') {
     return `${side === 'over' ? 'Over' : 'Under'} ${total || ''}`.trim();

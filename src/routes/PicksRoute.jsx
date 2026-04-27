@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
-import { usePicks } from '../hooks/usePicks.js';
+import { usePicks, autoGradePendingPicks } from '../hooks/usePicks.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import { isFootballOffSeason, nextSeasonStart, daysUntil } from '../lib/offseason.js';
+import { supabase } from '../lib/supabase.js';
 import GameCard from '../components/GameCard.jsx';
 import { SkeletonCardGrid } from '../components/Skeleton.jsx';
 
@@ -19,12 +20,25 @@ function isClosed(p) {
 
 export default function PicksRoute() {
   const { games, loading } = useEspnScoreboard();
-  const { picks, loading: picksLoading } = usePicks();
+  const { picks, loading: picksLoading, reload } = usePicks();
   const sub = useSubscription();
 
   const [view, setView] = useState('open'); // 'open' | 'closed'
 
   const allPicks = useMemo(() => Object.values(picks), [picks]);
+
+  // Auto-grade pending picks once per page-mount when picks have loaded.
+  // Quietly looks up each pending pick's final score via ESPN, decides
+  // win/loss/push, writes graded_at + result back to Supabase. RLS allows
+  // admin writes; non-admins get a no-op silently.
+  const gradedRef = useRef(false);
+  useEffect(() => {
+    if (gradedRef.current || picksLoading || !allPicks.length) return;
+    gradedRef.current = true;
+    autoGradePendingPicks(allPicks, supabase).then((updates) => {
+      if (updates.length) reload();
+    });
+  }, [allPicks, picksLoading, reload]);
   const openPicks   = useMemo(() => allPicks.filter(isOpen),   [allPicks]);
   const closedPicks = useMemo(() => allPicks.filter(isClosed), [allPicks]);
   const filteredPicks = view === 'open' ? openPicks : closedPicks;
