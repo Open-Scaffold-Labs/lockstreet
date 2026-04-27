@@ -758,22 +758,32 @@ async function handleHeatCheck(req, res) {
     .order('fetched_at', { ascending: false });
   if (error) return serverError(res, error);
 
+  // ATS values are stored as decimal fractions in the table (0.7 = 70%).
+  // Normalize to a 0-100 scale here. Anything already > 1 is assumed to
+  // be in the new 0-100 scale to be safe across migrations.
+  const toPct = (v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return null;
+    return n <= 1 ? n * 100 : n;
+  };
   // Aggregate latest ATS per (league, team). Most-recent rows come first
   // so we just keep the first occurrence of each key.
   const teamMap = new Map();
   for (const r of (data || [])) {
     if (r.away_label && r.away_last_10_ats_pct != null) {
       const key = `${r.league}:${String(r.away_label).toUpperCase()}`;
-      if (!teamMap.has(key)) {
+      const pct = toPct(r.away_last_10_ats_pct);
+      if (!teamMap.has(key) && pct != null) {
         teamMap.set(key, { league: r.league, abbr: String(r.away_label).toUpperCase(),
-          atsPct: Number(r.away_last_10_ats_pct), fetchedAt: r.fetched_at });
+          atsPct: pct, fetchedAt: r.fetched_at });
       }
     }
     if (r.home_label && r.home_last_10_ats_pct != null) {
       const key = `${r.league}:${String(r.home_label).toUpperCase()}`;
-      if (!teamMap.has(key)) {
+      const pct = toPct(r.home_last_10_ats_pct);
+      if (!teamMap.has(key) && pct != null) {
         teamMap.set(key, { league: r.league, abbr: String(r.home_label).toUpperCase(),
-          atsPct: Number(r.home_last_10_ats_pct), fetchedAt: r.fetched_at });
+          atsPct: pct, fetchedAt: r.fetched_at });
       }
     }
   }
