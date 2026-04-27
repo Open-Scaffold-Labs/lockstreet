@@ -44,9 +44,11 @@ export default function ScoresRoute() {
   const [selectedDate, setSelectedDate] = useState(today);
   const offset = diffDays(selectedDate, today);  // -7..+7
 
-  // When the user is on today, pass null so ESPN returns its usual "today's
-  // slate" + we get the live-polling refresh. Other days pass the explicit date.
-  const espnDateParam = offset === 0 ? null : espnDate(selectedDate);
+  // Always pass an explicit YYYYMMDD date — ESPN's "no-date" default for
+  // /scoreboard sometimes returns yesterday's late games alongside today's
+  // games, making the Today and Yesterday tabs look identical. Pinning the
+  // date param to the user's local date forces ESPN to return only that day.
+  const espnDateParam = espnDate(selectedDate);
 
   const { games, loading, error } = useEspnScoreboard({
     leagues: ALL_LEAGUES,

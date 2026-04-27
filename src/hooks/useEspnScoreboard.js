@@ -44,8 +44,15 @@ export function useEspnScoreboard({ refreshMs = 30_000, leagues = ['nfl', 'cfb']
       }
     }
     load();
-    // Only poll when viewing today's slate. Past/future days don't change.
-    const t = !date ? setInterval(load, refreshMs) : null;
+    // Poll whenever we're viewing today's slate (either no date or the date
+    // string matches today's local YYYYMMDD). Past/future days don't change
+    // so we skip polling for them.
+    const today = (() => {
+      const d = new Date();
+      return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+    })();
+    const isToday = !date || date === today;
+    const t = isToday ? setInterval(load, refreshMs) : null;
     return () => { stop = true; if (t) clearInterval(t); };
   }, [refreshMs, leagues.join(','), date]);
 
