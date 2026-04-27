@@ -1,3 +1,4 @@
+// rebuild-marker: force Vercel to redeploy after stuck 5fa4ab9
 import { useEffect, useMemo, useState } from 'react';
 import { useEspnScoreboard } from '../hooks/useEspnScoreboard.js';
 import { supabase } from '../lib/supabase.js';
