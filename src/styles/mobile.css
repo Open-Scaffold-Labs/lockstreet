@@ -39,9 +39,9 @@
   .tab { font-size: 11px; padding: 12px 10px; letter-spacing: 0.04em; }
 
   /* ----- Layout (mobile) -----
-     Top padding compensates for the now-fixed .hdr. Brand at 26px + 18px
-     row padding + tabs row puts header content at ~88px. */
-  .wrap { padding: calc(88px + env(safe-area-inset-top)) 12px 60px; }
+     Top padding compensates for the now-fixed .hdr. Tightened to land the
+     date tab right under the header bottom border. */
+  .wrap { padding: calc(78px + env(safe-area-inset-top)) 12px 60px; }
 
   /* ----- Cards / grids ----- */
   .grid { grid-template-columns: 1fr; gap: 10px; }
