@@ -195,4 +195,15 @@ function makeTeam(c) {
   };
 }
 
-function num(x) { const n = Number(x); return Number.isFinite(n) ? n : 0; }
+function num(x) {
+  if (x == null) return 0;
+  // ESPN sometimes returns score as an object { value, displayValue }
+  // instead of a plain number — unwrap it.
+  if (typeof x === 'object') {
+    const v = x.value ?? x.displayValue ?? 0;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+  const n = Number(x);
+  return Number.isFinite(n) ? n : 0;
+}
