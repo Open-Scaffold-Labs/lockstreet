@@ -301,9 +301,11 @@ body {
 .date-tab {
   display: flex; align-items: center; justify-content: center;
   gap: 14px; padding: 0; margin: 0 0 10px;
-  font-family: var(--disp); font-weight: 700; font-size: 14px;
+  /* Syne for letters, Inter for digits via the InterNum override in
+     --syne-stack. Green color to make the date pop on /scores. */
+  font-family: var(--syne-stack); font-weight: 700; font-size: 14px;
   letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--ink); user-select: none;
+  color: var(--green); user-select: none;
 }
 .date-tab-arrow {
   background: transparent; border: 1px solid var(--border);
