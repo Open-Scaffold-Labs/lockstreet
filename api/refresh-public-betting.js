@@ -240,17 +240,23 @@ function parseGameHtml(html) {
   const spreadBlock = blockFor('spread');
   const totalBlock  = blockFor('total');
 
-  // Per-team trend tables — these contain rows like
+  // Per-team trend tables — SAO renders team-specific trend rows like
   //   <tr data-wins="0.4" data-spread="0.3" ...> <td>Last 10 Games</td> </tr>
-  // for each team. We pull the "Last 10 Games" row's wins (SU%) and
-  // spread (ATS%) for both home and away.
-  function pullLast10(label) {
-    // label = 'home-current-trends' | 'away-current-trends'
-    const sectionRe = new RegExp(`class="main\\s+${label}"[\\s\\S]*?</table>`);
-    const sec = html.match(sectionRe);
-    if (!sec) return null;
-    const rowRe = /<tr\b([^>]*)>[\s\S]*?<td[^>]*>\s*Last 10 Games\s*<\/td>/;
-    const m = sec[0].match(rowRe);
+  // The class `main home-current-trends` / `away-current-trends` appears
+  // multiple times across the page as a decorative tag, NOT a single table
+  // wrapper, so a `class=...</table>` section regex doesn't bound either
+  // team's table. Instead we find the first occurrence of each anchor in
+  // the HTML and scan forward for the next "Last 10 Games" row — that
+  // belongs to that team. Verified empirically against actual game pages
+  // (288 data-wins rows, 2 exact "Last 10 Games" matches, the first follows
+  // the away anchor and the second follows the home anchor).
+  function pullLast10(anchor) {
+    // anchor = 'home-current-trends' | 'away-current-trends'
+    const anchorIdx = html.indexOf(anchor);
+    if (anchorIdx < 0) return null;
+    const tail = html.slice(anchorIdx);
+    const rowRe = /<tr\b([^>]*)>\s*<td[^>]*>\s*Last 10 Games\s*<\/td>/;
+    const m = tail.match(rowRe);
     if (!m) return null;
     const attrs = m[1];
     const wins   = (attrs.match(/data-wins="([\d.]+)"/) || [])[1];
