@@ -60,7 +60,7 @@ const ITEMS = [
   { to: '/scores',    label: 'Scores',   icon: <IconHome /> },
   { to: '/picks',     label: 'Picks',    icon: <IconPicks /> },
   { to: '/lines',     label: 'Lines',    icon: <IconLines /> },
-  { to: '/props',     label: 'Props',    icon: <IconProps /> },
+  { to: '/props',     label: 'Heat',     icon: <IconProps /> },
   { to: '/bankroll',  label: 'Bankroll', icon: <IconWallet /> },
   { to: '/about',     label: 'Record',   icon: <IconRecord /> },
   { to: '/subscribe', label: 'Pro',      icon: <IconStar /> },

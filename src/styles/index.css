@@ -1312,6 +1312,60 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   font-family: var(--mono); font-size: 10px;
   color: var(--green); letter-spacing: 0.04em;
 }
+
+/* ================================================================
+   Heat Check (/props page rebrand) — list of teams covering 7+/10 ATS,
+   sorted hot to cold. Each row: rank, glowing team orb, abbr+league,
+   big % + record on the right.
+   ================================================================ */
+.hc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+@media (max-width: 600px) { .hc-grid { grid-template-columns: 1fr; } }
+.hc-row {
+  display: grid;
+  grid-template-columns: 36px auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(160deg, #131017, #08070a);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 18px;
+  text-decoration: none; color: inherit;
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+.hc-row:hover { border-color: rgba(192, 132, 252, 0.45); transform: translateY(-1px); }
+.hc-rank {
+  font-family: var(--mono);
+  font-size: 18px; font-weight: 700;
+  color: var(--ink-faint); letter-spacing: -0.02em;
+}
+.hc-orb .orb {
+  width: 44px; height: 44px; font-size: 13px;
+  box-shadow: 0 0 18px -2px var(--ring, #c084fc), 0 0 6px -2px var(--ring, #c084fc);
+}
+.hc-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hc-abbr { font-size: 18px; letter-spacing: 0.04em; }
+.hc-league {
+  font-family: var(--mono);
+  font-size: 10px; color: var(--ink-faint);
+  letter-spacing: 0.10em;
+}
+.hc-stat { text-align: right; display: flex; flex-direction: column; gap: 2px; }
+.hc-pct {
+  font-family: var(--syne-stack);
+  font-weight: 800; font-size: 24px;
+  color: var(--green); letter-spacing: -0.01em;
+  line-height: 1;
+}
+.hc-record {
+  font-family: var(--mono);
+  font-size: 10px; color: var(--ink-faint);
+  letter-spacing: 0.06em;
+}
 .tail-badge span { font-weight: 700; margin-right: 3px; }
 
 /* ================================================================

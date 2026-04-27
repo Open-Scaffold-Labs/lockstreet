@@ -48,6 +48,7 @@ export default async function handler(req, res) {
   if (op === 'news') return handleNews(req, res);
   if (op === 'schedule') return handleSchedule(req, res);
   if (op === 'public-betting') return handlePublicBetting(req, res);
+  if (op === 'heat-check') return handleHeatCheck(req, res);
 
   const { league, teamId, teamAbbr } = req.query || {};
   if (!league) return res.status(400).json({ error: 'league required' });
@@ -732,4 +733,64 @@ function numOrNullScore(x) {
   }
   const n = Number(x);
   return Number.isFinite(n) ? n : null;
+}
+
+// ====================================================================
+// HEAT CHECK handler — aggregates the most recent away/home
+// last_10_ats_pct out of public_betting per (league, team) pair, keeps
+// teams covering >= 70%, returns sorted by pct desc. Powers /props page
+// (rebranded as Heat Check). Cache 30 min — ATS only updates on scrape.
+// ====================================================================
+const HEAT_CACHE = { at: 0, payload: null };
+const HEAT_CACHE_MS = 30 * 60 * 1000;
+
+async function handleHeatCheck(req, res) {
+  if (HEAT_CACHE.payload && Date.now() - HEAT_CACHE.at < HEAT_CACHE_MS) {
+    return res.status(200).json(HEAT_CACHE.payload);
+  }
+  const supa = adminClient();
+  if (!supa) return res.status(503).json({ teams: [], reason: 'service-role missing' });
+
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supa.from('public_betting')
+    .select('league, away_label, home_label, away_last_10_ats_pct, home_last_10_ats_pct, fetched_at')
+    .gte('fetched_at', since)
+    .order('fetched_at', { ascending: false });
+  if (error) return serverError(res, error);
+
+  // Aggregate latest ATS per (league, team). Most-recent rows come first
+  // so we just keep the first occurrence of each key.
+  const teamMap = new Map();
+  for (const r of (data || [])) {
+    if (r.away_label && r.away_last_10_ats_pct != null) {
+      const key = `${r.league}:${String(r.away_label).toUpperCase()}`;
+      if (!teamMap.has(key)) {
+        teamMap.set(key, { league: r.league, abbr: String(r.away_label).toUpperCase(),
+          atsPct: Number(r.away_last_10_ats_pct), fetchedAt: r.fetched_at });
+      }
+    }
+    if (r.home_label && r.home_last_10_ats_pct != null) {
+      const key = `${r.league}:${String(r.home_label).toUpperCase()}`;
+      if (!teamMap.has(key)) {
+        teamMap.set(key, { league: r.league, abbr: String(r.home_label).toUpperCase(),
+          atsPct: Number(r.home_last_10_ats_pct), fetchedAt: r.fetched_at });
+      }
+    }
+  }
+
+  // Convert pct -> wins out of 10 for the badge text. Pushes are rare
+  // enough on 10-game windows we don't need them in the headline number.
+  const teams = Array.from(teamMap.values())
+    .filter((t) => Number.isFinite(t.atsPct) && t.atsPct >= 70)
+    .map((t) => ({
+      ...t,
+      record: `${Math.round(t.atsPct / 10)}-${10 - Math.round(t.atsPct / 10)}`,
+    }))
+    .sort((a, b) => b.atsPct - a.atsPct);
+
+  const payload = { teams, generatedAt: new Date().toISOString() };
+  HEAT_CACHE.at = Date.now();
+  HEAT_CACHE.payload = payload;
+  res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=600');
+  res.status(200).json(payload);
 }
