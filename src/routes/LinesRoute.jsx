@@ -165,36 +165,40 @@ function LineCard({ g }) {
 
       <div className="lc-splits">
         <SplitBar
-          label={<>Spread <span className="lc-tag">{g.homeLabel} {fmtSpread(spreadHome)}</span></>}
+          label="Spread"
+          awayLabel={g.awayLabel} homeLabel={g.homeLabel}
+          awaySub={Number.isFinite(spreadAway) ? fmtSpread(spreadAway) : ''}
+          homeSub={fmtSpread(spreadHome)}
           homeBets={spreadBets} homeMoney={spreadMoney}
         />
         <SplitBar
-          label={<>Moneyline</>}
+          label="Moneyline"
+          awayLabel={g.awayLabel} homeLabel={g.homeLabel}
           homeBets={mlBets} homeMoney={mlMoney}
         />
         <SplitBar
-          label={<>Total <span className="lc-tag">{fmtTotal(totalLine)}</span></>}
+          label="Total"
+          awayLabel="Under" homeLabel="Over"
+          awaySub={`u ${fmtTotal(totalLine)}`}
+          homeSub={`o ${fmtTotal(totalLine)}`}
           homeBets={overBets} homeMoney={overMoney}
-          overUnder
         />
       </div>
     </article>
   );
 }
 
-// One row of the splits panel — paired bets/money bars side-by-side per
-// market. `homeBets` / `homeMoney` are 0-100 ints for the home (or "over")
-// side; the away (or "under") side is 100 - home.
+// One market's split panel. Reads as a header row (team abbrs at each end
+// with spread/total qualifiers) plus mirrored Bets / Money bars. The bar
+// is purely visual — percentages live in fixed-width columns on each side
+// so they stay readable regardless of segment width. Team labels sit at
+// the ENDS of the bar so the eye reads left=away→right=home consistently
+// across the whole card.
 //
-// Layout: the percent number is OUTSIDE the bar, in a fixed-width column
-// on each side, so it stays readable no matter how narrow the segment is.
-//   [ TAG ]  [LL%]  [────bar────]  [RR%]
-// The bar itself is a clean two-segment fill with no text inside.
-//
-// When |bets% − money%| ≥ 10, the money side is the sharp signal (real
-// money diverging from public bet count). We light up the row label with
-// the neon green accent and flag it SHARP.
-function SplitBar({ label, homeBets, homeMoney, overUnder = false }) {
+// SHARP: when |bets% - money%| >= 10 the row is flagged. That's the
+// fade-the-public signal (heavy public bet count, real money split
+// differently — pros are on the other side).
+function SplitBar({ label, awayLabel, homeLabel, awaySub, homeSub, homeBets, homeMoney }) {
   if (homeBets == null && homeMoney == null) return null;
 
   const safeBets  = homeBets  != null ? Math.max(0, Math.min(100, Math.round(homeBets)))  : null;
@@ -207,16 +211,27 @@ function SplitBar({ label, homeBets, homeMoney, overUnder = false }) {
 
   return (
     <div className={'lc-split' + (sharp ? ' lc-split-sharp' : '')}>
-      <div className="lc-split-label">
+      <div className="lc-split-header">
         <span className="lc-split-title">{label}</span>
         {sharp && <span className="lc-split-flag" title={`${divergence}-point divergence between % Bets and % Money`}>SHARP</span>}
+      </div>
+
+      <div className="lc-split-teams">
+        <span className="lc-split-team away">
+          <span className="tabbr-inline">{awayLabel}</span>
+          {awaySub && <span className="lc-split-sub">{awaySub}</span>}
+        </span>
+        <span className="lc-split-team home">
+          {homeSub && <span className="lc-split-sub">{homeSub}</span>}
+          <span className="tabbr-inline">{homeLabel}</span>
+        </span>
       </div>
 
       {safeBets != null && (
         <div className="lc-split-row">
           <span className="lc-split-tag">Bets</span>
           <span className="lc-split-num away">{awayBets}%</span>
-          <div className="lc-split-bar" aria-label={`Bets: ${awayBets}% / ${safeBets}%`}>
+          <div className="lc-split-bar" aria-label={`Bets: ${awayBets}% ${awayLabel} / ${safeBets}% ${homeLabel}`}>
             <div className="lc-bar-side away bets" style={{ width: `${awayBets}%` }} />
             <div className="lc-bar-side home bets" style={{ width: `${safeBets}%` }} />
           </div>
@@ -228,7 +243,7 @@ function SplitBar({ label, homeBets, homeMoney, overUnder = false }) {
         <div className="lc-split-row">
           <span className="lc-split-tag">Money</span>
           <span className="lc-split-num away">{awayMoney}%</span>
-          <div className="lc-split-bar" aria-label={`Money: ${awayMoney}% / ${safeMoney}%`}>
+          <div className="lc-split-bar" aria-label={`Money: ${awayMoney}% ${awayLabel} / ${safeMoney}% ${homeLabel}`}>
             <div className="lc-bar-side away money" style={{ width: `${awayMoney}%` }} />
             <div className="lc-bar-side home money" style={{ width: `${safeMoney}%` }} />
           </div>

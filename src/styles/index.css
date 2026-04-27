@@ -1137,10 +1137,12 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   display: flex; justify-content: space-between; align-items: center;
   font-family: var(--mono); font-size: 13px;
 }
-.lc-side        { color: var(--ink-dim); }
+.lc-side        { color: var(--ink-dim); display: inline-flex; align-items: baseline; gap: 8px; }
 .lc-side.home   { color: var(--ink); }
-.lc-side.total  { color: var(--ink); width: 100%; text-align: center; }
-.lc-side .tabbr { font-size: 12px; letter-spacing: 0.04em; margin-right: 4px; }
+.lc-side.total  { color: var(--ink); width: 100%; text-align: center; justify-content: center; }
+/* Override the global `.tabbr { display: flex }` so the abbreviation and
+   spread number render inline on the same row inside each spread cell. */
+.lc-side .tabbr { font-size: 13px; letter-spacing: 0.04em; display: inline; }
 .lc-line-total { justify-content: center; }
 
 .lc-splits {
@@ -1152,10 +1154,40 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
 }
 .lc-split:first-child { border-top: none; padding-top: 0; }
 
-.lc-split-label {
+/* Market header (Spread / Moneyline / Total) + optional SHARP pill. */
+.lc-split-header {
   display: flex; align-items: center; gap: 8px;
   font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--ink-dim); margin-bottom: 6px;
+}
+/* Team-anchor row that sits above the bar — the away abbr aligns with
+   the LEFT edge of the bar column, the home abbr aligns with the RIGHT
+   edge. Mirrors the bar grid exactly so the eye reads each abbr as
+   labeling its bar end. */
+.lc-split-teams {
+  display: grid;
+  grid-template-columns: 56px 38px 1fr 38px;
+  gap: 10px;
+  margin-bottom: 4px;
+  align-items: baseline;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+.lc-split-team       { display: inline-flex; align-items: baseline; gap: 6px; }
+.lc-split-team.away  { grid-column: 3; justify-self: start; }
+.lc-split-team.home  { grid-column: 3; justify-self: end; }
+.tabbr-inline {
+  font-family: var(--syne-stack);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  display: inline;
+}
+.lc-split-sub {
+  color: var(--ink-faint);
+  font-size: 11px;
+  letter-spacing: 0;
 }
 .lc-split-flag {
   background: var(--orange);
