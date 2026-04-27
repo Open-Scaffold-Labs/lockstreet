@@ -1273,12 +1273,11 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   min-width: 0;
   transition: width 280ms cubic-bezier(.2,.8,.3,1);
 }
-/* Bets bars: purple (matches brand --gold token) */
-.lc-bar-side.bets.away  { background: rgba(192, 132, 252, 0.22); }
-.lc-bar-side.bets.home  { background: rgba(192, 132, 252, 0.55); }
-/* Money bars: neon green (matches brand --orange token) */
-.lc-bar-side.money.away { background: rgba(74, 222, 128, 0.22); }
-.lc-bar-side.money.home { background: rgba(74, 222, 128, 0.62); }
+/* Bars are colored by SIDE, not by row: away = solid green, home =
+   solid purple. Same on both Bets and Money rows so each team has
+   one color across the whole panel. */
+.lc-bar-side.away  { background: rgb(74, 222, 128); }   /* neon green */
+.lc-bar-side.home  { background: rgb(192, 132, 252); }  /* neon purple */
 
 @media (max-width: 600px) {
   .lines-grid { grid-template-columns: 1fr; gap: 12px; }
