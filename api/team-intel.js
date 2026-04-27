@@ -66,6 +66,33 @@ export default async function handler(req, res) {
     payload = { error: String(e?.message || e), offRank: null, defRank: null, last10: null, source: 'error' };
   }
 
+  // Merge in SAO Last 10 ATS / SU from public_betting if we have it.
+  // Looked up by league + teamAbbr (matching either away_label or home_label
+  // on the most recently scraped row containing this team). Failure is
+  // soft: the rest of the payload still goes out.
+  if (payload && !payload.error && teamAbbr) {
+    try {
+      const supa = adminClient();
+      if (supa) {
+        const abbrUC = String(teamAbbr).toUpperCase();
+        const { data } = await supa.from('public_betting')
+          .select('away_label, home_label, away_last_10_ats_pct, home_last_10_ats_pct, away_last_10_su_pct, home_last_10_su_pct, fetched_at')
+          .eq('league', league)
+          .or(`away_label.eq.${abbrUC},home_label.eq.${abbrUC}`)
+          .order('fetched_at', { ascending: false })
+          .limit(1);
+        const row = (data && data[0]) || null;
+        if (row) {
+          const isHome = String(row.home_label).toUpperCase() === abbrUC;
+          const atsPct = isHome ? row.home_last_10_ats_pct : row.away_last_10_ats_pct;
+          const suPct  = isHome ? row.home_last_10_su_pct  : row.away_last_10_su_pct;
+          if (atsPct != null) payload.last10AtsPct = Number(atsPct);
+          if (suPct  != null) payload.last10SuPct  = Number(suPct);
+        }
+      }
+    } catch { /* swallow — ATS is enrichment only */ }
+  }
+
   if (payload && !payload.error) toCache(cacheKey, payload);
   res.status(200).json(payload || empty());
 }

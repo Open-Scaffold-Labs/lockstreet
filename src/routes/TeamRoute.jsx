@@ -77,10 +77,10 @@ export default function TeamRoute() {
       {/* Quick stats — pulled from team-intel proxy */}
       {intel && (
         <div className="tm-stats">
-          <Stat k="Last 10 SU" v={intel.last10 ? `${intel.last10.wins}-${intel.last10.losses}${intel.last10.pushes ? `-${intel.last10.pushes}` : ''}` : '—'} />
-          <Stat k="Off Rank"   v={intel.offRank ? `#${intel.offRank}` : '—'} sub={intel.offValue ? `${intel.offValue} ${intel.offLabel || ''}` : ''} />
-          <Stat k="Def Rank"   v={intel.defRank ? `#${intel.defRank}` : '—'} sub={intel.defValue ? `${intel.defValue} ${intel.defLabel || ''}` : ''} />
-          <Stat k="Source"     v={intel.source || '—'} />
+          <Stat k="Last 10 SU"  v={intel.last10 ? `${intel.last10.wins}-${intel.last10.losses}${intel.last10.pushes ? `-${intel.last10.pushes}` : ''}` : '—'} />
+          <Stat k="Last 10 ATS" v={intel.last10AtsPct != null ? `${Math.round(intel.last10AtsPct * 100)}%` : '—'} sub={intel.last10AtsPct != null ? 'via ScoresAndOdds' : ''} />
+          <Stat k="Off Rank"    v={intel.offRank ? `#${intel.offRank}` : '—'} sub={intel.offValue ? `${intel.offValue} ${intel.offLabel || ''}` : ''} />
+          <Stat k="Def Rank"    v={intel.defRank ? `#${intel.defRank}` : '—'} sub={intel.defValue ? `${intel.defValue} ${intel.defLabel || ''}` : ''} />
         </div>
       )}
 
