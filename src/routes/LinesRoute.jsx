@@ -217,14 +217,16 @@ function SplitBar({ label, awayLabel, homeLabel, awaySub, homeSub, homeBets, hom
       </div>
 
       <div className="lc-split-teams">
-        <span className="lc-split-team away">
-          <span className="tabbr-inline">{awayLabel}</span>
-          {awaySub && <span className="lc-split-sub">{awaySub}</span>}
-        </span>
-        <span className="lc-split-team home">
-          {homeSub && <span className="lc-split-sub">{homeSub}</span>}
-          <span className="tabbr-inline">{homeLabel}</span>
-        </span>
+        <div className="lc-split-team-line">
+          <span className="lc-split-team away">
+            <span className="tabbr-inline">{awayLabel}</span>
+            {awaySub && <span className="lc-split-sub">{awaySub}</span>}
+          </span>
+          <span className="lc-split-team home">
+            {homeSub && <span className="lc-split-sub">{homeSub}</span>}
+            <span className="tabbr-inline">{homeLabel}</span>
+          </span>
+        </div>
       </div>
 
       {safeBets != null && (
