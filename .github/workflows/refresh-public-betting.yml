@@ -17,11 +17,17 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           DEPLOY_URL:  ${{ secrets.VERCEL_DEPLOY_URL }}
+          EVENT_NAME:  ${{ github.event_name }}
         run: |
           set -e
           if [ -z "$DEPLOY_URL" ]; then DEPLOY_URL="https://lockstreet.vercel.app"; fi
-          echo "POST $DEPLOY_URL/api/refresh-public-betting"
-          curl -fsS -X POST "$DEPLOY_URL/api/refresh-public-betting" \
+          # Manual dispatch from the Actions tab → bypass the time gate so
+          # admin testing actually scrapes regardless of hour-of-day.
+          QS=""
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then QS="?force=1"; fi
+          URL="$DEPLOY_URL/api/refresh-public-betting$QS"
+          echo "POST $URL"
+          curl -sS -X POST "$URL" \
                -H "x-cron-secret: $CRON_SECRET" \
-               --max-time 90 | head -c 4000
+               --max-time 180 | head -c 8000
           echo
