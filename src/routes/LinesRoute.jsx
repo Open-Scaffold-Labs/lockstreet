@@ -1,4 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import TeamOrb from '../components/TeamOrb.jsx';
+
+// Construct an ESPN CDN logo URL from a league code + team abbreviation.
+// CFB uses 'college-football' on ESPN CDN. Falls back to TeamOrb's
+// colored-abbr orb if the URL 404s (handled by TeamOrb internally).
+function espnLogoUrl(league, abbr) {
+  if (!league || !abbr) return null;
+  const lg = league.toLowerCase();
+  const espnLg = lg === 'cfb' ? 'ncaa' : lg;
+  return `https://a.espncdn.com/i/teamlogos/${espnLg}/500/${abbr.toLowerCase()}.png`;
+}
 
 /**
  * /lines — pure ScoresAndOdds data.
@@ -143,6 +154,17 @@ function LineCard({ g }) {
 
   return (
     <article className="line-card">
+      <header className="lc-logo-head">
+        <div className="lc-logo-team away">
+          <TeamOrb team={{ abbr: g.awayLabel, logo: espnLogoUrl(g.league, g.awayLabel) }} />
+          <strong className="tabbr">{g.awayLabel}</strong>
+        </div>
+        <div className="lc-logo-team home">
+          <strong className="tabbr">{g.homeLabel}</strong>
+          <TeamOrb team={{ abbr: g.homeLabel, logo: espnLogoUrl(g.league, g.homeLabel) }} />
+        </div>
+      </header>
+
       <div className="lc-splits">
         <SplitBar
           label="Spread"

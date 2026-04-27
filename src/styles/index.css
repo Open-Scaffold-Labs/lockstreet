@@ -1117,6 +1117,34 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   border-bottom: 1px solid var(--border);
   padding-bottom: 10px;
 }
+
+/* Logo header — glowing TeamOrbs pinned to the OUTER edges of the
+   card, with the team abbreviation immediately inside each. Reads
+   left = away, right = home, mirroring the bar orientation below. */
+.lc-logo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+.lc-logo-team {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lc-logo-head .orb {
+  width: 36px;
+  height: 36px;
+  font-size: 12px;
+  /* punch up the existing orb glow so it reads as "glowing" on the card */
+  box-shadow: 0 0 22px -2px var(--ring, #c084fc), 0 0 8px -2px var(--ring, #c084fc);
+}
+.lc-logo-head .tabbr {
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  display: inline;
+}
 .lc-matchup {
   display: flex; align-items: center; gap: 8px;
   font-size: 18px;
