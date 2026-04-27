@@ -154,21 +154,12 @@ function LineCard({ g }) {
 
   return (
     <article className="line-card">
-      <header className="lc-logo-head">
-        <div className="lc-logo-orb away">
-          <TeamOrb team={{ abbr: g.awayLabel, logo: espnLogoUrl(g.league, g.awayLabel) }} />
-        </div>
-        <strong className="lc-logo-abbr tabbr away">{g.awayLabel}</strong>
-        <strong className="lc-logo-abbr tabbr home">{g.homeLabel}</strong>
-        <div className="lc-logo-orb home">
-          <TeamOrb team={{ abbr: g.homeLabel, logo: espnLogoUrl(g.league, g.homeLabel) }} />
-        </div>
-      </header>
-
       <div className="lc-splits">
         <SplitBar
           label="Spread"
           awayLabel={g.awayLabel} homeLabel={g.homeLabel}
+          awayLogo={<TeamOrb team={{ abbr: g.awayLabel, logo: espnLogoUrl(g.league, g.awayLabel) }} />}
+          homeLogo={<TeamOrb team={{ abbr: g.homeLabel, logo: espnLogoUrl(g.league, g.homeLabel) }} />}
           awaySub={Number.isFinite(spreadAway) ? fmtSpread(spreadAway) : ''}
           homeSub={fmtSpread(spreadHome)}
           homeBets={spreadBets} homeMoney={spreadMoney}
@@ -198,7 +189,7 @@ function LineCard({ g }) {
 // SHARP: when |bets% - money%| >= 10 the row is flagged. That's the
 // fade-the-public signal (heavy public bet count, real money split
 // differently — pros are on the other side).
-function SplitBar({ label, awayLabel, homeLabel, awaySub, homeSub, homeBets, homeMoney }) {
+function SplitBar({ label, awayLabel, homeLabel, awaySub, homeSub, awayLogo, homeLogo, homeBets, homeMoney }) {
   if (homeBets == null && homeMoney == null) return null;
 
   const safeBets  = homeBets  != null ? Math.max(0, Math.min(100, Math.round(homeBets)))  : null;
@@ -217,6 +208,7 @@ function SplitBar({ label, awayLabel, homeLabel, awaySub, homeSub, homeBets, hom
       </div>
 
       <div className="lc-split-teams">
+        {awayLogo && <div className="lc-split-orb away">{awayLogo}</div>}
         <div className="lc-split-team-line">
           <span className="lc-split-team away">
             <span className="tabbr-inline">{awayLabel}</span>
@@ -227,6 +219,7 @@ function SplitBar({ label, awayLabel, homeLabel, awaySub, homeSub, homeBets, hom
             <span className="tabbr-inline">{homeLabel}</span>
           </span>
         </div>
+        {homeLogo && <div className="lc-split-orb home">{homeLogo}</div>}
       </div>
 
       {safeBets != null && (
