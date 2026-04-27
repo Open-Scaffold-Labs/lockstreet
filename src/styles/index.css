@@ -1122,16 +1122,17 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
    OUTSIDE the BOS/TOR abbreviations. Use columns 2 and 4 of the
    existing .lc-split-teams grid (56px 64px 1fr 64px), pushed to the
    inner edges so the abbrs in column 3 don't move. */
-.lc-split-orb.away  { grid-column: 2; grid-row: 1; justify-self: end;   align-self: center; }
-.lc-split-orb.home  { grid-column: 4; grid-row: 1; justify-self: start; align-self: center; }
+.lc-split-orb.away  { grid-column: 2; grid-row: 1; justify-self: end;   align-self: center; margin-top: -8px; }
+.lc-split-orb.home  { grid-column: 4; grid-row: 1; justify-self: start; align-self: center; margin-top: -8px; }
 .lc-split-orb .orb {
-  width: 26px;
-  height: 26px;
-  font-size: 10px;
-  box-shadow: 0 0 14px -2px var(--ring, #c084fc), 0 0 6px -2px var(--ring, #c084fc);
+  width: 34px;
+  height: 34px;
+  font-size: 12px;
+  box-shadow: 0 0 18px -2px var(--ring, #c084fc), 0 0 6px -2px var(--ring, #c084fc);
 }
 @media (max-width: 600px) {
-  .lc-split-orb .orb { width: 22px; height: 22px; font-size: 9px; }
+  .lc-split-orb .orb { width: 28px; height: 28px; font-size: 10px; }
+  .lc-split-orb.away, .lc-split-orb.home { margin-top: -6px; }
 }
 .lc-matchup {
   display: flex; align-items: center; gap: 8px;
