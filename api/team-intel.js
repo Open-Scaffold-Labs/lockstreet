@@ -21,6 +21,8 @@
  * we serve the same payload to every viewer of /game/:league/:gameId.
  */
 
+import { adminClient, serverError } from './_utils.js';
+
 const CACHE = new Map(); // key -> { at, payload }
 const CACHE_MS = 6 * 60 * 60 * 1000;
 
@@ -40,11 +42,12 @@ const BROWSER_HEADERS = {
 
 export default async function handler(req, res) {
   // Hobby plan caps Vercel functions at 12 — multiplexed handler dispatches
-  // on `?op=intel|news|schedule` so team-intel + team-news + team-schedule
-  // share one slot. Default op is 'intel' for backward compat.
+  // on `?op=intel|news|schedule|public-betting` so all team-related
+  // read endpoints share one slot. Default op is 'intel' for backward compat.
   const op = req.query?.op || 'intel';
   if (op === 'news') return handleNews(req, res);
   if (op === 'schedule') return handleSchedule(req, res);
+  if (op === 'public-betting') return handlePublicBetting(req, res);
 
   const { league, teamId, teamAbbr } = req.query || {};
   if (!league) return res.status(400).json({ error: 'league required' });
@@ -486,6 +489,57 @@ async function fetchEspn(league, teamId) {
     defLabel: def?.shortDisplayName || def?.abbreviation || '',
     last10, source: 'ESPN',
   };
+}
+
+// ====================================================================
+// PUBLIC-BETTING handler — read endpoint over the public_betting table
+// populated by the SAO scraper at /api/refresh-public-betting. Returns
+// recent rows so the /lines page can render bets%/money% per game.
+// Multiplexed under ?op=public-betting to stay under Vercel Hobby's
+// 12-function cap.
+// ====================================================================
+async function handlePublicBetting(req, res) {
+  const supa = adminClient();
+  if (!supa) return serverError(res, new Error('SUPABASE_SERVICE_ROLE_KEY missing'));
+
+  const league = (req.query?.league || '').toLowerCase();
+  // Default 24h window; clamp to [1, 72] so callers can't blow up the query.
+  const hours  = Math.max(1, Math.min(72, Number(req.query?.hours || 24)));
+  const since  = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+
+  let q = supa.from('public_betting')
+    .select('league, slug, away_label, home_label, spread_home_line, spread_home_pct_bets, spread_home_pct_money, ml_home_pct_bets, ml_home_pct_money, total_line, total_over_pct_bets, total_over_pct_money, away_last_10_ats_pct, home_last_10_ats_pct, away_last_10_su_pct, home_last_10_su_pct, fetched_at')
+    .gte('fetched_at', since)
+    .order('fetched_at', { ascending: false });
+  if (league) q = q.eq('league', league);
+
+  const { data, error } = await q;
+  if (error) return serverError(res, error);
+
+  const rows = (data || []).map((r) => ({
+    league:               r.league,
+    slug:                 r.slug,
+    awayLabel:            r.away_label,
+    homeLabel:            r.home_label,
+    spreadHomeLine:       r.spread_home_line,
+    spreadHomePctBets:    r.spread_home_pct_bets,
+    spreadHomePctMoney:   r.spread_home_pct_money,
+    mlHomePctBets:        r.ml_home_pct_bets,
+    mlHomePctMoney:       r.ml_home_pct_money,
+    totalLine:            r.total_line,
+    totalOverPctBets:     r.total_over_pct_bets,
+    totalOverPctMoney:    r.total_over_pct_money,
+    awayLast10AtsPct:     r.away_last_10_ats_pct,
+    homeLast10AtsPct:     r.home_last_10_ats_pct,
+    awayLast10SuPct:      r.away_last_10_su_pct,
+    homeLast10SuPct:      r.home_last_10_su_pct,
+    fetchedAt:            r.fetched_at,
+  }));
+
+  // 5-min CDN cache. The scraper runs every 10 min during peak windows so
+  // this is a comfortable buffer below freshness expectations.
+  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+  res.status(200).json({ rows });
 }
 
 // ====================================================================

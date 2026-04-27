@@ -88,6 +88,40 @@ function useLiveOdds(sport) {
   return { data, status, error };
 }
 
+// ---------- public betting % (from /api/team-intel?op=public-betting) -----
+// Backed by the public_betting table populated by the SAO scraper.
+function usePublicBetting(sport) {
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    if (sport === 'all') { setRows([]); return; }
+    let cancel = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/team-intel?op=public-betting&league=${sport}`);
+        if (!r.ok) return;
+        const j = await r.json();
+        if (!cancel) setRows(j?.rows || []);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancel = true; };
+  }, [sport]);
+  return rows;
+}
+// Index by `${away}|${home}` AND `${home}|${away}` since SAO sometimes
+// inverts vs ESPN's away/home assumption — matching by either order keeps
+// the lookup robust.
+function indexPublicBetting(rows) {
+  const idx = new Map();
+  for (const r of rows) {
+    if (!r.awayLabel || !r.homeLabel) continue;
+    const a = String(r.awayLabel).toUpperCase();
+    const h = String(r.homeLabel).toUpperCase();
+    idx.set(`${a}|${h}`, r);
+    idx.set(`${h}|${a}`, r);
+  }
+  return idx;
+}
+
 // ---------- consensus picks (from supabase consensus_picks table) ----------
 function useConsensusPicks(sport) {
   const [rows, setRows] = useState([]);
@@ -191,6 +225,8 @@ export default function LinesRoute() {
   const live = useLiveOdds(sport);
   const consensusRows = useConsensusPicks(sport);
   const consensusIdx = useMemo(() => indexConsensusByGame(consensusRows), [consensusRows]);
+  const publicRows   = usePublicBetting(sport);
+  const publicIdx    = useMemo(() => indexPublicBetting(publicRows), [publicRows]);
 
   const sportConfig = SPORTS.find((s) => s.k === sport);
   const useEspnMerge = !!sportConfig?.espn && sport !== 'all' || sport === 'all';
@@ -276,6 +312,12 @@ export default function LinesRoute() {
           || consensusIdx.get(`${awayName}|${homeName}`.toLowerCase())
           || consensusIdx.get(`${lastWord(awayName)}|${lastWord(homeName)}`)
           || null;
+        // SAO public betting %s — keyed by team abbreviations (BOS/TOR style).
+        // Index covers both away|home and home|away orderings since SAO's
+        // slug ↔ ESPN's away/home assignment isn't always aligned.
+        const pub = (g.away?.abbr && g.home?.abbr)
+          ? (publicIdx.get(`${g.away.abbr.toUpperCase()}|${g.home.abbr.toUpperCase()}`) || null)
+          : null;
         const books = liveEv
           ? FALLBACK_BOOKS.map((b) => {
               const lb = liveEv.books?.find((x) => x.key === b.key);
@@ -342,6 +384,31 @@ export default function LinesRoute() {
                   <td className="lines-market">ML away</td>
                   {mlsAway.map((c) => <td key={c.book.id} className="lines-cell">{fmtPrice(c.val)}</td>)}
                 </tr>
+                {pub && (
+                  <tr>
+                    <td className="lines-market" style={{ color: 'var(--orange)' }}>Public money</td>
+                    <td className="lines-cell" colSpan={books.length} style={{ textAlign: 'left', paddingLeft: 14, color: 'var(--ink)', fontSize: 13 }}>
+                      {pub.spreadHomePctBets != null && (
+                        <span style={{ marginRight: 18 }}>
+                          Spread: <strong>{pub.spreadHomePctBets}%</strong> bets ·{' '}
+                          <strong>{pub.spreadHomePctMoney ?? '—'}{pub.spreadHomePctMoney != null ? '%' : ''}</strong> $ on home
+                        </span>
+                      )}
+                      {pub.totalOverPctBets != null && (
+                        <span style={{ marginRight: 18 }}>
+                          Total: <strong>{pub.totalOverPctBets}%</strong> bets ·{' '}
+                          <strong>{pub.totalOverPctMoney ?? '—'}{pub.totalOverPctMoney != null ? '%' : ''}</strong> $ on Over
+                        </span>
+                      )}
+                      {pub.mlHomePctBets != null && (
+                        <span>
+                          ML: <strong>{pub.mlHomePctBets}%</strong> bets ·{' '}
+                          <strong>{pub.mlHomePctMoney ?? '—'}{pub.mlHomePctMoney != null ? '%' : ''}</strong> $ on home
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                )}
                 {consensus && (
                   <tr>
                     <td className="lines-market" style={{ color: 'var(--gold)' }}>Consensus picks</td>
