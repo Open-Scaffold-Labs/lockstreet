@@ -157,9 +157,8 @@ function LineCard({ g }) {
         />
         <SplitBar
           label="Total"
-          awayLabel="Under" homeLabel="Over"
-          awaySub={`u ${fmtTotal(totalLine)}`}
-          homeSub={`o ${fmtTotal(totalLine)}`}
+          awayLabel={`UNDER ${fmtTotal(totalLine)}`}
+          homeLabel={`OVER ${fmtTotal(totalLine)}`}
           homeBets={overBets} homeMoney={overMoney}
         />
       </div>
