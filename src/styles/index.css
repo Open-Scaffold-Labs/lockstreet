@@ -1137,9 +1137,11 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   display: flex; justify-content: space-between; align-items: center;
   font-family: var(--mono); font-size: 13px;
 }
-.lc-side       { color: var(--ink-dim); }
-.lc-side.home  { color: var(--ink); }
+.lc-side        { color: var(--ink-dim); }
+.lc-side.home   { color: var(--ink); }
+.lc-side.total  { color: var(--ink); width: 100%; text-align: center; }
 .lc-side .tabbr { font-size: 12px; letter-spacing: 0.04em; margin-right: 4px; }
+.lc-line-total { justify-content: center; }
 
 .lc-splits {
   display: flex; flex-direction: column; gap: 12px;
@@ -1162,51 +1164,64 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
 }
 .lc-split-sharp .lc-split-label { color: var(--orange); }
 
+.lc-split-title { display: inline-flex; align-items: center; gap: 6px; }
+.lc-tag {
+  font-family: var(--mono);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  text-transform: none;
+}
+
+/* New split row: tag | left% | bar | right%
+   Percentages live OUTSIDE the bar so they're always readable, even when
+   a segment is 2% wide. Tag column is 60px; the % columns are 38px each
+   right- and left-aligned around the bar. */
 .lc-split-row {
   display: grid;
-  grid-template-columns: 64px 1fr 110px;
+  grid-template-columns: 56px 38px 1fr 38px;
   align-items: center;
   gap: 10px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
-.lc-split-row-tag {
-  font-size: 10px; color: var(--ink-faint); letter-spacing: 0.08em;
+.lc-split-tag {
+  font-size: 10px; color: var(--ink-faint); letter-spacing: 0.10em;
   text-transform: uppercase; text-align: right;
+  font-weight: 600;
 }
+.lc-split-num {
+  font-family: var(--mono);
+  font-size: 12px; font-weight: 600;
+  color: var(--ink);
+}
+.lc-split-num.away { text-align: right; }
+.lc-split-num.home { text-align: left;  }
+
 .lc-split-bar {
-  display: flex; height: 22px; width: 100%;
+  display: flex; height: 12px; width: 100%;
   border-radius: 6px; overflow: hidden;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border);
 }
 .lc-bar-side {
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-size: 11px; font-weight: 600;
   min-width: 0;
-  transition: width 240ms ease;
+  transition: width 280ms cubic-bezier(.2,.8,.3,1);
 }
-.lc-bar-side.away { background: rgba(192, 132, 252, 0.20); color: #d8b4fe; }
-.lc-bar-side.home { background: rgba(192, 132, 252, 0.40); color: #fff; }
-.lc-bar-side.away.money { background: rgba(74, 222, 128, 0.18); color: #86efac; }
-.lc-bar-side.home.money { background: rgba(74, 222, 128, 0.42); color: #fff; }
-.lc-bar-num {
-  white-space: nowrap;
-  padding: 0 6px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-.lc-bar-side[style*="width: 0%"] .lc-bar-num,
-.lc-bar-side[style*="width:0%"] .lc-bar-num { display: none; }
-
-.lc-split-row-side {
-  display: flex; justify-content: space-between;
-  font-family: var(--mono); font-size: 10px; color: var(--ink-faint);
-  letter-spacing: 0.04em;
-}
+/* Bets bars: purple (matches brand --gold token) */
+.lc-bar-side.bets.away  { background: rgba(192, 132, 252, 0.22); }
+.lc-bar-side.bets.home  { background: rgba(192, 132, 252, 0.55); }
+/* Money bars: neon green (matches brand --orange token) */
+.lc-bar-side.money.away { background: rgba(74, 222, 128, 0.22); }
+.lc-bar-side.money.home { background: rgba(74, 222, 128, 0.62); }
 
 @media (max-width: 600px) {
   .lines-grid { grid-template-columns: 1fr; gap: 12px; }
   .line-card  { padding: 14px 14px 12px; }
-  .lc-split-row { grid-template-columns: 50px 1fr 90px; gap: 8px; }
+  .lc-split-row { grid-template-columns: 46px 34px 1fr 34px; gap: 8px; }
   .lc-matchup .tabbr { font-size: 16px; }
 }
 

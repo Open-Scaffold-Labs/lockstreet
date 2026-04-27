@@ -76,8 +76,10 @@ export default function LinesRoute() {
   const [sport, setSport] = useState('mlb');
   const { rows, loading, error } = usePublicBetting(sport);
 
+  // Stable, predictable sort: alphabetically by away team. Ordering by
+  // fetched_at (which row got scraped last) is meaningless to a viewer.
   const sorted = useMemo(
-    () => rows.slice().sort((a, b) => new Date(b.fetchedAt) - new Date(a.fetchedAt)),
+    () => rows.slice().sort((a, b) => String(a.awayLabel || '').localeCompare(String(b.awayLabel || ''))),
     [rows]
   );
 
@@ -149,33 +151,29 @@ function LineCard({ g }) {
         <div className="lc-line">
           <div className="lc-line-label">Spread</div>
           <div className="lc-line-pair">
-            <span className="lc-side"><span className="tabbr">{g.awayLabel}</span> {Number.isFinite(spreadAway) ? fmtSpread(spreadAway) : '—'}</span>
-            <span className="lc-side home"><span className="tabbr">{g.homeLabel}</span> {fmtSpread(spreadHome)}</span>
+            <span className="lc-side"><span className="tabbr">{g.awayLabel}</span>&nbsp;{Number.isFinite(spreadAway) ? fmtSpread(spreadAway) : '—'}</span>
+            <span className="lc-side home"><span className="tabbr">{g.homeLabel}</span>&nbsp;{fmtSpread(spreadHome)}</span>
           </div>
         </div>
         <div className="lc-line">
           <div className="lc-line-label">Total</div>
-          <div className="lc-line-pair">
-            <span className="lc-side">O {fmtTotal(totalLine)}</span>
-            <span className="lc-side home">U {fmtTotal(totalLine)}</span>
+          <div className="lc-line-pair lc-line-total">
+            <span className="lc-side total">O/U&nbsp;{fmtTotal(totalLine)}</span>
           </div>
         </div>
       </div>
 
       <div className="lc-splits">
         <SplitBar
-          label={`Spread ${g.homeLabel}${fmtSpread(spreadHome)}`}
-          awayLabel={g.awayLabel} homeLabel={g.homeLabel}
+          label={<>Spread <span className="lc-tag">{g.homeLabel} {fmtSpread(spreadHome)}</span></>}
           homeBets={spreadBets} homeMoney={spreadMoney}
         />
         <SplitBar
-          label="Moneyline"
-          awayLabel={g.awayLabel} homeLabel={g.homeLabel}
+          label={<>Moneyline</>}
           homeBets={mlBets} homeMoney={mlMoney}
         />
         <SplitBar
-          label={`Total ${fmtTotal(totalLine)}`}
-          awayLabel="Under" homeLabel="Over"
+          label={<>Total <span className="lc-tag">{fmtTotal(totalLine)}</span></>}
           homeBets={overBets} homeMoney={overMoney}
           overUnder
         />
@@ -185,17 +183,22 @@ function LineCard({ g }) {
 }
 
 // One row of the splits panel — paired bets/money bars side-by-side per
-// market. `homeBets` and `homeMoney` are integer percentages (0-100) for
-// the home side; the away/under side is computed as 100 - home.
+// market. `homeBets` / `homeMoney` are 0-100 ints for the home (or "over")
+// side; the away (or "under") side is 100 - home.
 //
-// The visual cue: when bets% and money% diverge by more than ~10 points,
-// that's the "fade the public" signal, so we color the money bar in the
-// neon-green accent and add a subtle flag.
-function SplitBar({ label, awayLabel, homeLabel, homeBets, homeMoney, overUnder = false }) {
+// Layout: the percent number is OUTSIDE the bar, in a fixed-width column
+// on each side, so it stays readable no matter how narrow the segment is.
+//   [ TAG ]  [LL%]  [────bar────]  [RR%]
+// The bar itself is a clean two-segment fill with no text inside.
+//
+// When |bets% − money%| ≥ 10, the money side is the sharp signal (real
+// money diverging from public bet count). We light up the row label with
+// the neon green accent and flag it SHARP.
+function SplitBar({ label, homeBets, homeMoney, overUnder = false }) {
   if (homeBets == null && homeMoney == null) return null;
 
-  const safeBets  = homeBets  != null ? Math.max(0, Math.min(100, homeBets))  : null;
-  const safeMoney = homeMoney != null ? Math.max(0, Math.min(100, homeMoney)) : null;
+  const safeBets  = homeBets  != null ? Math.max(0, Math.min(100, Math.round(homeBets)))  : null;
+  const safeMoney = homeMoney != null ? Math.max(0, Math.min(100, Math.round(homeMoney))) : null;
   const awayBets  = safeBets  != null ? 100 - safeBets  : null;
   const awayMoney = safeMoney != null ? 100 - safeMoney : null;
 
@@ -205,43 +208,31 @@ function SplitBar({ label, awayLabel, homeLabel, homeBets, homeMoney, overUnder 
   return (
     <div className={'lc-split' + (sharp ? ' lc-split-sharp' : '')}>
       <div className="lc-split-label">
-        {label}
-        {sharp && <span className="lc-split-flag" title="Bets % and Money % diverge — sharp signal">SHARP</span>}
+        <span className="lc-split-title">{label}</span>
+        {sharp && <span className="lc-split-flag" title={`${divergence}-point divergence between % Bets and % Money`}>SHARP</span>}
       </div>
 
       {safeBets != null && (
         <div className="lc-split-row">
-          <span className="lc-split-row-tag">% Bets</span>
-          <div className="lc-split-bar">
-            <div className="lc-bar-side away" style={{ width: `${awayBets}%` }}>
-              <span className="lc-bar-num">{awayBets}%</span>
-            </div>
-            <div className="lc-bar-side home" style={{ width: `${safeBets}%` }}>
-              <span className="lc-bar-num">{safeBets}%</span>
-            </div>
+          <span className="lc-split-tag">Bets</span>
+          <span className="lc-split-num away">{awayBets}%</span>
+          <div className="lc-split-bar" aria-label={`Bets: ${awayBets}% / ${safeBets}%`}>
+            <div className="lc-bar-side away bets" style={{ width: `${awayBets}%` }} />
+            <div className="lc-bar-side home bets" style={{ width: `${safeBets}%` }} />
           </div>
-          <span className="lc-split-row-side">
-            <span>{awayLabel}</span>
-            <span>{overUnder ? 'Over' : homeLabel}</span>
-          </span>
+          <span className="lc-split-num home">{safeBets}%</span>
         </div>
       )}
 
       {safeMoney != null && (
-        <div className="lc-split-row money">
-          <span className="lc-split-row-tag">% Money</span>
-          <div className="lc-split-bar">
-            <div className="lc-bar-side away money" style={{ width: `${awayMoney}%` }}>
-              <span className="lc-bar-num">{awayMoney}%</span>
-            </div>
-            <div className="lc-bar-side home money" style={{ width: `${safeMoney}%` }}>
-              <span className="lc-bar-num">{safeMoney}%</span>
-            </div>
+        <div className="lc-split-row">
+          <span className="lc-split-tag">Money</span>
+          <span className="lc-split-num away">{awayMoney}%</span>
+          <div className="lc-split-bar" aria-label={`Money: ${awayMoney}% / ${safeMoney}%`}>
+            <div className="lc-bar-side away money" style={{ width: `${awayMoney}%` }} />
+            <div className="lc-bar-side home money" style={{ width: `${safeMoney}%` }} />
           </div>
-          <span className="lc-split-row-side">
-            <span>{awayLabel}</span>
-            <span>{overUnder ? 'Over' : homeLabel}</span>
-          </span>
+          <span className="lc-split-num home">{safeMoney}%</span>
         </div>
       )}
     </div>
