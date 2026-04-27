@@ -143,14 +143,6 @@ function LineCard({ g }) {
 
   return (
     <article className="line-card">
-      <header className="lc-head">
-        <span className="lc-matchup">
-          <strong className="tabbr">{g.awayLabel}</strong>
-          <span className="lc-at">@</span>
-          <strong className="tabbr">{g.homeLabel}</strong>
-        </span>
-      </header>
-
       <div className="lc-splits">
         <SplitBar
           label="Spread"
@@ -161,7 +153,6 @@ function LineCard({ g }) {
         />
         <SplitBar
           label="Moneyline"
-          awayLabel={g.awayLabel} homeLabel={g.homeLabel}
           homeBets={mlBets} homeMoney={mlMoney}
         />
         <SplitBar
