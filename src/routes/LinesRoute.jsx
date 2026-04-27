@@ -88,6 +88,58 @@ function useLiveOdds(sport) {
   return { data, status, error };
 }
 
+// ---------- name → standard abbr (for matching SAO public-betting rows)
+// the-odds-api gives full names like "Toronto Blue Jays" / "Boston Red Sox".
+// `abbr()` below takes last-word.slice(0,4) which yields "JAYS"/"SOX" — that
+// doesn't match SAO's standard 2-3 letter labels (TOR/BOS). So we keep a
+// small map of common-name → SAO abbr for the leagues currently in season.
+// Only need entries for teams we'll actually be looking up; missing teams
+// just won't show a public-money row.
+const NAME_TO_ABBR = {
+  // ----- MLB -----
+  'arizona diamondbacks': 'ARI', 'atlanta braves': 'ATL', 'baltimore orioles': 'BAL',
+  'boston red sox': 'BOS', 'chicago cubs': 'CHC', 'chicago white sox': 'CWS',
+  'cincinnati reds': 'CIN', 'cleveland guardians': 'CLE', 'colorado rockies': 'COL',
+  'detroit tigers': 'DET', 'houston astros': 'HOU', 'kansas city royals': 'KC',
+  'los angeles angels': 'LAA', 'los angeles dodgers': 'LAD', 'miami marlins': 'MIA',
+  'milwaukee brewers': 'MIL', 'minnesota twins': 'MIN', 'new york mets': 'NYM',
+  'new york yankees': 'NYY', 'oakland athletics': 'OAK', 'philadelphia phillies': 'PHI',
+  'pittsburgh pirates': 'PIT', 'san diego padres': 'SD', 'san francisco giants': 'SF',
+  'seattle mariners': 'SEA', 'st. louis cardinals': 'STL', 'st louis cardinals': 'STL',
+  'tampa bay rays': 'TB', 'texas rangers': 'TEX', 'toronto blue jays': 'TOR',
+  'washington nationals': 'WSH', 'athletics': 'OAK',
+  // ----- NBA -----
+  'atlanta hawks': 'ATL', 'boston celtics': 'BOS', 'brooklyn nets': 'BKN',
+  'charlotte hornets': 'CHA', 'chicago bulls': 'CHI', 'cleveland cavaliers': 'CLE',
+  'dallas mavericks': 'DAL', 'denver nuggets': 'DEN', 'detroit pistons': 'DET',
+  'golden state warriors': 'GS', 'houston rockets': 'HOU', 'indiana pacers': 'IND',
+  'la clippers': 'LAC', 'los angeles clippers': 'LAC', 'los angeles lakers': 'LAL',
+  'memphis grizzlies': 'MEM', 'miami heat': 'MIA', 'milwaukee bucks': 'MIL',
+  'minnesota timberwolves': 'MIN', 'new orleans pelicans': 'NO', 'new york knicks': 'NYK',
+  'oklahoma city thunder': 'OKC', 'orlando magic': 'ORL', 'philadelphia 76ers': 'PHI',
+  'phoenix suns': 'PHX', 'portland trail blazers': 'POR', 'sacramento kings': 'SAC',
+  'san antonio spurs': 'SA', 'toronto raptors': 'TOR', 'utah jazz': 'UTAH',
+  'washington wizards': 'WAS',
+  // ----- NHL -----
+  'anaheim ducks': 'ANA', 'boston bruins': 'BOS', 'buffalo sabres': 'BUF',
+  'calgary flames': 'CGY', 'carolina hurricanes': 'CAR', 'chicago blackhawks': 'CHI',
+  'colorado avalanche': 'COL', 'columbus blue jackets': 'CBJ', 'dallas stars': 'DAL',
+  'detroit red wings': 'DET', 'edmonton oilers': 'EDM', 'florida panthers': 'FLA',
+  'los angeles kings': 'LA', 'minnesota wild': 'MIN', 'montréal canadiens': 'MTL',
+  'montreal canadiens': 'MTL', 'nashville predators': 'NSH', 'new jersey devils': 'NJ',
+  'new york islanders': 'NYI', 'new york rangers': 'NYR', 'ottawa senators': 'OTT',
+  'philadelphia flyers': 'PHI', 'pittsburgh penguins': 'PIT', 'san jose sharks': 'SJ',
+  'seattle kraken': 'SEA', 'st. louis blues': 'STL', 'st louis blues': 'STL',
+  'tampa bay lightning': 'TB', 'toronto maple leafs': 'TOR', 'utah hockey club': 'UTA',
+  'utah mammoth': 'UTA', 'vancouver canucks': 'VAN', 'vegas golden knights': 'VGK',
+  'winnipeg jets': 'WPG', 'washington capitals': 'WSH',
+};
+function teamNameToAbbr(name) {
+  if (!name) return '';
+  const k = String(name).trim().toLowerCase();
+  return NAME_TO_ABBR[k] || '';
+}
+
 // ---------- public betting % (from /api/team-intel?op=public-betting) -----
 // Backed by the public_betting table populated by the SAO scraper.
 function usePublicBetting(sport) {
@@ -313,11 +365,14 @@ export default function LinesRoute() {
           || consensusIdx.get(`${lastWord(awayName)}|${lastWord(homeName)}`)
           || null;
         // SAO public betting %s — keyed by team abbreviations (BOS/TOR style).
-        // Index covers both away|home and home|away orderings since SAO's
-        // slug ↔ ESPN's away/home assignment isn't always aligned.
-        const pub = (g.away?.abbr && g.home?.abbr)
-          ? (publicIdx.get(`${g.away.abbr.toUpperCase()}|${g.home.abbr.toUpperCase()}`) || null)
-          : null;
+        // The /lines page synthesizes 4-letter abbrs ("JAYS", "SOX") from
+        // the-odds-api full names, which don't match SAO's standard
+        // 2–3 letter labels. Resolve via NAME_TO_ABBR with fallback to
+        // whatever abbr() produced. Index covers both away|home AND
+        // home|away orderings, so order mismatches don't drop the row.
+        const aAbbr = (teamNameToAbbr(awayName) || g.away?.abbr || '').toUpperCase();
+        const hAbbr = (teamNameToAbbr(homeName) || g.home?.abbr || '').toUpperCase();
+        const pub = (aAbbr && hAbbr) ? (publicIdx.get(`${aAbbr}|${hAbbr}`) || null) : null;
         const books = liveEv
           ? FALLBACK_BOOKS.map((b) => {
               const lb = liveEv.books?.find((x) => x.key === b.key);
