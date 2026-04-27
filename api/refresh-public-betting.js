@@ -61,6 +61,10 @@ export default async function handler(req, res) {
             total_line:            data.totalLine,
             total_over_pct_bets:   data.totalOverPctBets,
             total_over_pct_money:  data.totalOverPctMoney,
+            away_last_10_ats_pct:  data.awayLast10AtsPct,
+            away_last_10_su_pct:   data.awayLast10SuPct,
+            home_last_10_ats_pct:  data.homeLast10AtsPct,
+            home_last_10_su_pct:   data.homeLast10SuPct,
             fetched_at: new Date().toISOString(),
           }, { onConflict: 'source,external_id' });
           if (error) summary.errors.push({ league, slug, error: error.message });
@@ -226,6 +230,29 @@ function parseGameHtml(html) {
   const spreadBlock = blockFor('spread');
   const totalBlock  = blockFor('total');
 
+  // Per-team trend tables — these contain rows like
+  //   <tr data-wins="0.4" data-spread="0.3" ...> <td>Last 10 Games</td> </tr>
+  // for each team. We pull the "Last 10 Games" row's wins (SU%) and
+  // spread (ATS%) for both home and away.
+  function pullLast10(label) {
+    // label = 'home-current-trends' | 'away-current-trends'
+    const sectionRe = new RegExp(`class="main\\s+${label}"[\\s\\S]*?</table>`);
+    const sec = html.match(sectionRe);
+    if (!sec) return null;
+    const rowRe = /<tr\b([^>]*)>[\s\S]*?<td[^>]*>\s*Last 10 Games\s*<\/td>/;
+    const m = sec[0].match(rowRe);
+    if (!m) return null;
+    const attrs = m[1];
+    const wins   = (attrs.match(/data-wins="([\d.]+)"/) || [])[1];
+    const spread = (attrs.match(/data-spread="([\d.]+)"/) || [])[1];
+    return {
+      suPct:  wins   != null ? Number(wins)   : null,
+      atsPct: spread != null ? Number(spread) : null,
+    };
+  }
+  const homeTrend = pullLast10('home-current-trends');
+  const awayTrend = pullLast10('away-current-trends');
+
   const mlPcts     = pcts(mlBlock);
   const spreadPcts = pcts(spreadBlock);
   const totalPcts  = pcts(totalBlock);
@@ -253,6 +280,10 @@ function parseGameHtml(html) {
     totalLine,
     totalOverPctBets:   totalPcts?.bets?.a   ?? null,
     totalOverPctMoney:  totalPcts?.money?.a  ?? null,
+    awayLast10AtsPct:   awayTrend?.atsPct    ?? null,
+    awayLast10SuPct:    awayTrend?.suPct     ?? null,
+    homeLast10AtsPct:   homeTrend?.atsPct    ?? null,
+    homeLast10SuPct:    homeTrend?.suPct     ?? null,
   };
 }
 
