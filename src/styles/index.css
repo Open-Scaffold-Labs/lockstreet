@@ -21,9 +21,9 @@
      Used on stat numbers, eyebrow labels, leaderboard winner row, hero
      highlight, league badges. The variable name --orange is kept so
      existing rules don't need to change. */
-  --orange: #4ade80;
-  --orange-dim: #16a34a;
-  --green: #4ade80;
+  --orange: #4cc9f0;
+  --orange-dim: #0e7490;
+  --green: #4cc9f0;
   --red: #ff5577;
   /* Borders: neon-purple tint at low alpha. Glows on pure black
      without overwhelming type. Bump --border-strong's alpha for emphasis. */
@@ -82,7 +82,7 @@ body {
        so it can sit above page content (cards/banners) and read consistently
        on every route, not just ones where the page bg happens to be transparent. */
     radial-gradient(1200px 600px at 20% -10%, rgba(192, 132, 252, 0.07), transparent 60%),
-    radial-gradient(900px 500px at 90% 10%, rgba(74, 222, 128, 0.05), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(76, 201, 240, 0.05), transparent 60%),
     var(--bg);
   background-attachment: fixed;
 }
@@ -185,7 +185,7 @@ body {
 .gd-play-text { font-size: 13px; color: var(--ink); line-height: 1.35; }
 .gd-play-score { font-weight: 800; font-size: 13px; color: var(--ink); white-space: nowrap; }
 .gd-play.scoring {
-  background: rgba(74, 222, 128, 0.08);
+  background: rgba(76, 201, 240, 0.08);
   border-left: 2px solid var(--green);
   padding-left: 8px;
 }
@@ -199,7 +199,7 @@ body {
   background: rgba(192, 132, 252, 0.04);
   border: 1px solid rgba(192, 132, 252, 0.18); border-radius: 8px;
 }
-.gd-fantasy-card:first-child { background: rgba(74, 222, 128, 0.06); border-color: rgba(74, 222, 128, 0.4); }
+.gd-fantasy-card:first-child { background: rgba(76, 201, 240, 0.06); border-color: rgba(76, 201, 240, 0.4); }
 .gd-fantasy-rank { font-family: var(--mono); font-size: 14px; color: var(--orange); text-align: center; font-weight: 700; }
 .gd-fantasy-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .gd-fantasy-name { font-weight: 700; font-size: 14px; }
@@ -389,7 +389,7 @@ body {
 .trec { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); display: flex; gap: 8px; margin-top: 2px; }
 .ats-chip { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 2px 5px;
   border-radius: 4px; background: rgba(255, 255, 255, 0.04); color: var(--ink-dim); }
-.ats-chip.good { background: rgba(74, 222, 128, 0.1); color: var(--green); }
+.ats-chip.good { background: rgba(76, 201, 240, 0.1); color: var(--green); }
 .ats-chip.bad  { background: rgba(248, 113, 113, 0.1); color: var(--red); }
 
 .score { font-family: var(--disp); font-weight: 800; font-size: 28px; color: var(--ink); letter-spacing: -0.02em; }
@@ -691,7 +691,7 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   animation: toast-in .25s ease;
 }
 .toast.closing { animation: toast-out .25s ease forwards; }
-.toast-success { border-color: rgba(74,222,128,0.4); }
+.toast-success { border-color: rgba(76,201,240,0.4); }
 .toast-success .toast-msg { color: var(--green); }
 .toast-error   { border-color: rgba(248,113,113,0.4); }
 .toast-error   .toast-msg { color: var(--red); }
@@ -848,7 +848,7 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
 .bk-pl.neg { color: var(--red); }
 .bk-actions { display: flex; gap: 4px; }
 .bk-actions .btn-ghost { padding: 5px 9px; font-size: 10px; }
-.bk-actions .win  { color: var(--green); border-color: rgba(74,222,128,0.3); }
+.bk-actions .win  { color: var(--green); border-color: rgba(76,201,240,0.3); }
 .bk-actions .loss { color: var(--red);   border-color: rgba(248,113,113,0.3); }
 .bk-x {
   background: transparent; border: 0; color: var(--ink-faint);
@@ -994,8 +994,8 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   border: 1px solid transparent;
 }
 .pick-result-badge.win {
-  background: rgba(74, 222, 128, 0.15); color: var(--green);
-  border-color: rgba(74, 222, 128, 0.45);
+  background: rgba(76, 201, 240, 0.15); color: var(--green);
+  border-color: rgba(76, 201, 240, 0.45);
 }
 .pick-result-badge.loss {
   background: rgba(248, 113, 113, 0.15); color: var(--red);
@@ -1051,8 +1051,8 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
    ================================================================ */
 .tail-badge {
   margin-top: 6px; padding: 3px 7px;
-  background: rgba(74, 222, 128, 0.08);
-  border: 1px solid rgba(74, 222, 128, 0.25);
+  background: rgba(76, 201, 240, 0.08);
+  border: 1px solid rgba(76, 201, 240, 0.25);
   border-radius: 4px; display: inline-block;
   font-family: var(--mono); font-size: 10px;
   color: var(--green); letter-spacing: 0.04em;
