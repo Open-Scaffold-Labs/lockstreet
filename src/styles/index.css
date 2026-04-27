@@ -314,13 +314,13 @@ body {
   font-weight: 700;
 }
 .date-tab-arrow {
-  background: transparent; border: 1px solid rgba(74, 222, 128, 0.4);
-  color: var(--green); width: 32px; height: 32px;
+  background: transparent; border: 1px solid rgba(192, 132, 252, 0.4);
+  color: var(--gold); width: 32px; height: 32px;
   border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1;
   display: inline-flex; align-items: center; justify-content: center;
   transition: border-color .15s ease, color .15s ease;
 }
-.date-tab-arrow:hover:not(:disabled) { border-color: var(--green); color: var(--green); background: rgba(74, 222, 128, 0.1); }
+.date-tab-arrow:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); background: rgba(192, 132, 252, 0.1); }
 .date-tab-arrow:disabled { opacity: 0.25; cursor: not-allowed; }
 .date-tab-label { display: inline-flex; align-items: center; gap: 10px; min-width: 220px; justify-content: center; }
 .date-tab-pill {
