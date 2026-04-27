@@ -300,21 +300,27 @@ body {
 /* ----- Date tab on /scores ----- */
 .date-tab {
   display: flex; align-items: center; justify-content: center;
-  gap: 14px; padding: 0; margin: 0 0 10px;
-  /* Syne for letters, Inter for digits via the InterNum override in
-     --syne-stack. Green color to make the date pop on /scores. */
-  font-family: var(--syne-stack); font-weight: 700; font-size: 14px;
+  /* Tighter gap so arrows hug the date label. */
+  gap: 6px; padding: 0; margin: 0 0 10px;
+  /* Syne by default for the letters in the label; the .date-tab-num span
+     below explicitly switches digits back to Inter. */
+  font-family: 'Syne', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 700; font-size: 14px;
   letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--green); user-select: none;
 }
+.date-tab-num {
+  font-family: 'Inter', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 700;
+}
 .date-tab-arrow {
-  background: transparent; border: 1px solid var(--border);
-  color: var(--ink); width: 32px; height: 32px;
+  background: transparent; border: 1px solid rgba(74, 222, 128, 0.4);
+  color: var(--green); width: 32px; height: 32px;
   border-radius: 50%; cursor: pointer; font-size: 18px; line-height: 1;
   display: inline-flex; align-items: center; justify-content: center;
   transition: border-color .15s ease, color .15s ease;
 }
-.date-tab-arrow:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.date-tab-arrow:hover:not(:disabled) { border-color: var(--green); color: var(--green); background: rgba(74, 222, 128, 0.1); }
 .date-tab-arrow:disabled { opacity: 0.25; cursor: not-allowed; }
 .date-tab-label { display: inline-flex; align-items: center; gap: 10px; min-width: 220px; justify-content: center; }
 .date-tab-pill {

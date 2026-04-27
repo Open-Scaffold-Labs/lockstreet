@@ -29,14 +29,25 @@ function espnDate(d) {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}${m}${day}`;
 }
+/**
+ * Render the date label as JSX with letters in Syne (default) and the
+ * numeric day in an explicit Inter span. The InterNum unicode-range trick
+ * was producing inconsistent results across browsers/font-loading orders,
+ * so we wrap the digits in a span and target them with .date-tab-num CSS.
+ */
 function formatDate(d, offset) {
-  // For today/tomorrow/yesterday, swap the weekday for the human label.
-  // e.g. "Today, Apr 26" instead of "Sun, Apr 26 · TODAY".
-  const md = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  if (offset === 0)  return `Today, ${md}`;
-  if (offset === 1)  return `Tomorrow, ${md}`;
-  if (offset === -1) return `Yesterday, ${md}`;
-  return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  const month = d.toLocaleDateString([], { month: 'short' });   // letters
+  const day   = d.toLocaleDateString([], { day: 'numeric' });    // digits
+  let prefix;
+  if (offset === 0)       prefix = 'Today';
+  else if (offset === 1)  prefix = 'Tomorrow';
+  else if (offset === -1) prefix = 'Yesterday';
+  else                    prefix = d.toLocaleDateString([], { weekday: 'short' });
+  return (
+    <>
+      {prefix}, {month} <span className="date-tab-num">{day}</span>
+    </>
+  );
 }
 
 export default function ScoresRoute() {
