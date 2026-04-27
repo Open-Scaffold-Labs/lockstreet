@@ -89,7 +89,7 @@ export default function PropsRoute() {
       </div>
 
       <p className="footnote-disclaimer" style={{ maxWidth: 600 }}>
-        Hot list updates every ~10 min during peak hours, ranked by last-10 ATS. Not betting advice.
+        Hot list refreshes once daily, ranked by last-10 ATS. Not betting advice.
         <br />21+. Bet responsibly. 1-800-GAMBLER.
       </p>
     </section>

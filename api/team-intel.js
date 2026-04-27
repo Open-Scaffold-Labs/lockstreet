@@ -739,10 +739,11 @@ function numOrNullScore(x) {
 // HEAT CHECK handler — aggregates the most recent away/home
 // last_10_ats_pct out of public_betting per (league, team) pair, keeps
 // teams covering >= 70%, returns sorted by pct desc. Powers /props page
-// (rebranded as Heat Check). Cache 30 min — ATS only updates on scrape.
+// (rebranded as Heat Check). Cache 24h — Heat Check is a daily list,
+// not a live feed; the underlying scrape happens on its own cycle.
 // ====================================================================
 const HEAT_CACHE = { at: 0, payload: null };
-const HEAT_CACHE_MS = 30 * 60 * 1000;
+const HEAT_CACHE_MS = 24 * 60 * 60 * 1000;
 
 async function handleHeatCheck(req, res) {
   if (HEAT_CACHE.payload && Date.now() - HEAT_CACHE.at < HEAT_CACHE_MS) {
@@ -801,6 +802,6 @@ async function handleHeatCheck(req, res) {
   const payload = { teams, generatedAt: new Date().toISOString() };
   HEAT_CACHE.at = Date.now();
   HEAT_CACHE.payload = payload;
-  res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=600');
+  res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=43200');
   res.status(200).json(payload);
 }
