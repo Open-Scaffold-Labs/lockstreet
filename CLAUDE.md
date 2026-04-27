@@ -203,34 +203,62 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 ---
 
-## Current state (as of 2026-04-26)
+## Current state (as of 2026-04-27)
 
 ### ✅ Working / done
 
-- **Deployed live: https://lockstreet.vercel.app** (Vercel Hobby, free, repo went public on GitHub to satisfy Hobby tier rule).
-- Frontend: landing page (Buffett quote hero), /scores (ESPN data + date tab + off-season banner + projected NFL schedule notice), /picks, /about (Track Record), /subscribe (3 tiers), /sign-in, /admin (with contest panel), /lines (live odds + Action-Network-fail-safe consensus), /props (live MLB/NBA props during football off-season), /bankroll, /contest, /leaderboard, /weekly, **/game/:league/:gameId** (new — game detail with live fantasy scoring).
-- Year-round support: ESPN integration covers NFL/CFB/MLB/NBA/NHL. /scores filter buttons for all 5. GamePicker supports date-driven sports.
-- **Brand rebrand:** pure black bg, neon purple primary (`#c084fc`), neon orange `#ff8000` accent (eyebrows, big stat numbers, hero accent, league badges). All borders purple. Scrollbars hidden. Buffett quote on hero/header/footer.
-- Database: 6 tables in Supabase with RLS — picks, subscriptions, push_subscriptions, bets, contests, contest_entries, contest_picks, consensus_picks. Bankroll view security_invoker fix applied.
-- Auth: working. Email confirmation disabled in Auth settings for dev — **re-enable before launch.**
-- PWA: manifest (`#000000` theme), icons, iOS meta, mobile.css, InstallPrompt.
-- Test admin: `lockstreet.matt.test@gmail.com` / `TestLockMatt2026!` promoted to admin.
-- All env vars set in Vercel: VITE_SUPABASE_URL/ANON_KEY, SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY, VITE_VAPID_*, VAPID_PRIVATE_KEY, VAPID_SUBJECT, ADMIN_PASSWORD, ODDS_API_KEY, CRON_SECRET, VITE_APP_URL, APP_URL.
-- GitHub Actions cron: `refresh-consensus.yml` runs daily at 8am ET via VSiN scrape → `consensus_picks` table → /lines renders the row. CRON_SECRET + VERCEL_DEPLOY_URL in GitHub repo secrets.
-- Game detail page: /game/:league/:gameId pulls ESPN summary, computes fantasy points client-side (PPR football, DK-style elsewhere), shows Top Fantasy Performers + per-team player tables. 30s polling for live games. Mobile-first.
-- Date tab on /scores: ◀ / ▶ shifts ±1 day, max ±7 days from today. Auto-hides for NFL/CFB during off-season.
-- Removed: /parlay route (deemed not useful at top level).
+- **Deployed live: https://lockstreet.vercel.app** (Vercel Hobby, free).
+- Frontend routes: `/` (Buffett hero landing), `/scores`, `/picks`, `/about`, `/subscribe`, `/sign-in`, `/admin`, `/lines`, `/props`, `/bankroll`, `/contest`, `/leaderboard`, `/weekly`, `/game/:league/:gameId`.
+- Year-round support: ESPN integration covers NFL/CFB/MLB/NBA/NHL. `/scores` filters for all 5. GamePicker supports date-driven sports.
+- **Brand & typography (Apr 27 update):**
+  - Pure black background, neon purple primary `#c084fc` (kept as `--gold` token for backward compat), neon **green** `#4ade80` (variable still named `--orange` so existing rules unchanged).
+  - Display font Inter app-wide, **Syne reserved** for `.hdr`, `/` (home), `/about`, `/subscribe` via `.route-syne` wrapper class.
+  - Custom `@font-face` `InterNum` with `unicode-range` for digits + math symbols overrides Syne in those scopes — numbers always render Inter for clean alignment.
+  - Team abbreviations (`.tabbr`, `.orb`) explicitly use `var(--syne-stack)` so "BOS" / "NYK" stays Syne even on Inter pages.
+  - JetBrains Mono removed entirely. `--mono` aliased to Inter.
+  - Header simplified: no 61% ATS badge, no Buffett tagline, no Admin button (admin reaches `/admin` via direct URL or bottom nav). Brand is uppercase, weight 900, 44px desktop / 22px mobile.
+- Database tables (Supabase + RLS): picks, subscriptions, push_subscriptions, bets, contests, contest_entries, contest_picks, consensus_picks.
+  - Picks table now has matchup snapshot columns: `home_abbr`, `away_abbr`, `home_logo`, `away_logo`, `spread_home`, `total_taken`, `ml_home`, `ml_away`, plus `graded_at` (used by Closed-tab 6-day TTL). Migration `20260427_picks_team_and_lines.sql`.
+- Auth: real admin (`mlav1114@aol.com`) promoted, test admin retired. Email confirmation re-enabled. Site URL set to `https://lockstreet.vercel.app`.
+- PWA: manifest, regenerated icons (L white / S purple / purple border, pure black bg). Push notifications **end-to-end verified** (admin → /api/send-notifications → device).
+- Push test panel on `/admin`: enable push on this device + send test broadcast to all devices.
+- All env vars set in Vercel.
+- GitHub Actions cron `refresh-consensus.yml` runs daily 8am ET → `consensus_picks` table → `/lines` row.
+- **Game detail page (`/game/:league/:gameId`):**
+  - Team logos in header (with purple drop-shadow).
+  - Live status box shows clock (`Q3 · 5:24` for NBA/NFL/CFB, `P2 · 5:24` for NHL, `Top 7th` for MLB) — never the date when game is live.
+  - Side-by-side team preview cards (Last 10 SU, Off Rank, Def Rank with stat value sub-line, Injuries list).
+  - Last 5 ATS still placeholder `—` (no free historical-odds source).
+  - Live Play Tracker section sits between header and team preview when `status === 'live'`. Renders last 15 plays with scoring-play green highlight. Powered by `data.recentPlays` from ESPN summary; works for NBA/NHL/MLB and football (drives → plays).
+  - Top Fantasy Performers + per-team player tables below (live or final).
+  - 30s polling for live games.
+- **`/api/team-intel` proxy** — sport-specific free APIs, server-side cache 6h:
+  - **NBA**: ESPN bulk fetch — pulls all 30 teams' completed regular + postseason schedules, computes off rank (PPG), def rank (Opp PPG), Last 10 SU. `stats.nba.com` blocks Vercel/AWS data centers, hence the bulk-via-ESPN approach.
+  - **MLB**: `statsapi.mlb.com` (official). Standings → last 10 + record. `/teams/stats?stats=season&group=hitting&sportIds=1` for league-wide rank computation.
+  - **NHL**: `api-web.nhle.com/v1/standings/now` (single call returns all 32 teams, l10Wins/Losses/OtLosses, GF/GA/games for ranks).
+  - **NFL/CFB**: ESPN team-stats + schedule. Last 10 from completed events.
+  - Score values come back as `{value, displayValue}` objects on schedule events — extractor pulls `.value`. ESPN summary's `header.status.type.state` can be empty on MLB; falls back to `competitions[0].status` and `completed`.
+- **`/picks` page (Apr 27):**
+  - Search bar + filter button rows replaced with **Open / Closed tabs** + counts.
+  - Open = `result === 'pending'`. Closed = graded picks within last 6 days (`Date.now() - graded_at < 6d`); after that they auto-drop.
+  - Win/Loss/Push badges on closed pick cards.
+  - Pick block hides entirely when no pick on a game (no "No pick on this game" placeholder).
+  - "Lock Street **Free** Pick" label on `visibility === 'public'` picks.
+  - Cards self-contained: render team logos and SPREAD/O/U/ML pills from snapshot columns even after ESPN scoreboard rolls past the game.
+  - SystemInfoBanner at top: "NFL, College Football, College Basketball" + "We don't post picks we aren't taking ourselves." Football off-season countdown shown when applicable.
+- **`/scores` All view groups by sport** with single league badge per group. Order: NBA → NHL → MLB → NFL → CFB. Empty leagues hidden. Per-card league badge suppressed when grouped via `hideLeagueBadge` prop on `GameCard`.
+- Date tab on `/scores`: ◀ / ▶ ±7 days. Today/Tomorrow/Yesterday inline labels (no separate pills). Sits flush below the header.
+- Centered ambient halo via `.bg-halo` fixed-position div (z-index 1, below header z-50). Visible on every page. Corner accent gradients still on body.
+- Mobile-only fix: `.hdr` is `position: fixed` (sticky was failing on iOS Safari w/ safe-area-inset). Header swallows the notch via its own `padding-top: env(safe-area-inset-top)`. `.wrap` top-padding compensates. Desktop keeps `position: sticky`.
+- Removed: `/parlay`.
 
 ### ⚠ Open / next-up
 
-- **Service-role key rotation** — Supabase service-role JWT was pasted in chat during setup. Rotate via Supabase → Settings → Data API → "Reset service_role secret", update Vercel env, redeploy. 30-second task.
-- **Stripe wiring** — still need real keys + 3 Price IDs. Subscription flow won't work without them.
-- **Real admin user** — Matt should sign up via the form with his real email; promote that user to admin via the same SQL pattern, then delete the test user.
-- **First real picks** — once admin posts via /admin, validate the full pipeline (RLS gating, push notifications, weekly email).
-- **On-device PWA test** — visit lockstreet.vercel.app on phone, "Add to Home Screen", confirm install + look. Push notifications now work since HTTPS is live.
-- **Re-enable Supabase email confirmation** before launch (Auth → Providers → Email).
-- **Set Site URL in Supabase** to `https://lockstreet.vercel.app` so password-reset emails redirect correctly.
-- **Mobile app (Step 2 of plan)** — pre-season (July/Aug 2026), build React Native via Expo using "reader app" pattern.
+- **Stripe wiring** — biggest gap. Need real keys + 3 Price IDs from Stripe Dashboard, plus webhook secret. Subscribe button currently does nothing without them. ~30 min once started.
+- **Last 10 ATS** for game-detail preview cards — currently `—` everywhere. Only free path is DIY: persist closing lines per game in our DB (we already pull from the-odds-api in season), then compute ATS from final scores at view time. Half-day project.
+- **PWA cache invalidation** — iOS aggressively caches PWA bundles. After any code change Matt must remove + re-add the home-screen icon (or hard-refresh in Safari first). Discovered the hard way Apr 27.
+- **NBA Stats API blocked from Vercel** — `stats.nba.com` times out from data-center IPs. We compute NBA ranks/last-10 by bulk-fetching all 30 teams' ESPN schedules instead. If we ever upgrade to a paid sports data API (SportsDataIO, etc.), this gets simpler.
+- **Mobile app (Step 2)** — pre-season (Jul/Aug 2026), build React Native via Expo using reader-app pattern.
 
 ### 📦 Cleanup pending (not urgent)
 
@@ -241,10 +269,20 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 ## Conventions
 
-- Pure black background (`--bg: #000000`). Neon purple primary (`--gold: #c084fc` — variable kept as `--gold` for backward-compat, value is purple). Neon orange accent (`--orange: #ff8000`) for stat numbers / eyebrows / hero / league badges. Display font Syne, mono JetBrains Mono. All borders purple. Scrollbars hidden globally.
-- **Slogan:** "Be fearful when others are greedy. Be greedy when others are fearful." — Warren Buffett. Lives on hero h1, header tagline, footer, meta description.
-- "Two generations. One system." stays on /about as the brand-narrative line — that's the Matt+Shawn story, separate from the positioning slogan.
+- Pure black background (`--bg: #000000`). Neon purple primary (`--gold: #c084fc` — variable kept as `--gold` for backward compat, value is purple). Neon **green** secondary accent (`--orange: #4ade80` — variable kept as `--orange` for backward compat, value is green) for stat numbers / eyebrows / hero / league badges. Display font Inter app-wide; Syne reserved for header + home + about + subscribe via `.route-syne`. Custom `InterNum` `@font-face` overrides digits to Inter inside Syne scopes. Team abbreviations (`.tabbr`, `.orb`) explicitly opt back into Syne. All borders purple. Scrollbars hidden globally.
+- **Slogan:** "Be fearful when others are greedy. Be greedy when others are fearful." — appears on home hero only (no attribution; quotation marks alone suffice). Removed from header + footer.
+- "Two generations. One system." stays on `/about` as the brand-narrative line — that's the Matt+Shawn story.
+- **Sports we post picks for: NFL, College Football, College Basketball.** Other sports tracked via `/scores`/`/lines`/etc. but no official picks. Reinforced via SystemInfoBanner on `/picks`.
 - All money/cost mentions link to the corresponding pricing tier or webhook event for traceability.
 - Disclaimers always include "1-800-GAMBLER" line.
-- About page is the credibility anchor — when in doubt about voice, match its tone (concrete, receipt-driven, no overclaiming).
-- Pool aliases footnoted on /about so the verifiable receipts (Mlav1114, Lucky Shawn) tie back to the names (Matt, Shawn).
+- `/about` is the credibility anchor — when in doubt about voice, match its tone (concrete, receipt-driven, no overclaiming).
+- Pool aliases footnoted on `/about` so verifiable receipts (Mlav1114, Lucky Shawn) tie back to the names.
+
+## Lessons learned (don't repeat these mistakes)
+
+- **PWA + Vercel cache compounds.** When iterating on UI, the deployed bundle can be live but the user's PWA / browser still serves the old one for hours. ALWAYS verify via Chrome DevTools `read_page`/`javascript_tool` against `lockstreet.vercel.app` before assuming a styling issue is real — half a session got eaten chasing a "wrap to second line" bug that was actually stale cache showing the old 61% badge + tagline.
+- **Cowork dedupes user-scope MCP servers by `serverInfo.name`.** Adding a second Supabase MCP via `claude mcp add` won't surface its tools because the built-in connector already claims `"supabase"`. Workaround: hit Supabase Management API directly via `Invoke-RestMethod` with the PAT stored in `~/.claude.json`.
+- **Score values on ESPN schedule events come back as `{value, displayValue}` objects**, not plain numbers. `Number(comp.score)` returns NaN. Use `Number(comp.score?.value ?? comp.score?.displayValue ?? comp.score)`.
+- **`stats.nba.com` blocks Vercel/AWS.** The User-Agent dance won't save you — data-center IPs are blocked at network level. Compute NBA ranks via ESPN bulk fetch instead.
+- **iOS Safari `position: sticky` breaks under `safe-area-inset-top` body padding.** Switch to `position: fixed` on mobile and route the safe-area handling through the header itself.
+- **Vite-bundled deferred tools take time to surface.** The `/api/team-intel` proxy needs a fresh function cold-start to load; subsequent requests hit the 6h in-memory cache and are fast.
