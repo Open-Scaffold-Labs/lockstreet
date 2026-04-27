@@ -1118,32 +1118,47 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   padding-bottom: 10px;
 }
 
-/* Logo header — glowing TeamOrbs pinned to the OUTER edges of the
-   card, with the team abbreviation immediately inside each. Reads
-   left = away, right = home, mirroring the bar orientation below. */
+/* Logo header — glowing TeamOrbs absolutely pinned to the OUTER edges
+   of the card so the team abbreviations can land in the EXACT same
+   grid columns as the Spread panel team-line below. That way BOS/TOR
+   in the header sit directly above BOS/TOR in the Spread row. */
 .lc-logo-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  position: relative;
   border-bottom: 1px solid var(--border);
   padding-bottom: 10px;
+  min-height: 36px;
 }
-.lc-logo-team {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.lc-logo-head .orb {
+.lc-logo-orb { position: absolute; top: 0; }
+.lc-logo-orb.away { left: 0; }
+.lc-logo-orb.home { right: 0; }
+.lc-logo-orb .orb {
   width: 36px;
   height: 36px;
   font-size: 12px;
   /* punch up the existing orb glow so it reads as "glowing" on the card */
   box-shadow: 0 0 22px -2px var(--ring, #c084fc), 0 0 8px -2px var(--ring, #c084fc);
 }
-.lc-logo-head .tabbr {
+/* Mirror the Spread panel grid so abbrs land in the same columns. */
+.lc-logo-grid {
+  display: grid;
+  grid-template-columns: 56px 64px 1fr 64px;
+  gap: 10px;
+  align-items: center;
+  height: 36px;
+}
+.lc-logo-line {
+  grid-column: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.lc-logo-line .tabbr {
   font-size: 18px;
   letter-spacing: 0.04em;
   display: inline;
+}
+@media (max-width: 600px) {
+  .lc-logo-grid { grid-template-columns: 46px 50px 1fr 50px; gap: 8px; }
 }
 .lc-matchup {
   display: flex; align-items: center; gap: 8px;
