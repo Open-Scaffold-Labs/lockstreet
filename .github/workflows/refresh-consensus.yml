@@ -18,11 +18,13 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - name: Hit /api/refresh-consensus
+      - name: Hit /api/refresh-public-betting?job=consensus
+        # Endpoint multiplexed under /api/refresh-public-betting?job=
+        # since Vercel Hobby caps fns at 12. Same auth (Bearer CRON_SECRET).
         run: |
           set -e
           response=$(curl --silent --show-error --fail \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.VERCEL_DEPLOY_URL }}/api/refresh-consensus")
+            "${{ secrets.VERCEL_DEPLOY_URL }}/api/refresh-public-betting?job=consensus")
           echo "Response: $response"

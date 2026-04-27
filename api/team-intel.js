@@ -39,6 +39,13 @@ const BROWSER_HEADERS = {
 };
 
 export default async function handler(req, res) {
+  // Hobby plan caps Vercel functions at 12 — multiplexed handler dispatches
+  // on `?op=intel|news|schedule` so team-intel + team-news + team-schedule
+  // share one slot. Default op is 'intel' for backward compat.
+  const op = req.query?.op || 'intel';
+  if (op === 'news') return handleNews(req, res);
+  if (op === 'schedule') return handleSchedule(req, res);
+
   const { league, teamId, teamAbbr } = req.query || {};
   if (!league) return res.status(400).json({ error: 'league required' });
 
@@ -479,4 +486,169 @@ async function fetchEspn(league, teamId) {
     defLabel: def?.shortDisplayName || def?.abbreviation || '',
     last10, source: 'ESPN',
   };
+}
+
+// ====================================================================
+// NEWS handler — folded in from the deprecated /api/team-news endpoint
+// to stay under Vercel Hobby's 12-function cap. RSS-first (legal,
+// designed for aggregator consumption); optional NewsData.io fallback
+// when NEWSDATA_API_KEY is set in env.
+// ====================================================================
+const NEWS_CACHE = new Map();
+const NEWS_CACHE_MS = 30 * 60 * 1000;
+
+const RSS_URL = {
+  nfl: 'https://www.espn.com/espn/rss/nfl/news',
+  cfb: 'https://www.espn.com/espn/rss/ncf/news',
+  nba: 'https://www.espn.com/espn/rss/nba/news',
+  mlb: 'https://www.espn.com/espn/rss/mlb/news',
+  nhl: 'https://www.espn.com/espn/rss/nhl/news',
+};
+
+async function handleNews(req, res) {
+  const { league, teamName, teamCity } = req.query || {};
+  if (!league || !RSS_URL[league]) return res.status(400).json({ error: 'invalid league' });
+
+  const key = `news:${league}:${(teamName || '').toLowerCase()}:${(teamCity || '').toLowerCase()}`;
+  const hit = NEWS_CACHE.get(key);
+  if (hit && Date.now() - hit.at < NEWS_CACHE_MS) return res.status(200).json(hit.payload);
+
+  let items = [];
+  try {
+    const r = await fetch(RSS_URL[league], { headers: BROWSER_HEADERS });
+    if (r.ok) {
+      const xml = await r.text();
+      const parsed = parseRss(xml);
+      const needles = [teamName, teamCity].filter(Boolean).map((s) => s.toLowerCase());
+      items = parsed.filter((it) => {
+        if (!needles.length) return true;
+        const blob = (it.title + ' ' + (it.description || '')).toLowerCase();
+        return needles.some((n) => blob.includes(n));
+      }).map((it) => ({ ...it, source: 'ESPN' }));
+    }
+  } catch {}
+
+  if (items.length < 3 && process.env.NEWSDATA_API_KEY && teamName) {
+    try {
+      const q = encodeURIComponent(`"${teamName}" ${teamCity || ''} ${league.toUpperCase()}`.trim());
+      const url = `https://newsdata.io/api/1/news?apikey=${process.env.NEWSDATA_API_KEY}&q=${q}&language=en&category=sports`;
+      const r2 = await fetch(url);
+      if (r2.ok) {
+        const j = await r2.json();
+        const extra = (j?.results || []).slice(0, 8).map((it) => ({
+          title: it.title, link: it.link, publishedAt: it.pubDate,
+          image: it.image_url, description: it.description,
+          source: it.source_id || 'NewsData.io',
+        }));
+        const seen = new Set(items.map((i) => i.link));
+        for (const e of extra) if (!seen.has(e.link)) items.push(e);
+      }
+    } catch {}
+  }
+  items.sort((a, b) => new Date(b.publishedAt || 0) - new Date(a.publishedAt || 0));
+  items = items.slice(0, 12);
+  const payload = { items, source: items[0]?.source || 'ESPN' };
+  NEWS_CACHE.set(key, { at: Date.now(), payload });
+  res.status(200).json(payload);
+}
+
+function parseRss(xml) {
+  const items = [];
+  const re = /<item>([\s\S]*?)<\/item>/g;
+  let m;
+  while ((m = re.exec(xml)) !== null) {
+    const block = m[1];
+    const title = decodeXml(extractTag(block, /<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/));
+    const link  = decodeXml(extractTag(block, /<link>([\s\S]*?)<\/link>/));
+    const pub   = decodeXml(extractTag(block, /<pubDate>([\s\S]*?)<\/pubDate>/));
+    const desc  = decodeXml(extractTag(block, /<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/));
+    const img   = decodeXml(extractTag(block, /<media:thumbnail[^>]*url="([^"]+)"/) || extractTag(block, /<media:content[^>]*url="([^"]+)"/));
+    if (!title) continue;
+    items.push({ title, link, publishedAt: pub, description: desc, image: img });
+  }
+  return items;
+}
+function extractTag(b, re) { const m = b.match(re); return m ? m[1].trim() : null; }
+function decodeXml(s) {
+  if (!s) return s;
+  return s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+          .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'");
+}
+
+// ====================================================================
+// SCHEDULE handler — folded in from /api/team-schedule. ESPN team schedule
+// across regular + postseason; returns events with date/opp/score/result.
+// ====================================================================
+const SCHED_CACHE = new Map();
+const SCHED_CACHE_MS = 30 * 60 * 1000;
+
+const SCHED_SPORT_PATH = {
+  nfl: 'football/nfl', cfb: 'football/college-football',
+  mlb: 'baseball/mlb', nba: 'basketball/nba', nhl: 'hockey/nhl',
+};
+
+function currentSeasonGuess() {
+  const d = new Date();
+  return d.getMonth() >= 9 ? d.getFullYear() + 1 : d.getFullYear();
+}
+
+async function handleSchedule(req, res) {
+  const { league, teamId, season: seasonQ } = req.query || {};
+  const sportPath = SCHED_SPORT_PATH[league];
+  if (!sportPath || !teamId) return res.status(400).json({ error: 'league + teamId required' });
+  const season = seasonQ || currentSeasonGuess();
+  const key = `sched:${league}:${teamId}:${season}`;
+  const hit = SCHED_CACHE.get(key);
+  if (hit && Date.now() - hit.at < SCHED_CACHE_MS) return res.status(200).json(hit.payload);
+
+  const fetched = await Promise.all([2, 3].map(async (st) => {
+    try {
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${sportPath}/teams/${teamId}/schedule?season=${season}&seasontype=${st}`;
+      const r = await fetch(url, { headers: BROWSER_HEADERS });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  }));
+
+  const events = [];
+  for (const j of fetched) {
+    if (!j?.events) continue;
+    for (const e of j.events) {
+      const c = e?.competitions?.[0];
+      if (!c) continue;
+      const me  = (c.competitors || []).find((x) => String(x.team?.id) === String(teamId));
+      const opp = (c.competitors || []).find((x) => String(x.team?.id) !== String(teamId));
+      if (!me || !opp) continue;
+      const completed = !!c.status?.type?.completed;
+      const ourScore = numOrNullScore(me.score);
+      const oppScore = numOrNullScore(opp.score);
+      events.push({
+        id: e.id, date: e.date, season: e.season?.year, seasonType: e.season?.type,
+        weekLabel: e.week?.text || null, completed, homeAway: me.homeAway,
+        opp: {
+          id: opp.team?.id, abbr: opp.team?.abbreviation,
+          name: opp.team?.displayName,
+          logo: opp.team?.logos?.[0]?.href || opp.team?.logo,
+        },
+        score: completed && ourScore != null ? { us: ourScore, them: oppScore } : null,
+        result: completed ? (me.winner === true ? 'W' : me.winner === false ? 'L' : null) : null,
+      });
+    }
+  }
+  events.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const payload = { league, teamId, season, events };
+  SCHED_CACHE.set(key, { at: Date.now(), payload });
+  res.status(200).json(payload);
+}
+
+function numOrNullScore(x) {
+  if (x == null) return null;
+  if (typeof x === 'object') {
+    const v = x.value ?? x.displayValue ?? null;
+    if (v == null) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+  const n = Number(x);
+  return Number.isFinite(n) ? n : null;
 }

@@ -31,10 +31,12 @@ export default function TeamRoute() {
         // In parallel: schedule, intel, news
         const teamCity = meta?.location || '';
         const teamName = meta?.name     || '';
+        // Multiplexed via /api/team-intel?op=intel|news|schedule (one Vercel
+        // function slot covers all three to stay under Hobby's 12-fn cap).
         const [intelRes, schedRes, newsRes] = await Promise.all([
-          fetch(`/api/team-intel?league=${league}&teamId=${teamId}&teamAbbr=${meta?.abbreviation || ''}`).then(r => r.ok ? r.json() : null).catch(() => null),
-          fetch(`/api/team-schedule?league=${league}&teamId=${teamId}`).then(r => r.ok ? r.json() : null).catch(() => null),
-          fetch(`/api/team-news?league=${league}&teamName=${encodeURIComponent(teamName)}&teamCity=${encodeURIComponent(teamCity)}`).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(`/api/team-intel?op=intel&league=${league}&teamId=${teamId}&teamAbbr=${meta?.abbreviation || ''}`).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(`/api/team-intel?op=schedule&league=${league}&teamId=${teamId}`).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(`/api/team-intel?op=news&league=${league}&teamName=${encodeURIComponent(teamName)}&teamCity=${encodeURIComponent(teamCity)}`).then(r => r.ok ? r.json() : null).catch(() => null),
         ]);
         if (cancelled) return;
         setIntel(intelRes);
