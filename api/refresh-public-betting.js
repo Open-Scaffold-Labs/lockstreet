@@ -113,25 +113,27 @@ function getScrapeLevel(now) {
   });
   const parts = Object.fromEntries(fmt.formatToParts(now).map(p => [p.type, p.value]));
   const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(parts.weekday);
-  const hour = Number(parts.hour) === 24 ? 0 : Number(parts.hour); // some locales
+  const hour = Number(parts.hour) === 24 ? 0 : Number(parts.hour);
   const minute = Number(parts.minute);
 
   // ----- Football peaks (every 10 min within window) -----
   const footballPeak =
-    (dow === 0 && [12, 15, 19, 20].includes(hour)) ||                     // Sun NFL
-    (dow === 6 && [11, 15, 19].includes(hour)) ||                          // Sat CFB
-    ((dow === 4 || dow === 1) && [19, 20].includes(hour));                 // Thu/Mon
+    (dow === 0 && [12, 15, 19, 20].includes(hour)) ||
+    (dow === 6 && [11, 15, 19].includes(hour)) ||
+    ((dow === 4 || dow === 1) && [19, 20].includes(hour));
   if (footballPeak) return 'peak';
 
-  // ----- NBA/NHL/MLB peak (early evening daily) -----
-  if (hour === 18) return 'peak';
+  // ----- NBA/NHL/MLB peak window: 6pm–10pm ET, every 10 min.
+  //       Most weeknight games tip off in this band; we want fresh data
+  //       in the hour leading up to + first ~30 min of each game. -----
+  if (hour >= 18 && hour <= 22) return 'peak';
 
-  // ----- Game-day off-peak (every 2 hr): align to even hours, only run on minute 0–4 -----
-  const gameDay = dow === 0 || dow === 6 || dow === 4 || dow === 1; // Sun/Sat/Thu/Mon
-  if (gameDay && hour >= 9 && hour <= 23 && (hour % 2 === 0) && minute < 5) return 'normal';
+  // ----- Game-day off-peak: every 2 hr while games could be in progress. -----
+  if (hour >= 9 && hour <= 23 && (hour % 2 === 0) && minute < 5) return 'normal';
 
-  // ----- Off days (Tue/Wed/Fri): twice daily -----
-  if ([2, 3, 5].includes(dow) && (hour === 12 || hour === 18) && minute < 5) return 'normal';
+  // ----- Anywhere else: scrape twice a day at noon and 6pm to keep the
+  //       team Last 10 ATS reasonably fresh even on off days. -----
+  if ((hour === 12 || hour === 18) && minute < 5) return 'normal';
 
   return 'skip';
 }
