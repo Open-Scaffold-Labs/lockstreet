@@ -241,7 +241,9 @@ function TeamPreview({ side, label, stats }) {
         </div>
         <div className="gd-preview-stat">
           <div className="gd-preview-label">Last 10 ATS</div>
-          <div className="gd-preview-value gd-preview-muted">—</div>
+          <div className={'gd-preview-value' + (stats?.last10AtsPct != null ? '' : ' gd-preview-muted')}>
+            {stats?.last10AtsPct != null ? `${Math.round(stats.last10AtsPct * 100)}%` : '—'}
+          </div>
         </div>
       </div>
 
