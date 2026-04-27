@@ -100,9 +100,12 @@ export function SignInButton({ children, afterSignInUrl }) {
 export function UserButton() {
   const { user } = useUser();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   const initials = (user?.fullName || user?.primaryEmailAddress?.emailAddress || '?')
     .split(/\s+|@/)[0].slice(0, 2).toUpperCase();
+  const isAdmin = user?.publicMetadata?.role === 'admin';
   async function signOut() { try { await supabase?.auth.signOut(); } catch {} setOpen(false); }
+  function go(path) { setOpen(false); navigate(path); }
   return (
     <div style={{ position: 'relative' }}>
       <button type="button" onClick={() => setOpen((o) => !o)}
@@ -110,8 +113,14 @@ export function UserButton() {
         {initials}
       </button>
       {open && (
-        <div style={{ position:'absolute', right:0, top:38, background:'#0f172a', border:'1px solid rgba(192, 132, 252, 0.35)', borderRadius:8, padding:8, minWidth:160, zIndex:10 }}>
+        <div style={{ position:'absolute', right:0, top:38, background:'#0f172a', border:'1px solid rgba(192, 132, 252, 0.35)', borderRadius:8, padding:8, minWidth:180, zIndex:10 }}>
           <div style={{ padding:'6px 8px', fontSize:12, color:'#94a3b8' }}>{user?.primaryEmailAddress?.emailAddress}</div>
+          {isAdmin && (
+            <button type="button" onClick={() => go('/admin')}
+                    style={{ width:'100%', padding:'6px 8px', background:'transparent', border:'none', color:'#c084fc', textAlign:'left', cursor:'pointer', fontWeight:600 }}>
+              Admin
+            </button>
+          )}
           <button type="button" onClick={signOut} style={{ width:'100%', padding:'6px 8px', background:'transparent', border:'none', color:'#fff', textAlign:'left', cursor:'pointer' }}>Sign out</button>
         </div>
       )}
