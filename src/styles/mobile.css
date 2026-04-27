@@ -66,6 +66,19 @@
   .gd-injury-pos { font-size: 9px; }
   .gd-injury-status { font-size: 10px; }
   .gd-fantasy-card { grid-template-columns: 24px 1fr auto; gap: 8px; padding: 8px 10px; }
+
+  /* Team page (mobile) */
+  .tm-hero { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px 14px; }
+  .tm-hero-logo { width: 64px; height: 64px; }
+  .tm-hero-name { font-size: 22px; }
+  .tm-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tm-tabs { overflow-x: auto; }
+  .tm-tab { padding: 10px 14px; font-size: 12px; flex-shrink: 0; }
+  .tm-sched-row { grid-template-columns: 60px 1fr 26px 60px; gap: 6px; padding: 8px 10px; font-size: 12px; }
+  .tm-sched-date { font-size: 10px; }
+  .tm-news-card { grid-template-columns: 64px 1fr; padding: 8px; gap: 10px; }
+  .tm-news-img { width: 64px; height: 48px; }
+  .tm-news-title { font-size: 13px; }
   .gd-fantasy-name { font-size: 13px; }
   .gd-fantasy-pts span { font-size: 20px; }
   .gd-section { padding: 12px 10px; }

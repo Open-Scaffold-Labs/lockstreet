@@ -323,6 +323,84 @@ body {
 .date-tab-arrow:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); background: rgba(192, 132, 252, 0.1); }
 .date-tab-arrow:disabled { opacity: 0.25; cursor: not-allowed; }
 .date-tab-label { display: inline-flex; align-items: center; gap: 10px; min-width: 220px; justify-content: center; }
+
+/* ----- Team page (/team/:league/:teamId) ----- */
+.tm { display: flex; flex-direction: column; gap: 18px; }
+.gd-team-link { text-decoration: none; color: inherit; transition: transform .15s ease; }
+.gd-team-link:hover { transform: translateY(-2px); }
+.gd-team-link:hover .gd-team-name { color: var(--gold); }
+
+.tm-hero {
+  display: flex; align-items: center; gap: 18px;
+  padding: 22px 18px;
+  background: linear-gradient(160deg, #141114, #0a0a0a);
+  border: 1px solid var(--border); border-radius: 14px;
+}
+.tm-hero-logo { width: 96px; height: 96px; object-fit: contain;
+  filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.25)); }
+.tm-hero-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tm-hero-eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--ink-faint); }
+.tm-hero-name { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; }
+.tm-hero-record { font-family: var(--mono); font-size: 13px; color: var(--orange); margin-top: 6px; }
+.tm-hero-standing { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
+
+.tm-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+}
+
+.tm-tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  margin: 4px 0 14px;
+}
+.tm-tab {
+  background: transparent; border: 0; color: var(--ink-dim);
+  font-family: var(--disp); font-weight: 700; font-size: 13px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 12px 18px; cursor: pointer; position: relative;
+}
+.tm-tab:hover { color: var(--ink); }
+.tm-tab.active { color: var(--ink); }
+.tm-tab.active::after {
+  content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px;
+  height: 2px; background: var(--gold); border-radius: 2px;
+}
+
+/* Schedule list */
+.tm-sched { display: flex; flex-direction: column; gap: 4px; }
+.tm-sched-row {
+  display: grid; grid-template-columns: 80px 1fr 30px 80px; gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px; font-size: 13px;
+}
+.tm-sched-date { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
+.tm-sched-opp { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tm-sched-opp-logo { width: 22px; height: 22px; object-fit: contain; }
+.tm-sched-vs { color: var(--ink-faint); font-size: 11px; margin-right: 2px; }
+.tm-sched-result { text-align: center; font-weight: 800; font-size: 14px; }
+.tm-sched-result.win  { color: var(--green); }
+.tm-sched-result.loss { color: var(--red); }
+.tm-sched-score { font-family: var(--mono); font-size: 13px; color: var(--ink); text-align: right; }
+.tm-sched-time  { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); text-align: right; }
+
+/* News list */
+.tm-news { display: flex; flex-direction: column; gap: 8px; }
+.tm-news-card {
+  display: grid; grid-template-columns: 88px 1fr; gap: 12px;
+  text-decoration: none; color: inherit;
+  background: linear-gradient(160deg, #141114, #0a0a0a);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px; transition: border-color .15s ease;
+}
+.tm-news-card:hover { border-color: rgba(192, 132, 252, 0.5); }
+.tm-news-img { width: 88px; height: 64px; object-fit: cover; border-radius: 6px; }
+.tm-news-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tm-news-meta { display: flex; gap: 8px; font-family: var(--mono); font-size: 10px;
+  color: var(--ink-faint); letter-spacing: 0.06em; text-transform: uppercase; }
+.tm-news-source { color: var(--orange); }
+.tm-news-title { font-size: 14px; font-weight: 700; line-height: 1.3; color: var(--ink); }
 .date-tab-pill {
   font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em;
   padding: 2px 6px; border-radius: 4px;

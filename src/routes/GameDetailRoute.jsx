@@ -92,24 +92,24 @@ export default function GameDetailRoute() {
     <section className="gd">
       <Link to="/scores" className="gd-back">← Back to scores</Link>
 
-      {/* Game header */}
+      {/* Game header — team logo + name links to that team's profile page */}
       <div className="gd-header">
-        <div className="gd-team gd-away">
+        <Link to={`/team/${league}/${away.id}`} className="gd-team gd-away gd-team-link">
           {away.logo && <img src={away.logo} alt="" className="gd-team-logo" />}
           <div className="gd-team-name">{away.name}</div>
           <div className="gd-team-record">{away.record}</div>
           <div className="gd-team-score">{away.score}</div>
-        </div>
+        </Link>
         <div className="gd-status">
           <div className="gd-status-line">{statusLabel(data)}</div>
           {data.status === 'live' && <div className="gd-live-dot">● LIVE</div>}
         </div>
-        <div className="gd-team gd-home">
+        <Link to={`/team/${league}/${home.id}`} className="gd-team gd-home gd-team-link">
           {home.logo && <img src={home.logo} alt="" className="gd-team-logo" />}
           <div className="gd-team-name">{home.name}</div>
           <div className="gd-team-record">{home.record}</div>
           <div className="gd-team-score">{home.score}</div>
-        </div>
+        </Link>
       </div>
 
       {/* Live Play Tracker — only while the game is in progress and ESPN
