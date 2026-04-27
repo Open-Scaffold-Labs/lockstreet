@@ -53,6 +53,13 @@ export default async function handler(req, res) {
         try {
           const data = await scrapeGame(league, slug);
           if (!data) continue;
+          // Skip rows where the scraper failed to parse team names —
+          // they'd land in the table as null-label rows that render as
+          // an empty card on /lines. Drop at the source.
+          if (!data.awayLabel || !data.homeLabel) {
+            summary.errors.push({ league, slug, error: 'missing team labels' });
+            continue;
+          }
           await jitterDelay();
           const { error } = await supa.from('public_betting').upsert({
             source:       'scoresandodds',
