@@ -109,7 +109,7 @@ export function UserButton() {
   return (
     <div style={{ position: 'relative' }}>
       <button type="button" onClick={() => setOpen((o) => !o)}
-              style={{ width:32, height:32, borderRadius:'50%', background:'#1f2937', color:'#fff', fontSize:11, fontWeight:700, border:'1px solid rgba(192, 132, 252, 0.35)', cursor:'pointer' }}>
+              style={{ width:32, height:32, borderRadius:'50%', background:'rgba(74, 222, 128, 0.12)', color:'#4ade80', fontSize:11, fontWeight:700, border:'1px solid rgba(74, 222, 128, 0.5)', cursor:'pointer' }}>
         {initials}
       </button>
       {open && (
