@@ -1,0 +1,27 @@
+name: Refresh Public Betting %
+
+# Cron fires every 10 minutes; the API endpoint itself decides whether to
+# actually scrape (peak window) or no-op (off-window) via getScrapeLevel().
+# That keeps the cron config trivially simple — all schedule logic lives
+# in code where it can be tweaked per-sport, per-season without YAML edits.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}   # allow manual run from Actions tab
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger refresh endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          DEPLOY_URL:  ${{ secrets.VERCEL_DEPLOY_URL }}
+        run: |
+          set -e
+          if [ -z "$DEPLOY_URL" ]; then DEPLOY_URL="https://lockstreet.vercel.app"; fi
+          echo "POST $DEPLOY_URL/api/refresh-public-betting"
+          curl -fsS -X POST "$DEPLOY_URL/api/refresh-public-betting" \
+               -H "x-cron-secret: $CRON_SECRET" \
+               --max-time 90 | head -c 4000
+          echo
