@@ -107,7 +107,7 @@ export default function LinesRoute() {
           <div className="trc-eyebrow">Lines &amp; public splits</div>
           <div className="trc-final">
             {sorted.length}<span className="trc-final-sub">
-              {' '}game{sorted.length === 1 ? '' : 's'} · live ScoresAndOdds data
+              {' '}game{sorted.length === 1 ? '' : 's'} · live public betting splits
             </span>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function LinesRoute() {
       </div>
 
       <p className="footnote-disclaimer" style={{ maxWidth: 600 }}>
-        Lines, spreads, and public betting splits scraped from public sportsbook trend pages. Refreshed every ~10 min during peak hours; cached at the edge for 5 min.
+        Lines and public betting splits sourced from publicly available data and refreshed every ~10 min during peak hours.
         <br />21+. Bet responsibly. 1-800-GAMBLER.
       </p>
     </section>
