@@ -109,6 +109,11 @@ export default function LinesRoute() {
         </div>
       )}
 
+      {!loading && sorted.length > 0 && (
+        <div className="lines-section-badge">
+          <span className={'lg-badge ' + sport}>{sport.toUpperCase()}</span>
+        </div>
+      )}
       <div className="lines-grid">
         {sorted.map((g) => <LineCard key={`${g.league}-${g.slug}`} g={g} />)}
       </div>
@@ -139,29 +144,12 @@ function LineCard({ g }) {
   return (
     <article className="line-card">
       <header className="lc-head">
-        <span className={'lg-badge ' + g.league}>{g.league.toUpperCase()}</span>
         <span className="lc-matchup">
           <strong className="tabbr">{g.awayLabel}</strong>
           <span className="lc-at">@</span>
           <strong className="tabbr">{g.homeLabel}</strong>
         </span>
       </header>
-
-      <div className="lc-lines">
-        <div className="lc-line">
-          <div className="lc-line-label">Spread</div>
-          <div className="lc-line-pair">
-            <span className="lc-side"><span className="tabbr">{g.awayLabel}</span>&nbsp;{Number.isFinite(spreadAway) ? fmtSpread(spreadAway) : '—'}</span>
-            <span className="lc-side home"><span className="tabbr">{g.homeLabel}</span>&nbsp;{fmtSpread(spreadHome)}</span>
-          </div>
-        </div>
-        <div className="lc-line">
-          <div className="lc-line-label">Total</div>
-          <div className="lc-line-pair lc-line-total">
-            <span className="lc-side total">O/U&nbsp;{fmtTotal(totalLine)}</span>
-          </div>
-        </div>
-      </div>
 
       <div className="lc-splits">
         <SplitBar

@@ -1091,11 +1091,15 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
    ================================================================ */
 .lines-section { padding-bottom: 30px; }
 
+/* Single sport badge that sits above each sport's group of game cards.
+   Replaces the per-card .lg-badge that used to appear inside every header. */
+.lines-section-badge { margin: 18px 0 10px; }
+
 .lines-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 16px;
-  margin-top: 18px;
+  margin-top: 4px;
 }
 
 .line-card {
