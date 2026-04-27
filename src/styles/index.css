@@ -1118,47 +1118,40 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   padding-bottom: 10px;
 }
 
-/* Logo header — glowing TeamOrbs absolutely pinned to the OUTER edges
-   of the card so the team abbreviations can land in the EXACT same
-   grid columns as the Spread panel team-line below. That way BOS/TOR
-   in the header sit directly above BOS/TOR in the Spread row. */
+/* Logo header — same 4-column grid as .lc-split-row so the abbrs land
+   in the EXACT same columns as Spread BOS/TOR below. Abbrs go in
+   column 3 (left edge for away, right edge for home — using
+   justify-self start/end on items sharing the same cell). Orbs sit
+   directly OUTSIDE each abbr in columns 2 and 4. */
 .lc-logo-head {
-  position: relative;
+  display: grid;
+  grid-template-columns: 56px 64px 1fr 64px;
+  gap: 10px;
+  align-items: center;
   border-bottom: 1px solid var(--border);
   padding-bottom: 10px;
   min-height: 36px;
 }
-.lc-logo-orb { position: absolute; top: 0; }
-.lc-logo-orb.away { left: 0; }
-.lc-logo-orb.home { right: 0; }
-.lc-logo-orb .orb {
+.lc-logo-orb.away  { grid-column: 2; grid-row: 1; justify-self: end;   align-self: center; }
+.lc-logo-orb.home  { grid-column: 4; grid-row: 1; justify-self: start; align-self: center; }
+.lc-logo-abbr.away { grid-column: 3; grid-row: 1; justify-self: start; }
+.lc-logo-abbr.home { grid-column: 3; grid-row: 1; justify-self: end;   }
+.lc-logo-head .lc-logo-abbr {
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  display: inline;
+}
+.lc-logo-head .orb {
   width: 36px;
   height: 36px;
   font-size: 12px;
   /* punch up the existing orb glow so it reads as "glowing" on the card */
   box-shadow: 0 0 22px -2px var(--ring, #c084fc), 0 0 8px -2px var(--ring, #c084fc);
 }
-/* Mirror the Spread panel grid so abbrs land in the same columns. */
-.lc-logo-grid {
-  display: grid;
-  grid-template-columns: 56px 64px 1fr 64px;
-  gap: 10px;
-  align-items: center;
-  height: 36px;
-}
-.lc-logo-line {
-  grid-column: 3;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.lc-logo-line .tabbr {
-  font-size: 18px;
-  letter-spacing: 0.04em;
-  display: inline;
-}
 @media (max-width: 600px) {
-  .lc-logo-grid { grid-template-columns: 46px 50px 1fr 50px; gap: 8px; }
+  .lc-logo-head { grid-template-columns: 46px 50px 1fr 50px; gap: 8px; }
+  .lc-logo-head .orb { width: 30px; height: 30px; font-size: 10px; }
+  .lc-logo-head .lc-logo-abbr { font-size: 16px; }
 }
 .lc-matchup {
   display: flex; align-items: center; gap: 8px;
