@@ -152,6 +152,13 @@ function LineCard({ g }) {
   const overBets    = pct(g.totalOverPctBets);
   const overMoney   = pct(g.totalOverPctMoney);
 
+  // If the scrape captured zero percentages on every market, the card
+  // has nothing to show — skip it instead of rendering an empty box.
+  const hasAnyData = spreadBets != null || spreadMoney != null ||
+                     mlBets != null     || mlMoney != null     ||
+                     overBets != null   || overMoney != null;
+  if (!hasAnyData) return null;
+
   return (
     <article className="line-card">
       <div className="lc-splits">
