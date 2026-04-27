@@ -159,7 +159,10 @@ body {
 }
 .gd-team { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
 .gd-team-logo { width: 56px; height: 56px; object-fit: contain;
-  filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.18)); }
+  /* Layered drop-shadows give a real glow on transparent PNGs — the inner
+     ring is bright/tight, the outer is wider/softer, matching the orb
+     glow used on the /lines page. */
+  filter: drop-shadow(0 0 6px rgba(192, 132, 252, 0.65)) drop-shadow(0 0 18px rgba(192, 132, 252, 0.35)); }
 .gd-team-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
 .gd-team-record { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); }
 .gd-team-score { font-family: var(--disp); font-weight: 800; font-size: 44px; color: var(--ink); line-height: 1; }
@@ -247,7 +250,8 @@ body {
   display: flex; align-items: center; gap: 10px;
   padding-bottom: 10px; border-bottom: 1px solid var(--border);
 }
-.gd-preview-logo { width: 36px; height: 36px; object-fit: contain; }
+.gd-preview-logo { width: 36px; height: 36px; object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(192, 132, 252, 0.6)) drop-shadow(0 0 14px rgba(192, 132, 252, 0.3)); }
 .gd-preview-side {
   font-family: var(--mono); font-size: 9px; color: var(--ink-faint);
   letter-spacing: 0.14em; text-transform: uppercase;
