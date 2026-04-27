@@ -89,8 +89,14 @@ export default function LinesRoute() {
 
   // Stable, predictable sort: alphabetically by away team. Ordering by
   // fetched_at (which row got scraped last) is meaningless to a viewer.
+  // Also drop rows with no team labels — the scraper sometimes writes a
+  // row where it failed to parse names, which would otherwise render as
+  // an empty card sorted to position #1.
   const sorted = useMemo(
-    () => rows.slice().sort((a, b) => String(a.awayLabel || '').localeCompare(String(b.awayLabel || ''))),
+    () => rows
+      .filter((r) => r.awayLabel && r.homeLabel)
+      .slice()
+      .sort((a, b) => String(a.awayLabel || '').localeCompare(String(b.awayLabel || ''))),
     [rows]
   );
 
@@ -151,13 +157,6 @@ function LineCard({ g }) {
   const mlMoney     = pct(g.mlHomePctMoney);
   const overBets    = pct(g.totalOverPctBets);
   const overMoney   = pct(g.totalOverPctMoney);
-
-  // If the scrape captured zero percentages on every market, the card
-  // has nothing to show — skip it instead of rendering an empty box.
-  const hasAnyData = spreadBets != null || spreadMoney != null ||
-                     mlBets != null     || mlMoney != null     ||
-                     overBets != null   || overMoney != null;
-  if (!hasAnyData) return null;
 
   return (
     <article className="line-card">
