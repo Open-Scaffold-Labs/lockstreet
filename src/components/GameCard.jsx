@@ -121,7 +121,7 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0, hideLeag
             {pick.result && pick.result !== 'pending' && (
               <span className={`pick-result-badge ${pick.result}`}>{pick.result}</span>
             )}
-            {!pickUnlocked && <PickLockOverlay />}
+            {!(pickUnlocked || pick.visibility === 'public') && <PickLockOverlay />}
           </div>
         )}
       </article>
