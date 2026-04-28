@@ -1174,7 +1174,7 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   border-bottom: 1px solid var(--border);
   margin-bottom: 4px;
 }
-.lc-id-side { display: inline-flex; align-items: center; gap: 10px; }
+.lc-id-side { display: inline-flex; align-items: center; gap: 10px; margin: 0; }
 .lc-id-side .tabbr { font-size: 18px; letter-spacing: 0.04em; display: inline; }
 .lc-id-at { color: var(--ink-faint); font-size: 13px; }
 .lc-id .orb {

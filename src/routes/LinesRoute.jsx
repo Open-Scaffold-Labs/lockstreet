@@ -166,11 +166,11 @@ function LineCard({ g }) {
       {/* Team identity row — always renders so cards never look anonymous,
           even when a market panel below has no betting % data yet. */}
       <header className="lc-id">
-        <div className="lc-id-side away">
+        <div className="lc-id-side lc-id-away">
           <TeamOrb team={{ abbr: g.awayLabel, logo: espnLogoUrl(g.league, g.awayLabel) }} />
           <strong className="tabbr">{g.awayLabel}</strong>
         </div>
-        <div className="lc-id-side home">
+        <div className="lc-id-side lc-id-home">
           <strong className="tabbr">{g.homeLabel}</strong>
           <TeamOrb team={{ abbr: g.homeLabel, logo: espnLogoUrl(g.league, g.homeLabel) }} />
         </div>
