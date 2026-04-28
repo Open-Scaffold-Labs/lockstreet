@@ -170,7 +170,6 @@ function LineCard({ g }) {
           <TeamOrb team={{ abbr: g.awayLabel, logo: espnLogoUrl(g.league, g.awayLabel) }} />
           <strong className="tabbr">{g.awayLabel}</strong>
         </div>
-        <span className="lc-id-at">@</span>
         <div className="lc-id-side home">
           <strong className="tabbr">{g.homeLabel}</strong>
           <TeamOrb team={{ abbr: g.homeLabel, logo: espnLogoUrl(g.league, g.homeLabel) }} />
