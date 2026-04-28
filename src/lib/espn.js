@@ -128,7 +128,45 @@ function normalizeEvent(e, league) {
     mlHome,
     mlAway,
     move: null,
+    series: extractSeries(comp, home, away),
   };
+}
+
+/**
+ * Build the playoff-series chip data for a competition. ESPN provides a
+ * comp.series object on NBA/NHL/MLB postseason events. Returns null for
+ * regular-season games and for sports without series (NFL/CFB are single
+ * elimination).
+ *
+ * Output shape:
+ *   { summary, awayWins, homeWins, gameNumber }
+ *
+ * `summary` is ESPN's friendly string ("Series tied 1-1", "BOS leads 2-1",
+ * "BOS wins series 4-2"). When ESPN doesn't include one we synthesize
+ * from per-team wins. Falls back to null if no series data at all.
+ */
+function extractSeries(comp, home, away) {
+  const s = comp?.series;
+  if (!s) return null;
+  // ESPN sometimes returns competitors with id + wins; map by competitor id.
+  const sc = s.competitors || [];
+  const homeId = home?.team?.id || home?.id;
+  const awayId = away?.team?.id || away?.id;
+  const homeRow = sc.find((x) => String(x.id) === String(homeId));
+  const awayRow = sc.find((x) => String(x.id) === String(awayId));
+  const homeWins = numOrNull(homeRow?.wins);
+  const awayWins = numOrNull(awayRow?.wins);
+
+  let summary = s.summary || null;
+  if (!summary && homeWins != null && awayWins != null) {
+    const homeAbbr = home?.team?.abbreviation || '';
+    const awayAbbr = away?.team?.abbreviation || '';
+    if (homeWins === awayWins) summary = `Series tied ${homeWins}-${awayWins}`;
+    else if (homeWins > awayWins) summary = `${homeAbbr} leads ${homeWins}-${awayWins}`;
+    else summary = `${awayAbbr} leads ${awayWins}-${homeWins}`;
+  }
+  if (!summary) return null;
+  return { summary, awayWins, homeWins, gameNumber: s.gameNumber ?? null };
 }
 
 /**

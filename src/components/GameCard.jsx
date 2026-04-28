@@ -96,6 +96,7 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0, hideLeag
         <div className="card-top">
           {!hideLeagueBadge && <span className={`lg-badge ${league}`}>{league.toUpperCase()}</span>}
           {week && <span className="wk">{week}</span>}
+          {game.series?.summary && <span className="series-tally">{game.series.summary}</span>}
           {stateEl}
         </div>
         <div className="teams">

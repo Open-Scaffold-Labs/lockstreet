@@ -450,6 +450,30 @@ body {
   background: var(--orange); color: #000000;
 }
 .wk { color: var(--ink-dim); }
+/* Playoff series tally chip — sits in the card-top row next to .wk and
+   on game-detail under the status. Subtle but distinguishable. */
+.series-tally {
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--gold);
+  padding: 2px 6px;
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  border-radius: 4px;
+  background: rgba(192, 132, 252, 0.06);
+}
+.gd-series-tally {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--gold);
+  padding: 3px 8px;
+  border: 1px solid rgba(192, 132, 252, 0.35);
+  border-radius: 4px;
+  background: rgba(192, 132, 252, 0.06);
+  display: inline-block;
+}
 .state { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red);
   box-shadow: 0 0 0 0 rgba(248, 113, 113, .7); animation: pulse 1.4s infinite; }

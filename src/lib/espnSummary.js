@@ -144,6 +144,29 @@ function normalizeSummary(json, league) {
     };
   }
 
+  // Playoff series chip — present on postseason NBA/NHL/MLB events. Uses
+  // ESPN's friendly summary string when present ("BOS leads 2-1"); falls
+  // back to building it from per-team wins.
+  const series = (() => {
+    const s = comp?.series;
+    if (!s) return null;
+    const sc = s.competitors || [];
+    const homeRow = sc.find((x) => String(x.id) === String(home?.id || home?.team?.id));
+    const awayRow = sc.find((x) => String(x.id) === String(away?.id || away?.team?.id));
+    const hw = Number.isFinite(Number(homeRow?.wins)) ? Number(homeRow.wins) : null;
+    const aw = Number.isFinite(Number(awayRow?.wins)) ? Number(awayRow.wins) : null;
+    let summary = s.summary || null;
+    if (!summary && hw != null && aw != null) {
+      const ha = home?.team?.abbreviation || '';
+      const aa = away?.team?.abbreviation || '';
+      if (hw === aw) summary = `Series tied ${hw}-${aw}`;
+      else if (hw > aw) summary = `${ha} leads ${hw}-${aw}`;
+      else summary = `${aa} leads ${aw}-${hw}`;
+    }
+    if (!summary) return null;
+    return { summary, title: s.title || null, awayWins: aw, homeWins: hw };
+  })();
+
   return {
     id:         header.id,
     league,
@@ -157,6 +180,7 @@ function normalizeSummary(json, league) {
     date:       header.competitions?.[0]?.date,
     home: buildTeam(home),
     away: buildTeam(away),
+    series,                                   // playoff series chip data (or null)
     players,                                  // raw shape, parsed in extractPlayers()
     parsed: extractPlayers(players, league),  // [{teamId, teamAbbr, players: [{name, position, stats, fp}]}]
     recentPlays: extractRecentPlays(json),    // last 15 plays for live game tracker
