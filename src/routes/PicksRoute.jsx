@@ -19,7 +19,11 @@ function isClosed(p) {
 }
 
 export default function PicksRoute() {
-  const { games, loading } = useEspnScoreboard();
+  // Fetch all 5 leagues so NBA/MLB/NHL picks get live ESPN data —
+  // including team.color, which drives the orb glow. Default of just
+  // NFL+CFB left NBA picks falling through synthesizeGame() with no
+  // color, producing dark/no glow on teams not in the local map.
+  const { games, loading } = useEspnScoreboard({ leagues: ['nfl', 'cfb', 'nba', 'mlb', 'nhl'] });
   const { picks, loading: picksLoading, reload } = usePicks();
   const sub = useSubscription();
 
