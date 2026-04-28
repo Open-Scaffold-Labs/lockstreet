@@ -1163,6 +1163,28 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   .lc-split-orb .orb { width: 28px; height: 28px; font-size: 10px; }
   .lc-split-orb.away, .lc-split-orb.home { margin-top: -6px; }
 }
+
+/* Card-level team identity row — always present so cards never go faceless
+   when a market panel below has no betting % yet. */
+.lc-id {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.lc-id-side { display: inline-flex; align-items: center; gap: 10px; }
+.lc-id-side .tabbr { font-size: 18px; letter-spacing: 0.04em; display: inline; }
+.lc-id-at { color: var(--ink-faint); font-size: 13px; }
+.lc-id .orb {
+  width: 34px; height: 34px; font-size: 12px;
+  box-shadow: 0 0 18px -2px var(--ring, #c084fc), 0 0 6px -2px var(--ring, #c084fc);
+}
+@media (max-width: 600px) {
+  .lc-id .orb { width: 28px; height: 28px; font-size: 10px; }
+  .lc-id-side .tabbr { font-size: 16px; }
+}
 .lc-matchup {
   display: flex; align-items: center; gap: 8px;
   font-size: 18px;

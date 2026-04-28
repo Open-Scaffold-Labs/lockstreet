@@ -43,6 +43,9 @@ function usePublicBetting(sport) {
 
   useEffect(() => {
     let cancel = false;
+    // Clear stale rows from the previous league IMMEDIATELY so cards from
+    // (e.g.) MLB don't keep painting while the new (e.g.) NBA fetch resolves.
+    setRows([]);
     setLoading(true); setError(null);
     (async () => {
       try {
@@ -160,12 +163,23 @@ function LineCard({ g }) {
 
   return (
     <article className="line-card">
+      {/* Team identity row — always renders so cards never look anonymous,
+          even when a market panel below has no betting % data yet. */}
+      <header className="lc-id">
+        <div className="lc-id-side away">
+          <TeamOrb team={{ abbr: g.awayLabel, logo: espnLogoUrl(g.league, g.awayLabel) }} />
+          <strong className="tabbr">{g.awayLabel}</strong>
+        </div>
+        <span className="lc-id-at">@</span>
+        <div className="lc-id-side home">
+          <strong className="tabbr">{g.homeLabel}</strong>
+          <TeamOrb team={{ abbr: g.homeLabel, logo: espnLogoUrl(g.league, g.homeLabel) }} />
+        </div>
+      </header>
+
       <div className="lc-splits">
         <SplitBar
           label="Spread"
-          awayLabel={g.awayLabel} homeLabel={g.homeLabel}
-          awayLogo={<TeamOrb team={{ abbr: g.awayLabel, logo: espnLogoUrl(g.league, g.awayLabel) }} />}
-          homeLogo={<TeamOrb team={{ abbr: g.homeLabel, logo: espnLogoUrl(g.league, g.homeLabel) }} />}
           awaySub={Number.isFinite(spreadAway) ? fmtSpread(spreadAway) : ''}
           homeSub={fmtSpread(spreadHome)}
           homeBets={spreadBets} homeMoney={spreadMoney}
