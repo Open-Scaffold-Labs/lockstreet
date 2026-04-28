@@ -15,15 +15,15 @@ const svg = readFileSync(resolve(root, 'public/favicon.svg'));
 // Android crops icons into circles/squircles - we need ~12% padding.
 const maskable = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <filter id="lsglow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="22"/>
+    <filter id="lsglow" x="-75%" y="-75%" width="250%" height="250%">
+      <feGaussianBlur stdDeviation="32"/>
     </filter>
   </defs>
   <rect width="512" height="512" fill="#000000"/>
   <text x="256" y="316" text-anchor="middle"
         font-family="system-ui, -apple-system, sans-serif"
         font-weight="800" font-size="220" letter-spacing="-6"
-        fill="#89CFF0" opacity="0.95" filter="url(#lsglow)">LS</text>
+        fill="#c084fc" filter="url(#lsglow)">LS</text>
   <text x="256" y="316" text-anchor="middle"
         font-family="system-ui, -apple-system, sans-serif"
         font-weight="800" font-size="220" letter-spacing="-6">
