@@ -4,9 +4,15 @@
       <stop offset="0%" stop-color="#000000"/>
       <stop offset="100%" stop-color="#141114"/>
     </linearGradient>
+    <filter id="lsglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
   </defs>
   <rect width="64" height="64" rx="14" fill="url(#lsbg)"/>
   <rect x="3" y="3" width="58" height="58" rx="12" fill="none" stroke="#c084fc" stroke-width="1.5" opacity="0.7"/>
+  <!-- Baby blue glow layer behind LS -->
+  <text x="32" y="42" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="30" letter-spacing="-1" fill="#89CFF0" opacity="0.95" filter="url(#lsglow)">LS</text>
+  <!-- Main LS on top -->
   <text x="32" y="42" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="30" letter-spacing="-1">
     <tspan fill="#ffffff">L</tspan><tspan fill="#c084fc">S</tspan>
   </text>
