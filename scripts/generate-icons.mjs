@@ -15,21 +15,14 @@ const svg = readFileSync(resolve(root, 'public/favicon.svg'));
 // Android crops icons into circles/squircles - we need ~12% padding.
 const maskable = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <filter id="lsglow-near" x="-75%" y="-75%" width="250%" height="250%">
-      <feGaussianBlur stdDeviation="10"/>
-    </filter>
-    <filter id="lsglow-mid" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="28"/>
-    </filter>
-    <filter id="lsglow-far" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="55"/>
-    </filter>
+    <radialGradient id="topglow" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#c084fc" stop-opacity="0.95"/>
+      <stop offset="35%" stop-color="#c084fc" stop-opacity="0.45"/>
+      <stop offset="65%" stop-color="#c084fc" stop-opacity="0"/>
+    </radialGradient>
   </defs>
   <rect width="512" height="512" fill="#000000"/>
-  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-far)">LS</text>
-  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-mid)">LS</text>
-  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-near)">LS</text>
-  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-near)">LS</text>
+  <rect width="512" height="512" fill="url(#topglow)"/>
   <text x="256" y="316" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6">
     <tspan fill="#ffffff">L</tspan><tspan fill="#c084fc">S</tspan>
   </text>

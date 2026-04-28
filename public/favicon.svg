@@ -4,22 +4,16 @@
       <stop offset="0%" stop-color="#000000"/>
       <stop offset="100%" stop-color="#141114"/>
     </linearGradient>
-    <filter id="lsglow-near" x="-75%" y="-75%" width="250%" height="250%">
-      <feGaussianBlur stdDeviation="1.5"/>
-    </filter>
-    <filter id="lsglow-mid" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="4"/>
-    </filter>
-    <filter id="lsglow-far" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="7"/>
-    </filter>
+    <radialGradient id="topglow" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#c084fc" stop-opacity="0.95"/>
+      <stop offset="35%" stop-color="#c084fc" stop-opacity="0.45"/>
+      <stop offset="65%" stop-color="#c084fc" stop-opacity="0"/>
+    </radialGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="url(#lsbg)"/>
-  <!-- Glow layers shifted UP so the halo lives at the top of the icon and
-       the bottom stays solid black. -->
-  <text x="32" y="24" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="30" letter-spacing="-1" fill="#c084fc" filter="url(#lsglow-far)">LS</text>
-  <text x="32" y="24" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="30" letter-spacing="-1" fill="#c084fc" filter="url(#lsglow-mid)">LS</text>
-  <text x="32" y="24" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="30" letter-spacing="-1" fill="#c084fc" filter="url(#lsglow-near)">LS</text>
+  <!-- Bright purple haze at the top of the square, fading down through
+       the top half. Independent of the letters — no halo around LS. -->
+  <rect width="64" height="64" rx="14" fill="url(#topglow)"/>
   <!-- Crisp LS at the original centered position (y=42). -->
   <text x="32" y="42" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="30" letter-spacing="-1">
     <tspan fill="#ffffff">L</tspan><tspan fill="#c084fc">S</tspan>
