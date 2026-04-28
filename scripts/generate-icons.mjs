@@ -26,11 +26,11 @@ const maskable = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0
     </filter>
   </defs>
   <rect width="512" height="512" fill="#000000"/>
-  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="200" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-far)">LS</text>
-  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="200" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-mid)">LS</text>
-  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="200" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-near)">LS</text>
-  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="200" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-near)">LS</text>
-  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="200" letter-spacing="-6">
+  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-far)">LS</text>
+  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-mid)">LS</text>
+  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-near)">LS</text>
+  <text x="256" y="190" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-near)">LS</text>
+  <text x="256" y="316" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6">
     <tspan fill="#ffffff">L</tspan><tspan fill="#c084fc">S</tspan>
   </text>
 </svg>`);
