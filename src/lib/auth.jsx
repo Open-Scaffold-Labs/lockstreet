@@ -4,6 +4,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabase.js';
+import UserSettings from '../components/UserSettings.jsx';
 
 const AuthCtx = createContext({
   isLoaded: false,
@@ -100,6 +101,7 @@ export function SignInButton({ children, afterSignInUrl }) {
 export function UserButton() {
   const { user } = useUser();
   const [open, setOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const navigate = useNavigate();
   const initials = (user?.fullName || user?.primaryEmailAddress?.emailAddress || '?')
     .split(/\s+|@/)[0].slice(0, 2).toUpperCase();
@@ -113,7 +115,7 @@ export function UserButton() {
         {initials}
       </button>
       {open && (
-        <div style={{ position:'absolute', right:0, top:38, background:'#0f172a', border:'1px solid rgba(192, 132, 252, 0.35)', borderRadius:8, padding:8, minWidth:180, zIndex:10 }}>
+        <div style={{ position:'absolute', right:0, top:38, background:'#0f172a', border:'1px solid rgba(192, 132, 252, 0.35)', borderRadius:8, padding:8, minWidth:220, zIndex:10 }}>
           <div style={{ padding:'6px 8px', fontSize:12, color:'#94a3b8' }}>{user?.primaryEmailAddress?.emailAddress}</div>
           {isAdmin && (
             <button type="button" onClick={() => go('/admin')}
@@ -121,7 +123,13 @@ export function UserButton() {
               Admin
             </button>
           )}
-          <button type="button" onClick={signOut} style={{ width:'100%', padding:'6px 8px', background:'transparent', border:'none', color:'#fff', textAlign:'left', cursor:'pointer' }}>Sign out</button>
+          <button type="button" onClick={() => setSettingsOpen((s) => !s)}
+                  style={{ width:'100%', padding:'6px 8px', background:'transparent', border:'none', color:'#fff', textAlign:'left', cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <span>Settings</span>
+            <span style={{ color:'#94a3b8', fontSize: 11 }}>{settingsOpen ? '▾' : '▸'}</span>
+          </button>
+          {settingsOpen && <UserSettings />}
+          <button type="button" onClick={signOut} style={{ width:'100%', padding:'6px 8px', background:'transparent', border:'none', color:'#fff', textAlign:'left', cursor:'pointer', borderTop: '1px solid rgba(192, 132, 252, 0.18)', marginTop: 4 }}>Sign out</button>
         </div>
       )}
     </div>
