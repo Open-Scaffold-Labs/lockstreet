@@ -21,6 +21,7 @@ import TeamRoute from './routes/TeamRoute.jsx';
 import AdminRoute from './routes/AdminRoute.jsx';
 import SuccessRoute from './routes/SuccessRoute.jsx';
 import SignInRoute from './routes/SignInRoute.jsx';
+import ResetPasswordRoute from './routes/ResetPasswordRoute.jsx';
 
 export default function App() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/admin" element={<AdminRoute />} />
           <Route path="/success" element={<SuccessRoute />} />
           <Route path="/sign-in/*" element={<SignInRoute />} />
+          <Route path="/reset-password" element={<ResetPasswordRoute />} />
           <Route path="*" element={<Navigate to="/scores" replace />} />
         </Routes>
       </main>

@@ -9,7 +9,7 @@ export default function SignInRoute() {
   const { isSignedIn } = useAuth();
   const next = params.get('next') || '/';
 
-  const [mode, setMode] = useState('signin'); // signin | signup
+  const [mode, setMode] = useState('signin'); // signin | signup | reset
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -26,11 +26,20 @@ export default function SignInRoute() {
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-      } else {
+      } else if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         setInfo('Account created. Check your email for confirmation if required, then sign in.');
         setMode('signin');
+      } else if (mode === 'reset') {
+        // Send Supabase password-reset email. The link drops the user on
+        // /reset-password (a recovery session is created automatically by
+        // the supabase-js client when the URL fragment is parsed).
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        setInfo('Check your email for a password reset link.');
       }
     } catch (e2) {
       setErr(e2.message || String(e2));
@@ -45,22 +54,40 @@ export default function SignInRoute() {
         width: 'min(380px, 92vw)', padding: 24, background: '#0f172a',
         border: '1px solid rgba(192, 132, 252, 0.35)', borderRadius: 12, display: 'flex', flexDirection: 'column', gap: 12
       }}>
-        <h2 style={{ margin: 0 }}>{mode === 'signin' ? 'Sign in' : 'Create account'}</h2>
+        <h2 style={{ margin: 0 }}>
+          {mode === 'signin' && 'Sign in'}
+          {mode === 'signup' && 'Create account'}
+          {mode === 'reset'  && 'Reset password'}
+        </h2>
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
           placeholder="email@example.com" required autoFocus
           style={{ padding: 10, background: '#0a0e17', border: '1px solid rgba(192, 132, 252, 0.35)', borderRadius: 6, color: '#fff' }} />
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-          placeholder="password (min 6 chars)" required minLength={6}
-          style={{ padding: 10, background: '#0a0e17', border: '1px solid rgba(192, 132, 252, 0.35)', borderRadius: 6, color: '#fff' }} />
+        {mode !== 'reset' && (
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+            placeholder="password (min 6 chars)" required minLength={6}
+            style={{ padding: 10, background: '#0a0e17', border: '1px solid rgba(192, 132, 252, 0.35)', borderRadius: 6, color: '#fff' }} />
+        )}
         {err && <div style={{ color: '#ef4444', fontSize: 13 }}>{err}</div>}
         {info && <div style={{ color: '#10b981', fontSize: 13 }}>{info}</div>}
         <button type="submit" disabled={busy} className="btn-gold"
           style={{ padding: 10, cursor: busy ? 'wait' : 'pointer' }}>
-          {busy ? 'Working...' : (mode === 'signin' ? 'Sign in' : 'Sign up')}
+          {busy ? 'Working...' : (
+            mode === 'signin' ? 'Sign in' :
+            mode === 'signup' ? 'Sign up' :
+            'Send reset link'
+          )}
         </button>
+        {mode === 'signin' && (
+          <button type="button" onClick={() => { setMode('reset'); setErr(null); setInfo(null); }}
+            style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>
+            Forgot password?
+          </button>
+        )}
         <button type="button" onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setErr(null); setInfo(null); }}
           style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer' }}>
-          {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+          {mode === 'signin' && "Don't have an account? Sign up"}
+          {mode === 'signup' && 'Already have an account? Sign in'}
+          {mode === 'reset'  && '← Back to sign in'}
         </button>
       </form>
     </div>
