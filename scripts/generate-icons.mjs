@@ -15,18 +15,22 @@ const svg = readFileSync(resolve(root, 'public/favicon.svg'));
 // Android crops icons into circles/squircles - we need ~12% padding.
 const maskable = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <filter id="lsglow" x="-75%" y="-75%" width="250%" height="250%">
-      <feGaussianBlur stdDeviation="32"/>
+    <filter id="lsglow-near" x="-75%" y="-75%" width="250%" height="250%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="lsglow-mid" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="40"/>
+    </filter>
+    <filter id="lsglow-far" x="-150%" y="-150%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="80"/>
     </filter>
   </defs>
   <rect width="512" height="512" fill="#000000"/>
-  <text x="256" y="316" text-anchor="middle"
-        font-family="system-ui, -apple-system, sans-serif"
-        font-weight="800" font-size="220" letter-spacing="-6"
-        fill="#c084fc" filter="url(#lsglow)">LS</text>
-  <text x="256" y="316" text-anchor="middle"
-        font-family="system-ui, -apple-system, sans-serif"
-        font-weight="800" font-size="220" letter-spacing="-6">
+  <text x="256" y="316" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-far)">LS</text>
+  <text x="256" y="316" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-mid)">LS</text>
+  <text x="256" y="316" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-near)">LS</text>
+  <text x="256" y="316" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6" fill="#c084fc" filter="url(#lsglow-near)">LS</text>
+  <text x="256" y="316" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="220" letter-spacing="-6">
     <tspan fill="#ffffff">L</tspan><tspan fill="#c084fc">S</tspan>
   </text>
 </svg>`);
