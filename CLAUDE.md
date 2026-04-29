@@ -221,7 +221,35 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 ---
 
-## Current state (as of 2026-04-29)
+## Current state (as of 2026-04-29 — late session)
+
+### Late Apr-29 session adds (most recent first, latest commit `b021d4c`)
+
+- **Game detail series banner above header** + **inline series tally removed from inside `.gd-status`**. The banner is now the single source of truth for "Series tied 2-2" / "TOR leads 3-1" on a playoff game. `/scores` GameCard intentionally untouched — series tally still renders inside the card per Matt's instruction.
+- **Spread/O-U/ML pills** render below the team header on `/game/:league/:gameId` with router-state fallback (`useLocation().state.game`) so pills are instant when arriving from `/scores`. ESPN summary odds extraction now reads `json.pickcenter[0]` first (where summary actually puts them), falls back to `comp.odds[0]`.
+- **ESPN summary series array unwrap**: ESPN returns multiple series objects per matchup (regular-season head-to-head + active playoff). Extractor in `src/lib/espnSummary.js` now prefers `type === 'playoff'`, falls back to incomplete series, then to `[0]`. Naive `[0]` was picking the regular-season tally and showing wrong "TOR wins series 3-0" on a playoff game.
+- **PullToRefresh** iOS-style overlay component at `src/components/PullToRefresh.jsx` — wraps the app shell so PWA users get native-feeling refresh in iOS standalone mode (where browser PTR is disabled).
+- **HeaderUserSearch** (`src/components/HeaderUserSearch.jsx`) — magnifying glass icon in header opens a dropdown that searches profiles by handle/display_name. Mobile font bumped to 16px to dodge iOS auto-zoom.
+- **Notifications inbox** (`src/components/NotificationsSection.jsx`) — table `notifications` (migration `20260429_notifications.sql`), persisted via `/api/send-notifications?op=notify-follower`. Inbox shows new-follower events with a "Follow Back" inline button. Push fan-out wraps the same call.
+- **Creator account (@lavinlocks)** (migration `20260429_creator_and_pinned.sql`):
+  - Auto-follow on signup (trigger fires on `auth.users` insert; backfilled for existing users).
+  - Unfollow blocked at the RLS layer for the creator only.
+  - Pinned posts — `posts.is_pinned bool` + `pinned_at`. Only Matt's user_id can flip the flag (RLS check). Pinned posts float to top of `/feed`. Pin button + PINNED badge in `PostCard.jsx`.
+- **BottomNav order** (`src/components/BottomNav.jsx`): Profile · Feed · Scores · Lines · Picks · Heat Check · Pro. Profile is leftmost as the user's home base; Feed sits next to keep the social loop near home.
+- **Follows hook** (`src/hooks/useFollows.js`) — replaced PostgREST embed across the auth schema (which silently returns 0 rows because PostgREST can't traverse `auth.*`) with a two-step query: fetch follows → fetch profiles → join in JS. This is the canonical fix; if any future feature wants to embed across `auth`, do the two-step.
+- **TeamPicker iOS fix** (`src/components/TeamPicker.jsx`) — `onPointerDown` instead of `onClick` for row taps (iOS Safari was canceling synthesized clicks under scroll-disambiguation). Also `position: static` on mobile so the dropdown floats above the keyboard.
+- **Profile auto-follow on insert** (`src/hooks/useProfile.js`) — newly-created profiles auto-follow @lavinlocks via the trigger above; the hook also exposes `isCreator` and `setMyPrivacy`.
+- **Renamed leaderboard column** `window` → `win_period` (Postgres reserved word).
+
+### Deferred (next session)
+
+- Wire admin auto-mirror for free picks.
+- Pick-graded notification type + free-pick-drop notification fan-out.
+- Last 10 ATS for game-detail preview cards (still `—`; needs DB-side closing-line capture before computing).
+
+---
+
+## Current state (earlier-Apr-29 baseline)
 
 ### ✅ Working / done
 
