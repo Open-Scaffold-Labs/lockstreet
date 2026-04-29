@@ -12,26 +12,29 @@ export default async function handler(req, res) {
   if (!supa) return serverError(res, new Error('SUPABASE_SERVICE_ROLE_KEY not set'));
 
   try {
-    // Pull all users via the admin auth API (service role only).
-    // Page size 1000 is fine for low-volume product; extend later if needed.
-    const { data: usersData, error: usersErr } = await supa.auth.admin.listUsers({ perPage: 1000 });
+    // Read users via a SECURITY DEFINER RPC (admin_list_users) instead
+    // of GoTrue's admin endpoint. GoTrue's listUsers deserializes every
+    // row through its own User struct and chokes ("Database error
+    // finding user") on the synthetic @lockstreet auth.users row,
+    // which is missing fields newer GoTrue versions require. The RPC
+    // also already filters that synthetic row out and PostgREST
+    // doesn't need the auth schema exposed.
+    //
+    // RPC defined in supabase/migrations/20260429_admin_list_users.sql.
+    const { data: rawUsers, error: usersErr } = await supa.rpc('admin_list_users');
     if (usersErr) throw usersErr;
-    const users = usersData?.users || [];
+    const users = rawUsers || [];
     const totalUsers = users.length;
     const confirmedUsers = users.filter((u) => u.email_confirmed_at).length;
     const unconfirmedUsers = totalUsers - confirmedUsers;
 
-    // Recent signups (last 10)
-    const recentSignups = users
-      .slice()
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      .slice(0, 10)
-      .map((u) => ({
-        email: u.email,
-        createdAt: u.created_at,
-        lastSignInAt: u.last_sign_in_at,
-        confirmed: !!u.email_confirmed_at,
-      }));
+    // Recent signups (last 10) — already sorted desc by created_at.
+    const recentSignups = users.slice(0, 10).map((u) => ({
+      email: u.email,
+      createdAt: u.created_at,
+      lastSignInAt: u.last_sign_in_at,
+      confirmed: !!u.email_confirmed_at,
+    }));
 
     // Active subs breakdown by tier
     const { data: subs } = await supa
