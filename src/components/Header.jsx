@@ -1,6 +1,7 @@
 import { NavLink, Link } from 'react-router-dom';
 import { SignInButton, SignedIn, SignedOut, UserButton } from '../lib/auth.jsx';
 import { useSubscription } from '../hooks/useSubscription.js';
+import HeaderUserSearch from './HeaderUserSearch.jsx';
 
 // Profile is the leftmost desktop tab — same position as in BottomNav.
 // Bankroll was renamed and repointed to /profile; the calculator can
@@ -45,6 +46,7 @@ export default function Header() {
           ) : (
             <Link to="/subscribe" className="gopro"><span>GO PRO</span></Link>
           )}
+          <HeaderUserSearch />
           <UserButton />
         </SignedIn>
       </div>

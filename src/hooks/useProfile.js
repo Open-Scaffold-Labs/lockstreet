@@ -111,7 +111,7 @@ export async function searchProfiles(query, { limit = 20 } = {}) {
   if (q.length < 2) return [];
   const { data, error } = await supabase
     .from('profiles')
-    .select('user_id, handle, display_name, fav_team, fav_team_league, avatar_url, is_system, banned')
+    .select('user_id, handle, display_name, fav_team, fav_team_league, fav_team_name, fav_team_logo, avatar_url, is_system, banned')
     .or(`handle.ilike.%${q}%,display_name.ilike.%${q}%`)
     .eq('banned', false)
     .limit(limit);
