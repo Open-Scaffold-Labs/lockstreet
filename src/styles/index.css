@@ -171,6 +171,25 @@ body {
 .gd-status-line { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
 .gd-live-dot { font-family: var(--mono); font-size: 11px; color: var(--orange); letter-spacing: 0.1em; }
 
+/* Playoffs series banner — sits above the gd-header. Gold-tinted so
+   the playoff context jumps out as the first thing on the page. */
+.gd-series-banner {
+  display: flex; align-items: center; gap: 10px; justify-content: center;
+  padding: 10px 14px; margin: 8px 0 10px;
+  background: linear-gradient(160deg, rgba(192, 132, 252, 0.10), rgba(10, 10, 10, 0.95));
+  border: 1px solid rgba(192, 132, 252, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 0 16px rgba(192, 132, 252, 0.10);
+}
+.gd-series-banner-label {
+  font-family: var(--mono); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.18em; color: var(--ink-faint);
+}
+.gd-series-banner-text {
+  font-family: var(--syne-stack); font-weight: 800;
+  font-size: 14px; letter-spacing: 0.04em; color: var(--gold);
+}
+
 /* Lines + series pills below the gd-header — same look as the
    GameCard pills on /scores. */
 .gd-lines {

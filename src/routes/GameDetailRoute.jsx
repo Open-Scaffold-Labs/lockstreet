@@ -131,6 +131,17 @@ export default function GameDetailRoute() {
         />
       )}
 
+      {/* Playoffs series banner — sits above the team header so the
+          playoff context is the first thing the user sees. Only shows
+          when ESPN's summary returns a series object (postseason
+          NBA / NHL / MLB events). */}
+      {data.series?.summary && (
+        <div className="gd-series-banner">
+          <span className="gd-series-banner-label">SERIES</span>
+          <span className="gd-series-banner-text">{data.series.summary}</span>
+        </div>
+      )}
+
       {/* Game header — team logo + name links to that team's profile page */}
       <div className="gd-header">
         <Link to={`/team/${league}/${away.id}`} className="gd-team gd-away gd-team-link">
