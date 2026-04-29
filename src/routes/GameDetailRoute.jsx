@@ -160,9 +160,6 @@ export default function GameDetailRoute() {
         <div className="gd-status">
           <div className="gd-status-line">{statusLabel(data)}</div>
           {data.status === 'live' && <div className="gd-live-dot">● LIVE</div>}
-          {data.series?.summary && (
-            <div className="gd-series-tally">{data.series.summary}</div>
-          )}
         </div>
         <Link to={`/team/${league}/${home.id}`} className="gd-team gd-home gd-team-link">
           {home.logo && <img src={home.logo} alt="" className="gd-team-logo" />}
