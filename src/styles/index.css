@@ -1654,6 +1654,115 @@ a.pf-meta-link:hover { color: var(--ink); }
 @media (max-width: 600px) {
   .feed-tabs.tabs { display: flex; }
 }
+
+/* ----- /feed page layout ----- */
+/* Tagline sits as close to the header as the wrap allows. No big <h2>
+   above it — keeps the composer + tabs in viewport at a smaller scroll
+   depth than the previous sub-hero block. */
+.feed-page { padding-top: 14px; }
+.feed-tagline {
+  color: var(--ink-dim); font-size: 13px; line-height: 1.55;
+  margin: 0 0 14px; max-width: 640px;
+}
+
+/* ----- Post composer ----- */
+.post-composer {
+  display: flex; flex-direction: column; gap: 10px;
+  background: linear-gradient(160deg, #141114, #0a0a0a);
+  border: 1px solid var(--border-strong); border-radius: 12px;
+  padding: 14px 14px 12px;
+  margin-bottom: 18px;
+}
+.post-composer-signedout {
+  flex-direction: row; align-items: center; justify-content: space-between;
+  gap: 14px; padding: 14px 16px;
+}
+.post-composer-input {
+  width: 100%; resize: vertical; min-height: 72px;
+  padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: #0a0e17;
+  color: var(--ink); font-family: var(--mono); font-size: 13.5px; line-height: 1.5;
+  text-transform: none; letter-spacing: normal;
+}
+.post-composer-input:focus {
+  outline: 0; border-color: rgba(192,132,252,0.55);
+  box-shadow: 0 0 0 3px rgba(192,132,252,0.10);
+}
+.post-composer-pick {
+  position: relative;
+  border: 1px dashed rgba(192, 132, 252, 0.30);
+  border-radius: 10px;
+  padding: 6px;
+}
+.post-composer-pick-clear {
+  position: absolute; top: 4px; right: 6px;
+  background: rgba(0,0,0,0.5); color: var(--ink-dim);
+  border: 0; border-radius: 50%; width: 24px; height: 24px;
+  font-size: 16px; line-height: 1; cursor: pointer;
+}
+.post-composer-pick-clear:hover { color: var(--red); background: rgba(0,0,0,0.7); }
+.post-composer-actions {
+  display: flex; align-items: center; gap: 12px;
+}
+.post-composer-include-pick {
+  font-size: 12px; padding: 7px 12px;
+}
+.post-composer-count {
+  flex: 1; text-align: right;
+  font-family: var(--mono); font-size: 11px;
+  color: var(--ink-faint); letter-spacing: 0.04em;
+}
+.post-composer-count.over { color: var(--red); }
+.post-composer-submit {
+  font-size: 13px; padding: 8px 18px;
+}
+
+/* ----- Post card (text + optional embedded pick) ----- */
+.feed-list { display: flex; flex-direction: column; gap: 10px; }
+.post-card {
+  background: linear-gradient(160deg, #141114, #0a0a0a);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.post-card-head {
+  display: flex; align-items: center; gap: 10px;
+}
+.post-card-author {
+  display: inline-flex; align-items: center; gap: 8px;
+  text-decoration: none; color: var(--ink); flex: 1; min-width: 0;
+}
+.post-card-handle {
+  font-weight: 700; color: var(--gold); font-size: 13.5px;
+}
+.post-card-name {
+  color: var(--ink-faint); font-size: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.post-card-time {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+  letter-spacing: 0.04em; flex-shrink: 0;
+}
+.post-card-avatar {
+  width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+  border: 1px solid var(--border-strong); flex-shrink: 0;
+}
+.post-card-avatar-team { object-fit: contain; padding: 2px; background: #0a0e17; }
+.post-card-avatar-fallback {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(192, 132, 252, 0.12); color: var(--gold);
+  font-family: var(--syne-stack); font-weight: 800; font-size: 10px;
+}
+.post-card-body {
+  margin: 0; color: var(--ink); font-size: 14px; line-height: 1.5;
+  white-space: pre-wrap; word-wrap: break-word;
+}
+.post-card-pick {
+  /* The embedded pick uses the existing UserPickCard chrome, so just
+     give it a soft inset wrapper. */
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
 .pf-sport-tabs   { padding: 0; margin: 6px 0 12px; overflow-x: auto; flex-wrap: nowrap; }
 .pf-sport-tabs .tab { padding: 8px 12px; font-size: 11px; flex-shrink: 0; }
 

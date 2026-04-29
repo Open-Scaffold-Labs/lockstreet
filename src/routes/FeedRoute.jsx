@@ -3,31 +3,34 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { useAuth, SignedIn, SignedOut, SignInButton } from '../lib/auth.jsx';
 import UserPickCard from '../components/UserPickCard.jsx';
+import PostCard from '../components/PostCard.jsx';
+import PostComposer from '../components/PostComposer.jsx';
 
 /**
  * /feed — community activity feed.
  *
- * Two tabs:
- *   - Following: most-recent picks from people you follow (signed-in only).
- *   - All:       most-recent public picks across all users.
+ * Layout:
+ *   - Tagline (close to header — no big <h2>)
+ *   - PostComposer (textarea + Include pick + Post)
+ *   - Following / All tabs
+ *   - Mixed feed: posts (text + optional embedded pick) and bare
+ *     picks (no wrapping post), sorted by created_at desc.
  *
- * Each tab uses UserPickCard with showAuthor so the @handle is visible
- * inline. Picks are read via the existing "Public reads non-private
- * picks" RLS policy on user_picks — no schema changes required.
- *
- * Realtime: we subscribe to INSERTs on user_picks while the page is
- * mounted and prepend new rows to the active tab if they pass the
- * filter (own follow set for Following, all for All).
+ * Realtime: subscribes to INSERTs on both posts and user_picks.
+ * Bare picks that are later wrapped by a post (composer flow) are
+ * deduped server-side via a subquery.
  */
 export default function FeedRoute() {
   const [tab, setTab] = useState('following');
+  const [reloadKey, setReloadKey] = useState(0);
 
   return (
-    <section>
-      <div className="sub-hero" style={{ marginBottom: 18 }}>
-        <h2>Feed</h2>
-        <p>Live picks from the community. Locked at kickoff, graded automatically, never deleted.</p>
-      </div>
+    <section className="feed-page">
+      <p className="feed-tagline">
+        Live picks from the community. Locked at kickoff, graded automatically, never deleted.
+      </p>
+
+      <PostComposer onPosted={() => setReloadKey((k) => k + 1)} />
 
       <div className="tabs feed-tabs" role="tablist" aria-label="Feed filter">
         <button
@@ -48,15 +51,11 @@ export default function FeedRoute() {
 
       {tab === 'following' ? (
         <>
-          <SignedOut>
-            <FollowingSignedOut />
-          </SignedOut>
-          <SignedIn>
-            <FollowingFeed />
-          </SignedIn>
+          <SignedOut><FollowingSignedOut /></SignedOut>
+          <SignedIn><FollowingFeed reloadKey={reloadKey} /></SignedIn>
         </>
       ) : (
-        <AllFeed />
+        <AllFeed reloadKey={reloadKey} />
       )}
     </section>
   );
@@ -70,8 +69,7 @@ function FollowingSignedOut() {
   return (
     <div className="empty">
       <p style={{ color: 'var(--ink-dim)', maxWidth: 480, margin: '0 auto 18px' }}>
-        Sign in to see picks from handicappers you follow. Or jump to the{' '}
-        <Link to="#all" onClick={(e) => { e.preventDefault(); }}>All</Link> tab to
+        Sign in to see picks from handicappers you follow. Or jump to the All tab to
         browse the full community.
       </p>
       <SignInButton afterSignInUrl="/feed">
@@ -81,89 +79,79 @@ function FollowingSignedOut() {
   );
 }
 
-function FollowingFeed() {
+function FollowingFeed({ reloadKey }) {
   const { userId } = useAuth?.() || {};
-  const { picks, authors, loading, error } = usePicksFeed({ scope: 'following', meId: userId });
+  const { items, authors, loading, error } = useFeed({ scope: 'following', meId: userId, reloadKey });
+  return <FeedList items={items} authors={authors} loading={loading} error={error} emptyKind="following" />;
+}
 
+function AllFeed({ reloadKey }) {
+  const { items, authors, loading, error } = useFeed({ scope: 'all', reloadKey });
+  return <FeedList items={items} authors={authors} loading={loading} error={error} emptyKind="all" />;
+}
+
+function FeedList({ items, authors, loading, error, emptyKind }) {
   if (loading) return <p style={{ color: 'var(--ink-dim)' }}>Loading…</p>;
   if (error)   return <p style={{ color: 'var(--bad)' }}>Failed to load: {error.message}</p>;
 
-  if (!picks.length) {
+  if (!items.length) {
     return (
       <div className="empty">
-        <p style={{ color: 'var(--ink-dim)', maxWidth: 480, margin: '0 auto 18px' }}>
-          No picks from people you follow yet. Find people to follow, or check the{' '}
-          All tab to see what the community is on.
-        </p>
-        <Link to="/leaderboard" className="btn-gold" style={{ display: 'inline-block', padding: '12px 22px', textDecoration: 'none' }}>
-          Browse leaderboard
-        </Link>
+        {emptyKind === 'following' ? (
+          <p style={{ color: 'var(--ink-dim)', maxWidth: 480, margin: '0 auto 18px' }}>
+            No activity from people you follow yet. Try the All tab, or browse the leaderboard to find handicappers.
+          </p>
+        ) : (
+          <p style={{ color: 'var(--ink-dim)' }}>
+            No public activity yet. Be the first — drop a pick or a take above.
+          </p>
+        )}
+        {emptyKind === 'following' && (
+          <Link to="/leaderboard" className="btn-gold" style={{ display: 'inline-block', padding: '10px 20px', textDecoration: 'none' }}>
+            Browse leaderboard
+          </Link>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="bk-table">
-      {picks.map((p) => (
-        <UserPickCard key={p.id} pick={p} showAuthor author={authors[p.userId]} />
+    <div className="feed-list">
+      {items.map((it) => (
+        it.kind === 'post' ? (
+          <PostCard key={`p-${it.id}`} post={it} author={authors[it.userId]} />
+        ) : (
+          <UserPickCard key={`k-${it.id}`} pick={it} showAuthor author={authors[it.userId]} />
+        )
       ))}
     </div>
   );
 }
 
 // =====================================================================
-// All tab
+// Shared data hook — merges posts + bare picks
 // =====================================================================
 
-function AllFeed() {
-  const { picks, authors, loading, error } = usePicksFeed({ scope: 'all' });
-
-  if (loading) return <p style={{ color: 'var(--ink-dim)' }}>Loading…</p>;
-  if (error)   return <p style={{ color: 'var(--bad)' }}>Failed to load: {error.message}</p>;
-
-  if (!picks.length) {
-    return (
-      <div className="empty">
-        <p style={{ color: 'var(--ink-dim)' }}>
-          No public picks yet. Be the first — head to{' '}
-          <Link to="/profile">your profile</Link> and post a pick.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bk-table">
-      {picks.map((p) => (
-        <UserPickCard key={p.id} pick={p} showAuthor author={authors[p.userId]} />
-      ))}
-    </div>
-  );
-}
-
-// =====================================================================
-// Shared data hook
-// =====================================================================
+const FEED_LIMIT = 50;
 
 /**
- * Fetch the most recent public picks for either scope:
- *   - 'all':       newest 50 picks across the platform
- *   - 'following': newest 50 picks from users meId follows
+ * Pulls the last FEED_LIMIT posts and bare picks (picks not wrapped
+ * by a post), merges by created_at desc, and resolves authors.
  *
- * Pulls authors in a second query keyed by user_id. Subscribes to
- * realtime INSERTs and prepends matching rows.
+ * Realtime: subscribes to both tables; new rows are prepended if
+ * they pass the scope filter.
  */
-function usePicksFeed({ scope, meId = null }) {
-  const [picks, setPicks]     = useState([]);
+function useFeed({ scope, meId = null, reloadKey = 0 }) {
+  const [items, setItems]     = useState([]);
   const [authors, setAuthors] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
-  const [followIds, setFollowIds] = useState(null); // null = unloaded, [] = none
+  const [followIds, setFollowIds] = useState(scope === 'following' ? null : []);
 
-  // Step 1: if scope is following, load the follow list first.
+  // Load follow list for scope=following.
   useEffect(() => {
     let cancelled = false;
-    if (scope !== 'following') { setFollowIds(null); return undefined; }
+    if (scope !== 'following') { setFollowIds([]); return undefined; }
     if (!supabase || !meId) { setFollowIds([]); return undefined; }
     (async () => {
       const { data, error: e } = await supabase
@@ -177,13 +165,36 @@ function usePicksFeed({ scope, meId = null }) {
     return () => { cancelled = true; };
   }, [scope, meId]);
 
-  // Step 2: fetch picks based on scope.
   const load = useCallback(async () => {
     if (!supabase) { setLoading(false); return; }
-    if (scope === 'following' && followIds === null) return; // wait for follows
+    if (scope === 'following' && followIds === null) return;
     setLoading(true);
     try {
-      let q = supabase
+      // Following + empty list = nothing to show.
+      if (scope === 'following' && !followIds.length) {
+        setItems([]); setAuthors({}); setError(null); return;
+      }
+
+      // 1) Posts (with embedded pick joined inline).
+      let postQ = supabase
+        .from('posts')
+        .select(
+          'id, user_id, body, created_at, ' +
+          'pick:user_picks(' +
+            'id, user_id, game_id, league, season, week, bet_type, side, units, ' +
+            'line_at_pick, juice_at_pick, market_line, market_juice, point_buys, ' +
+            'is_free_pick, home_abbr, away_abbr, home_logo, away_logo, ' +
+            'locked_at, kickoff_at, result, graded_at, created_at)'
+        )
+        .order('created_at', { ascending: false })
+        .limit(FEED_LIMIT);
+      if (scope === 'following') postQ = postQ.in('user_id', followIds);
+
+      // 2) Bare picks (no wrapping post). We fetch picks then filter
+      //    out the wrapped ones client-side using the post pick_ids
+      //    we just got back. (Supabase JS doesn't support NOT IN
+      //    subselects cleanly.)
+      let pickQ = supabase
         .from('user_picks')
         .select(
           'id, user_id, game_id, league, season, week, bet_type, side, units, ' +
@@ -192,19 +203,45 @@ function usePicksFeed({ scope, meId = null }) {
           'locked_at, kickoff_at, result, graded_at, created_at'
         )
         .order('created_at', { ascending: false })
-        .limit(50);
-      if (scope === 'following') {
-        if (!followIds.length) { setPicks([]); setAuthors({}); setError(null); return; }
-        q = q.in('user_id', followIds);
-      }
-      const { data, error: e } = await q;
-      if (e) throw e;
-      const mapped = (data || []).map(mapPickRow);
-      setPicks(mapped);
+        .limit(FEED_LIMIT);
+      if (scope === 'following') pickQ = pickQ.in('user_id', followIds);
+
+      const [postsRes, picksRes] = await Promise.all([postQ, pickQ]);
+      if (postsRes.error) throw postsRes.error;
+      if (picksRes.error) throw picksRes.error;
+
+      const postRows = postsRes.data || [];
+      const pickRows = picksRes.data || [];
+
+      // Build set of pick_ids that are wrapped by a post.
+      const wrappedPickIds = new Set(
+        postRows.map((r) => r.pick?.id).filter(Boolean)
+      );
+
+      // Map posts to feed items.
+      const postItems = postRows.map((r) => ({
+        kind: 'post',
+        id: r.id,
+        userId: r.user_id,
+        body: r.body,
+        createdAt: r.created_at,
+        pick: r.pick ? mapPickRow(r.pick) : null,
+      }));
+
+      // Map bare picks (excluding wrapped ones).
+      const bareItems = pickRows
+        .filter((p) => !wrappedPickIds.has(p.id))
+        .map((p) => ({ kind: 'pick', ...mapPickRow(p) }));
+
+      // Merge by created_at desc, cap at FEED_LIMIT.
+      const merged = [...postItems, ...bareItems]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, FEED_LIMIT);
+      setItems(merged);
       setError(null);
 
-      // Fetch profiles for the picks' authors.
-      const uniqUserIds = [...new Set(mapped.map((p) => p.userId))];
+      // Fetch profiles for all distinct authors.
+      const uniqUserIds = [...new Set(merged.map((it) => it.userId))];
       if (uniqUserIds.length) {
         const { data: profs } = await supabase
           .from('profiles')
@@ -228,11 +265,11 @@ function usePicksFeed({ scope, meId = null }) {
     } finally {
       setLoading(false);
     }
-  }, [scope, followIds]);
+  }, [scope, followIds, reloadKey]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Realtime: prepend new INSERTs that match the scope filter.
+  // Realtime: posts + user_picks INSERTs.
   useEffect(() => {
     if (!supabase) return undefined;
     if (scope === 'following' && followIds === null) return undefined;
@@ -241,31 +278,32 @@ function usePicksFeed({ scope, meId = null }) {
       .channel(`feed-${scope}-${meId || 'anon'}`)
       .on(
         'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'posts' },
+        () => { load(); /* simplest: refetch — keeps dedup correct */ },
+      )
+      .on(
+        'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'user_picks' },
         async (payload) => {
           const row = payload?.new;
           if (!row) return;
           if (scope === 'following' && (!followSet || !followSet.has(row.user_id))) return;
-          const newPick = mapPickRow(row);
-          setPicks((prev) => [newPick, ...prev].slice(0, 50));
-          // Lazy-fetch the author if we haven't seen them yet.
-          if (!authors[newPick.userId]) {
+          // Don't prepend immediately if this pick might be about to
+          // be wrapped by a post (composer creates pick THEN post).
+          // The post INSERT will trigger a refetch; until then we
+          // optimistically show the bare pick.
+          const newItem = { kind: 'pick', ...mapPickRow(row) };
+          setItems((prev) => [newItem, ...prev].slice(0, FEED_LIMIT));
+          if (!authors[newItem.userId]) {
             const { data: prof } = await supabase
               .from('profiles')
               .select('user_id, handle, display_name, avatar_url, fav_team_logo')
-              .eq('user_id', newPick.userId)
+              .eq('user_id', newItem.userId)
               .maybeSingle();
-            if (prof) {
-              setAuthors((a) => ({
-                ...a,
-                [prof.user_id]: {
-                  handle: prof.handle,
-                  displayName: prof.display_name,
-                  avatarUrl: prof.avatar_url,
-                  favTeamLogo: prof.fav_team_logo,
-                },
-              }));
-            }
+            if (prof) setAuthors((a) => ({ ...a, [prof.user_id]: {
+              handle: prof.handle, displayName: prof.display_name,
+              avatarUrl: prof.avatar_url, favTeamLogo: prof.fav_team_logo,
+            } }));
           }
         },
       )
@@ -274,7 +312,7 @@ function usePicksFeed({ scope, meId = null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope, meId, (followIds || []).join(',')]);
 
-  return useMemo(() => ({ picks, authors, loading, error }), [picks, authors, loading, error]);
+  return useMemo(() => ({ items, authors, loading, error }), [items, authors, loading, error]);
 }
 
 // camelCase shape that UserPickCard expects.
