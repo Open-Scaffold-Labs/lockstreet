@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchGameSummary } from '../lib/espnSummary.js';
 import { fantasyPoints } from '../lib/fantasy.js';
+import PickModal from '../components/PickModal.jsx';
+import { SignedIn, SignedOut, SignInButton } from '../lib/auth.jsx';
 
 /**
  * Hit our /api/team-intel proxy which fans out to the best free per-sport
@@ -33,6 +35,7 @@ export default function GameDetailRoute() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [teamStats, setTeamStats] = useState({ home: null, away: null });
+  const [pickOpen, setPickOpen]   = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,10 +90,40 @@ export default function GameDetailRoute() {
   if (!data)   return <section><div className="empty">Game not found.</div></section>;
 
   const { home, away } = data;
+  const kickoffMs   = data?.date ? new Date(data.date).getTime() : 0;
+  const canPick     = data?.status === 'upcoming' && kickoffMs > Date.now() + 30_000;
 
   return (
     <section className="gd">
-      <Link to="/scores" className="gd-back">← Back to scores</Link>
+      <div className="gd-top-row">
+        <Link to="/scores" className="gd-back">← Back to scores</Link>
+        {canPick && (
+          <>
+            <SignedIn>
+              <button type="button" className="btn-gold gd-pick-btn" onClick={() => setPickOpen(true)}>
+                + Make Pick
+              </button>
+            </SignedIn>
+            <SignedOut>
+              <SignInButton afterSignInUrl={`/game/${league}/${gameId}`}>
+                <button className="btn-ghost gd-pick-btn" type="button">+ Make Pick</button>
+              </SignInButton>
+            </SignedOut>
+          </>
+        )}
+      </div>
+      {pickOpen && canPick && (
+        <PickModal
+          game={{
+            gameId,
+            league,
+            kickoffAt: data.date,
+            home: { abbr: home.abbr, logo: home.logo, name: home.name },
+            away: { abbr: away.abbr, logo: away.logo, name: away.name },
+          }}
+          onClose={() => setPickOpen(false)}
+        />
+      )}
 
       {/* Game header — team logo + name links to that team's profile page */}
       <div className="gd-header">

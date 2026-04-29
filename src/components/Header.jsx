@@ -2,17 +2,20 @@ import { NavLink, Link } from 'react-router-dom';
 import { SignInButton, SignedIn, SignedOut, UserButton } from '../lib/auth.jsx';
 import { useSubscription } from '../hooks/useSubscription.js';
 
+// Profile is the leftmost desktop tab — same position as in BottomNav.
+// Bankroll was renamed and repointed to /profile; the calculator can
+// come back later as a sub-section if there's demand.
 const TABS = [
-  { to: '/scores',    label: 'Scores' },
-  { to: '/picks',     label: 'Picks' },
-  { to: '/lines',     label: 'Lines' },
-  { to: '/props',     label: 'Heat Check' },
-  { to: '/bankroll',  label: 'Bankroll' },
-  { to: '/contest',   label: 'Contest' },
+  { to: '/profile',     label: 'Profile' },
+  { to: '/scores',      label: 'Scores' },
+  { to: '/picks',       label: 'Picks' },
+  { to: '/lines',       label: 'Lines' },
+  { to: '/props',       label: 'Heat Check' },
   { to: '/leaderboard', label: 'Leaders' },
-  { to: '/weekly',    label: 'Weekly' },
-  { to: '/about',     label: 'Track Record' },
-  { to: '/subscribe', label: 'Subscribe' },
+  { to: '/contest',     label: 'Contest' },
+  { to: '/weekly',      label: 'Weekly' },
+  { to: '/about',       label: 'Track Record' },
+  { to: '/subscribe',   label: 'Subscribe' },
 ];
 
 export default function Header() {

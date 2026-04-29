@@ -33,11 +33,13 @@ function IconStar() {
     </svg>
   );
 }
-function IconWallet() {
+function IconProfile() {
+  // Person silhouette: head + shoulders. Used for the Profile tab
+  // (replaces the old Bankroll wallet icon).
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-      <path d="M3 7l2-3h12l2 3" /><circle cx="17" cy="13" r="1.2" />
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
     </svg>
   );
 }
@@ -58,12 +60,15 @@ function IconProps() {
   );
 }
 
+// Profile is the leftmost tab — it's the home base for users
+// (was: Bankroll, repositioned + renamed). The remaining order
+// stays as it was.
 const ITEMS = [
+  { to: '/profile',   label: 'Profile',  icon: <IconProfile /> },
   { to: '/scores',    label: 'Scores',   icon: <IconHome /> },
   { to: '/picks',     label: 'Picks',    icon: <IconPicks /> },
   { to: '/lines',     label: 'Lines',    icon: <IconLines /> },
   { to: '/props',     label: 'Heat\nCheck', icon: <IconProps /> },
-  { to: '/bankroll',  label: 'Bankroll', icon: <IconWallet /> },
   { to: '/about',     label: 'Record',   icon: <IconRecord /> },
   { to: '/subscribe', label: 'Pro',      icon: <IconStar /> },
 ];

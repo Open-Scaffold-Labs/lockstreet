@@ -10,7 +10,9 @@ import PicksRoute from './routes/PicksRoute.jsx';
 import SubscribeRoute from './routes/SubscribeRoute.jsx';
 import AboutRoute from './routes/AboutRoute.jsx';
 import HomeRoute from './routes/HomeRoute.jsx';
-import BankrollRoute from './routes/BankrollRoute.jsx';
+import ProfileRoute from './routes/ProfileRoute.jsx';
+import PublicProfileRoute from './routes/PublicProfileRoute.jsx';
+import FollowRoute from './routes/FollowRoute.jsx';
 import LinesRoute from './routes/LinesRoute.jsx';
 import PropsRoute from './routes/PropsRoute.jsx';
 import WeeklyRoute from './routes/WeeklyRoute.jsx';
@@ -38,7 +40,11 @@ export default function App() {
           <Route path="/picks" element={<PicksRoute />} />
           <Route path="/record" element={<Navigate to="/about" replace />} />
           <Route path="/about" element={<AboutRoute />} />
-          <Route path="/bankroll" element={<BankrollRoute />} />
+          {/* /bankroll became /profile (same nav slot, repurposed). */}
+          <Route path="/bankroll" element={<Navigate to="/profile" replace />} />
+          <Route path="/profile" element={<ProfileRoute />} />
+          <Route path="/u/:handle" element={<PublicProfileRoute />} />
+          <Route path="/follow" element={<FollowRoute />} />
           <Route path="/lines" element={<LinesRoute />} />
           <Route path="/props" element={<PropsRoute />} />
           <Route path="/weekly" element={<WeeklyRoute />} />

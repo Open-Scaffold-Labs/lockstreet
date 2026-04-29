@@ -31,3 +31,20 @@ jobs:
                -H "x-cron-secret: $CRON_SECRET" \
                --max-time 180 | head -c 8000
           echo
+
+      # Also grade any pending user picks whose kickoff is more than 4 hours
+      # old. Multiplexed into the same endpoint to stay under the Vercel 12-fn
+      # cap (per CLAUDE.md). The job exits cheaply when there are no due picks.
+      - name: Grade user picks
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          DEPLOY_URL:  ${{ secrets.VERCEL_DEPLOY_URL }}
+        run: |
+          set -e
+          if [ -z "$DEPLOY_URL" ]; then DEPLOY_URL="https://lockstreet.vercel.app"; fi
+          URL="$DEPLOY_URL/api/refresh-public-betting?job=grade-user-picks"
+          echo "POST $URL"
+          curl -sS -X POST "$URL" \
+               -H "x-cron-secret: $CRON_SECRET" \
+               --max-time 180 | head -c 8000
+          echo
