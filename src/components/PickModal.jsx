@@ -30,7 +30,6 @@ export default function PickModal({ game, onClose, onSubmitted }) {
   const [betType, setBetType]     = useState('spread');
   const [side, setSide]           = useState('home');
   const [units, setUnits]         = useState(1);
-  const [lineRaw, setLineRaw]     = useState('');
   const [pointBuys, setPointBuys] = useState(0);  // half-points bought (0..N)
   const [busy, setBusy]           = useState(false);
   const [err, setErr]             = useState('');
@@ -76,21 +75,23 @@ export default function PickModal({ game, onClose, onSubmitted }) {
   // Effective consensus = explicit prop > fetched > none.
   const consensus = game?.consensus || fetchedConsensus;
 
-  // Prefill the line from consensus when bet type / side changes.
-  // Format with an explicit leading sign so a +8.5 dog reads correctly
-  // ('8.5' alone is ambiguous between +8.5 and -8.5 to a casual reader).
-  useEffect(() => {
-    if (!consensus) return;
-    if (betType === 'spread' && consensus.spreadHome != null) {
+  // Base line is derived from consensus + selected side. The line input
+  // is intentionally read-only — every user gets the same starting line
+  // for a given game, and the only sanctioned way to deviate is the
+  // buy-half-points control below (with proper juice penalty). Keeps
+  // the leaderboard honest.
+  const baseLineNum = useMemo(() => {
+    if (!consensus) return null;
+    if (betType === 'spread') {
+      if (consensus.spreadHome == null) return null;
       const sh = Number(consensus.spreadHome);
-      const v = side === 'home' ? sh : -sh;
-      setLineRaw(fmtSignedLine(v));
-    } else if (betType === 'total' && consensus.total != null) {
-      setLineRaw(String(consensus.total));
-    } else if (betType === 'ml') {
-      setLineRaw('');
+      return side === 'home' ? sh : -sh;
     }
-  }, [betType, side, consensus?.spreadHome, consensus?.total]);
+    if (betType === 'total') {
+      return consensus.total != null ? Number(consensus.total) : null;
+    }
+    return null; // ml
+  }, [consensus, betType, side]);
 
   // Time-to-kickoff guard.
   const kickoffMs = game?.kickoffAt ? new Date(game.kickoffAt).getTime() : 0;
@@ -102,7 +103,6 @@ export default function PickModal({ game, onClose, onSubmitted }) {
   const secsToKick = Math.max(0, Math.round((kickoffMs - now) / 1000));
   const tooLate    = kickoffMs > 0 && (kickoffMs - now) < 30_000;
 
-  const lineNum   = lineRaw === '' || lineRaw === '-' ? null : Number(lineRaw);
   const buys      = betType === 'ml' ? 0 : pointBuys;
   const juiceUsed = juiceForBuys(buys);
 
@@ -110,11 +110,11 @@ export default function PickModal({ game, onClose, onSubmitted }) {
   // Spread: +0.5 from your side regardless of favorite/dog.
   // Total: over → -0.5 (lower hurdle); under → +0.5 (higher hurdle).
   const adjustedLine = useMemo(() => {
-    if (lineNum == null || betType === 'ml') return lineNum;
-    if (!buys) return lineNum;
-    if (betType === 'spread') return lineNum + 0.5 * buys;
-    return side === 'over' ? lineNum - 0.5 * buys : lineNum + 0.5 * buys;
-  }, [lineNum, buys, betType, side]);
+    if (baseLineNum == null || betType === 'ml') return baseLineNum;
+    if (!buys) return baseLineNum;
+    if (betType === 'spread') return baseLineNum + 0.5 * buys;
+    return side === 'over' ? baseLineNum - 0.5 * buys : baseLineNum + 0.5 * buys;
+  }, [baseLineNum, buys, betType, side]);
 
   function close() {
     if (busy) return;
@@ -131,7 +131,10 @@ export default function PickModal({ game, onClose, onSubmitted }) {
     if (tooLate) { setErr('Kickoff is too close — picks lock 30s before tipoff.'); return; }
     if (!game?.kickoffAt) { setErr('Missing kickoff time.'); return; }
     if (units < 0.5 || units > 5)  { setErr('Units must be between 0.5 and 5.'); return; }
-    if (betType !== 'ml' && lineNum == null) { setErr('Enter the line you took.'); return; }
+    if (betType !== 'ml' && baseLineNum == null) {
+      setErr('Line not posted yet for this game — try again once the consensus line is up.');
+      return;
+    }
 
     setBusy(true);
     try {
@@ -146,11 +149,7 @@ export default function PickModal({ game, onClose, onSubmitted }) {
         lineAtPick:  betType === 'ml' ? null : adjustedLine,
         juiceAtPick: juiceUsed,
         pointBuys:   buys,
-        marketLine:  betType === 'ml' ? null : (consensus?.spreadHome != null && betType === 'spread'
-                       ? (side === 'home' ? Number(consensus.spreadHome) : -Number(consensus.spreadHome))
-                       : consensus?.total != null && betType === 'total'
-                       ? Number(consensus.total)
-                       : (lineNum ?? null)),
+        marketLine:  betType === 'ml' ? null : baseLineNum,
         marketJuice: -110,
         kickoffAt:   game.kickoffAt,
         homeAbbr:    game.home?.abbr,
@@ -216,17 +215,19 @@ export default function PickModal({ game, onClose, onSubmitted }) {
 
         <div className="pf-form">
           {betType !== 'ml' && (
-            <label>
-              <span>{betType === 'spread' ? 'Line you took' : 'Total you took'}</span>
-              <input
-                type="text"
-                value={lineRaw}
-                onChange={(e) => setLineRaw(e.target.value)}
-                placeholder={betType === 'spread' ? 'e.g. -3.5' : 'e.g. 47.5'}
-                inputMode="decimal"
-                pattern="[+\-]?\d+(\.\d+)?"
-              />
-            </label>
+            <div className="pm-line-readonly">
+              <span className="pm-line-readonly-label">
+                {betType === 'spread' ? 'Line' : 'Total'}
+              </span>
+              <span className="pm-line-readonly-value">
+                {baseLineNum == null
+                  ? (consensusLoading ? 'Loading…' : 'Not posted yet')
+                  : (betType === 'spread' ? fmtSignedLine(baseLineNum) : baseLineNum)}
+              </span>
+              <span className="pm-line-readonly-hint">
+                Consensus line · adjust below by buying half-points
+              </span>
+            </div>
           )}
 
           <label>
