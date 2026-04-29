@@ -1999,5 +1999,10 @@ a.pf-meta-link:hover { color: var(--ink); }
     left: 12px; right: 12px;
     width: auto;
   }
+
+  /* iOS Safari auto-zooms (and never auto-unzooms) when an input
+     focuses with font-size < 16px. Bumping just the search input on
+     mobile prevents that without changing the desktop visual. */
+  .hdr-search-input { font-size: 16px; }
 }
 
