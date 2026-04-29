@@ -1823,6 +1823,10 @@ a.pf-meta-link:hover { color: var(--ink); }
   align-self: center; margin-left: 8px;
   box-shadow: 0 0 8px rgba(192, 132, 252, 0.6);
 }
+.pf-notif-actions {
+  display: flex; align-items: center; gap: 10px;
+  flex-shrink: 0;
+}
 
 /* + Make a Pick button at the top of the picks card. Full-width gold
    primary so it reads as the page's main action. */

@@ -12,8 +12,11 @@ import { useToast } from '../lib/toast.jsx';
  *   targetUserId   - the user_id to follow/unfollow
  *   compact        - smaller variant for use in lists
  *   onChange(b)    - optional callback fired after a successful toggle
+ *   followLabel    - override the default "Follow" text (e.g. "Follow back"
+ *                    for the notifications inbox). Only affects the
+ *                    not-yet-following state.
  */
-export default function FollowButton({ targetUserId, compact = false, onChange }) {
+export default function FollowButton({ targetUserId, compact = false, onChange, followLabel = 'Follow' }) {
   const { userId: meId, isSignedIn } = useAuth?.() || {};
   const navigate = useNavigate();
   const toast = useToast();
@@ -63,7 +66,7 @@ export default function FollowButton({ targetUserId, compact = false, onChange }
       disabled={busy || loading}
       aria-pressed={isFollowing}
     >
-      {busy ? '…' : isFollowing ? 'Following' : 'Follow'}
+      {busy ? '…' : isFollowing ? 'Following' : followLabel}
     </button>
   );
 }

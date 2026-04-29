@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../hooks/useNotifications.js';
+import FollowButton from './FollowButton.jsx';
 
 /**
  * Notification inbox rendered on /profile (own user only). Lists
@@ -41,26 +42,40 @@ export default function NotificationsSection() {
         </p>
       ) : (
         <div className="bk-table">
-          {notifications.map((n) => (
-            <button
-              key={n.id}
-              type="button"
-              className={'bk-row pf-notif-row' + (n.readAt ? '' : ' is-unread')}
-              onClick={() => clickRow(n)}
-            >
-              <div className="bk-row-main">
-                <div className="bk-row-desc">
-                  <span className={'pf-notif-type-badge type-' + n.type}>{labelForType(n.type)}</span>
-                  <strong>{n.title}</strong>
+          {notifications.map((n) => {
+            const followerId = n.type === 'new_follower' ? n.meta?.follower_id : null;
+            return (
+              <div
+                key={n.id}
+                role="button"
+                tabIndex={0}
+                className={'bk-row pf-notif-row' + (n.readAt ? '' : ' is-unread')}
+                onClick={() => clickRow(n)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); clickRow(n); } }}
+              >
+                <div className="bk-row-main">
+                  <div className="bk-row-desc">
+                    <span className={'pf-notif-type-badge type-' + n.type}>{labelForType(n.type)}</span>
+                    <strong>{n.title}</strong>
+                  </div>
+                  {n.body ? <div className="bk-row-meta">{n.body}</div> : null}
+                  <div className="bk-row-meta" style={{ color: 'var(--ink-faint)' }}>
+                    {fmtRelDate(n.createdAt)}
+                  </div>
                 </div>
-                {n.body ? <div className="bk-row-meta">{n.body}</div> : null}
-                <div className="bk-row-meta" style={{ color: 'var(--ink-faint)' }}>
-                  {fmtRelDate(n.createdAt)}
+                <div
+                  className="pf-notif-actions"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {followerId ? (
+                    <FollowButton targetUserId={followerId} compact followLabel="Follow back" />
+                  ) : null}
+                  {!n.readAt ? <span className="pf-notif-dot" aria-label="Unread" /> : null}
                 </div>
               </div>
-              {!n.readAt ? <span className="pf-notif-dot" aria-label="Unread" /> : null}
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
