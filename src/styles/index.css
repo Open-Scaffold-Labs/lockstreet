@@ -1500,6 +1500,7 @@ ol.about-list li::before { content: counter(step); top: 12px; left: 0; width: 18
   margin-bottom: 12px;
 }
 .pf-make-pick-btn { padding: 10px 18px; font-size: 13px; letter-spacing: 0.02em; }
+.pf-manage-follows-btn { padding: 9px 14px; font-size: 12px; letter-spacing: 0.02em; }
 
 /* "+ Pick" button on a GameCard. Sits inside the lines pill row.
    Stops click propagation so tapping it opens PickModal instead of

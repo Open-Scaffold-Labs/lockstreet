@@ -88,6 +88,9 @@ export function ProfileBody({ profile, ownerUserId, isOwn = false, onProfileUpda
         followingCount={following.length}
         followersCount={followers.length}
         isOwn={isOwn}
+        rightSlot={isOwn
+          ? <EditProfileButton profile={profile} onUpdated={onProfileUpdated} inline />
+          : <FollowButton targetUserId={profile.userId} />}
       />
 
       {isOwn && (
@@ -95,7 +98,6 @@ export function ProfileBody({ profile, ownerUserId, isOwn = false, onProfileUpda
           <button type="button" className="btn-gold pf-make-pick-btn" onClick={() => setPickFlowOpen(true)}>
             + Make a Pick
           </button>
-          <EditProfileButton profile={profile} onUpdated={onProfileUpdated} inline />
         </div>
       )}
       {pickFlowOpen && (
@@ -137,7 +139,7 @@ export function ProfileBody({ profile, ownerUserId, isOwn = false, onProfileUpda
   );
 }
 
-function ProfileHeader({ profile, followingCount, followersCount, isOwn }) {
+function ProfileHeader({ profile, followingCount, followersCount, isOwn, rightSlot = null }) {
   const initials = (profile.displayName || profile.handle || '?')
     .split(/\s+|@/)[0].slice(0, 2).toUpperCase();
   const memberSince = profile.createdAt
@@ -204,11 +206,7 @@ function ProfileHeader({ profile, followingCount, followersCount, isOwn }) {
           {memberSince ? <span className="pf-meta-link" style={{ color: 'var(--ink-faint)' }}>Member since {memberSince}</span> : null}
         </div>
       </div>
-      {isOwn ? (
-        <Link to="/follow" className="btn-ghost pf-edit-btn">Manage follows</Link>
-      ) : (
-        <FollowButton targetUserId={profile.userId} />
-      )}
+      {rightSlot}
     </div>
   );
 }
