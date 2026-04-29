@@ -1,5 +1,5 @@
 import webpush from 'web-push';
-import { isAdmin, readJson, forbidden, serverError, adminClient } from './_utils.js';
+import { isAdmin, readJson, forbidden, serverError, adminClient, getUserIdFromRequest } from './_utils.js';
 
 const VAPID_PUBLIC  = process.env.VITE_VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
@@ -11,6 +11,13 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  // Multiplexed endpoint (per CLAUDE.md Vercel 12-fn cap). Default
+  // behavior is admin-only broadcast; ?op=notify-follower is the
+  // user-initiated "X followed you" push that fires from useFollows.
+  const op = req.query?.op;
+  if (op === 'notify-follower') return notifyFollower(req, res);
+
   if (!(await isAdmin(req))) return forbidden(res);
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     return res.status(500).json({ error: 'VAPID keys missing - run `npx web-push generate-vapid-keys`' });
@@ -63,4 +70,88 @@ export default async function handler(req, res) {
     const sent = results.filter((r) => r.value?.ok).length;
     res.status(200).json({ sent, total: pushSubs?.length || 0 });
   } catch (e) { serverError(res, e); }
+}
+
+// ====================================================================
+// notify-follower — fires when a user follows another user.
+// Verifies the calling user is authenticated AND the follow row
+// exists (anti-spam). Looks up the followed user's push
+// subscriptions and sends "X started following you" with a link to
+// the follower's profile.
+// ====================================================================
+async function notifyFollower(req, res) {
+  // No-op gracefully if VAPID keys aren't configured (dev / preview).
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+    return res.status(200).json({ sent: 0, skipped: 'no-vapid' });
+  }
+  const supa = adminClient();
+  if (!supa) return serverError(res, new Error('SUPABASE_SERVICE_ROLE_KEY not set'));
+
+  // Caller must be authenticated.
+  const userId = await getUserIdFromRequest(req);
+  if (!userId) return res.status(401).json({ error: 'sign-in required' });
+
+  const body = await readJson(req);
+  const followedId = body?.followedId;
+  if (!followedId) return res.status(400).json({ error: 'followedId required' });
+  if (followedId === userId) {
+    return res.status(200).json({ sent: 0, skipped: 'self' });
+  }
+
+  // Anti-abuse: verify the follow row really exists. Stops random
+  // authenticated callers from spamming push notifications to anyone.
+  const { count: followCount } = await supa
+    .from('follows')
+    .select('follower_id', { count: 'exact', head: true })
+    .eq('follower_id', userId)
+    .eq('followed_id', followedId);
+  if (!followCount) {
+    return res.status(200).json({ sent: 0, skipped: 'no-follow-row' });
+  }
+
+  // Fetch follower's profile (for notification copy + click-through URL).
+  const { data: prof } = await supa
+    .from('profiles')
+    .select('handle, display_name, fav_team_name')
+    .eq('user_id', userId)
+    .maybeSingle();
+  const displayName = prof?.display_name || 'Someone';
+  const handle      = prof?.handle ? `@${prof.handle}` : '';
+
+  // Fetch followed user's push subscriptions.
+  const { data: pushSubs } = await supa
+    .from('push_subscriptions')
+    .select('id, endpoint, p256dh, auth_secret')
+    .eq('user_id', followedId);
+
+  if (!pushSubs?.length) {
+    return res.status(200).json({ sent: 0, total: 0, skipped: 'no-push-subs' });
+  }
+
+  const payload = JSON.stringify({
+    title: `${displayName} started following you`,
+    body:  handle ? `Tap to view ${handle}'s profile.` : 'Tap to view their profile.',
+    url:   prof?.handle ? `/u/${prof.handle}` : '/profile',
+    tag:   `follow-${userId}-${followedId}`,
+  });
+
+  const results = await Promise.allSettled(pushSubs.map(async (row) => {
+    const sub = {
+      endpoint: row.endpoint,
+      keys: { p256dh: row.p256dh, auth: row.auth_secret },
+    };
+    try {
+      await webpush.sendNotification(sub, payload);
+      return { id: row.id, ok: true };
+    } catch (err) {
+      // Prune dead subscriptions (gone / expired endpoints).
+      if (err.statusCode === 404 || err.statusCode === 410) {
+        await supa.from('push_subscriptions').delete().eq('id', row.id);
+      }
+      return { id: row.id, error: err.statusCode || err.message };
+    }
+  }));
+
+  const sent = results.filter((r) => r.value?.ok).length;
+  res.status(200).json({ sent, total: pushSubs.length });
 }

@@ -27,22 +27,45 @@ export function useFollows(targetUserId) {
     if (!ownerId) { setFollowing([]); setFollowers([]); setLoading(false); return; }
     setLoading(true);
     try {
-      // Following: rows where this user is the follower; join profiles for the followed.
+      // PostgREST resource embedding (the `profile:profiles!fkname(...)`
+      // syntax) doesn't resolve here because follows.follower_id /
+      // followed_id reference auth.users, not profiles directly. The
+      // auth schema isn't exposed to PostgREST so the embed silently
+      // returns null, dropping every row from the rendered list.
+      // Two-step query: fetch follow rows, then fetch profiles by
+      // user_id IN (...), join in JS.
       const { data: outRows, error: outErr } = await supabase
         .from('follows')
-        .select('followed_id, created_at, profile:profiles!follows_followed_id_fkey(user_id, handle, display_name, fav_team, fav_team_league, avatar_url, is_system)')
+        .select('followed_id, created_at')
         .eq('follower_id', ownerId);
       if (outErr) throw outErr;
 
-      // Followers: rows where this user is the followed; join profiles for the follower.
       const { data: inRows, error: inErr } = await supabase
         .from('follows')
-        .select('follower_id, created_at, profile:profiles!follows_follower_id_fkey(user_id, handle, display_name, fav_team, fav_team_league, avatar_url, is_system)')
+        .select('follower_id, created_at')
         .eq('followed_id', ownerId);
       if (inErr) throw inErr;
 
-      setFollowing((outRows || []).map((r) => mapFollowProfile(r.profile)).filter(Boolean));
-      setFollowers((inRows  || []).map((r) => mapFollowProfile(r.profile)).filter(Boolean));
+      const followedIds = (outRows || []).map((r) => r.followed_id);
+      const followerIds = (inRows  || []).map((r) => r.follower_id);
+      const allIds = Array.from(new Set([...followedIds, ...followerIds]));
+
+      let profileById = {};
+      if (allIds.length) {
+        const { data: profs, error: pErr } = await supabase
+          .from('profiles')
+          .select('user_id, handle, display_name, fav_team, fav_team_league, fav_team_name, fav_team_logo, avatar_url, is_system')
+          .in('user_id', allIds);
+        if (pErr) throw pErr;
+        for (const p of profs || []) profileById[p.user_id] = p;
+      }
+
+      setFollowing((outRows || [])
+        .map((r) => mapFollowProfile(profileById[r.followed_id]))
+        .filter(Boolean));
+      setFollowers((inRows || [])
+        .map((r) => mapFollowProfile(profileById[r.follower_id]))
+        .filter(Boolean));
       setError(null);
     } catch (e) {
       setError(e);
@@ -61,6 +84,25 @@ export function useFollows(targetUserId) {
       followed_id: otherUserId,
     });
     if (error && error.code !== '23505') throw error; // ignore "already following"
+
+    // Best-effort push notification to the followed user. Fire-and-
+    // forget — we don't block the UI on it and silently swallow any
+    // failure (no push subscription, missing VAPID keys, network
+    // hiccup, etc.). The endpoint server-side verifies the follow row
+    // exists before sending.
+    try {
+      const sess = await supabase.auth.getSession();
+      const token = sess?.data?.session?.access_token;
+      fetch('/api/send-notifications?op=notify-follower', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ followedId: otherUserId }),
+      }).catch(() => {});
+    } catch {}
+
     if (ownerId === meId) await load();
   }, [meId, ownerId, load]);
 
@@ -124,6 +166,8 @@ function mapFollowProfile(p) {
     displayName: p.display_name,
     favTeam: p.fav_team,
     favTeamLeague: p.fav_team_league,
+    favTeamName: p.fav_team_name,
+    favTeamLogo: p.fav_team_logo,
     avatarUrl: p.avatar_url,
     isSystem: !!p.is_system,
   };
