@@ -155,8 +155,7 @@ function PicksEmptyState() {
           and unit sizing. Paid picks never go public — your edge stays your edge.
         </p>
         <div className="hero-cta-row">
-          <Link to="/subscribe" className="btn-gold btn-lg">Subscribe</Link>
-          <Link to="/about" className="btn-ghost btn-lg">See track record</Link>
+          <Link to="/subscribe" className="btn-gold btn-lg">See track record + subscribe</Link>
         </div>
       </div>
 

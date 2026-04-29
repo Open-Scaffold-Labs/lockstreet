@@ -35,8 +35,9 @@
   --cfb: var(--orange);
   /* App typography:
      - Default app font is Inter (clean modern sans-serif).
-     - Syne is reserved for the header, /about (Record), and /subscribe (Pro)
-       pages — those scopes override --disp to var(--syne-stack) below.
+     - Syne is reserved for the header and /subscribe (Pro page, which now
+       contains the merged Record narrative) — those scopes override --disp
+       to var(--syne-stack) below.
      - Numbers ALWAYS render in Inter, even inside Syne scopes. The
        'InterNum' @font-face declared below uses unicode-range to claim
        digits + common math symbols, taking precedence over Syne for those
@@ -1643,6 +1644,16 @@ a.pf-meta-link:hover { color: var(--ink); }
 /* ----- window-window tabs (Weekly/Monthly/Season) ----- */
 .pf-window-tabs { padding: 0; margin: 8px 0 6px; }
 .pf-window-tabs .tab { padding: 10px 14px; font-size: 12px; }
+
+/* ----- /feed page tabs (Following / All) ----- */
+/* The bare .tabs class is hidden on mobile (the desktop header nav uses
+   it). For sub-tabs that need to show on mobile too, give them their
+   own class and override display below. */
+.feed-tabs { padding: 0; margin: 0 0 14px; }
+.feed-tabs .tab { padding: 10px 18px; font-size: 13px; }
+@media (max-width: 600px) {
+  .feed-tabs.tabs { display: flex; }
+}
 .pf-sport-tabs   { padding: 0; margin: 6px 0 12px; overflow-x: auto; flex-wrap: nowrap; }
 .pf-sport-tabs .tab { padding: 8px 12px; font-size: 11px; flex-shrink: 0; }
 

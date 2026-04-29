@@ -8,6 +8,7 @@ import HeaderUserSearch from './HeaderUserSearch.jsx';
 // come back later as a sub-section if there's demand.
 const TABS = [
   { to: '/profile',     label: 'Profile' },
+  { to: '/feed',        label: 'Feed' },
   { to: '/scores',      label: 'Scores' },
   { to: '/picks',       label: 'Picks' },
   { to: '/lines',       label: 'Lines' },
@@ -15,8 +16,7 @@ const TABS = [
   { to: '/leaderboard', label: 'Leaders' },
   { to: '/contest',     label: 'Contest' },
   { to: '/weekly',      label: 'Weekly' },
-  { to: '/about',       label: 'Track Record' },
-  { to: '/subscribe',   label: 'Subscribe' },
+  { to: '/subscribe',   label: 'Pro' },
 ];
 
 export default function Header() {

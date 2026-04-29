@@ -8,7 +8,7 @@ import { ToastProvider } from './lib/toast.jsx';
 import ScoresRoute from './routes/ScoresRoute.jsx';
 import PicksRoute from './routes/PicksRoute.jsx';
 import SubscribeRoute from './routes/SubscribeRoute.jsx';
-import AboutRoute from './routes/AboutRoute.jsx';
+import FeedRoute from './routes/FeedRoute.jsx';
 import HomeRoute from './routes/HomeRoute.jsx';
 import ProfileRoute from './routes/ProfileRoute.jsx';
 import PublicProfileRoute from './routes/PublicProfileRoute.jsx';
@@ -38,8 +38,11 @@ export default function App() {
           <Route path="/" element={<HomeRoute />} />
           <Route path="/scores" element={<ScoresRoute />} />
           <Route path="/picks" element={<PicksRoute />} />
-          <Route path="/record" element={<Navigate to="/about" replace />} />
-          <Route path="/about" element={<AboutRoute />} />
+          {/* /about and /record were merged into /subscribe (the Pro page).
+              Both routes redirect there so old links don't break. */}
+          <Route path="/about"  element={<Navigate to="/subscribe" replace />} />
+          <Route path="/record" element={<Navigate to="/subscribe" replace />} />
+          <Route path="/feed"   element={<FeedRoute />} />
           {/* /bankroll became /profile (same nav slot, repurposed). */}
           <Route path="/bankroll" element={<Navigate to="/profile" replace />} />
           <Route path="/profile" element={<ProfileRoute />} />

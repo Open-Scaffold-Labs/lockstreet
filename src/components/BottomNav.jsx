@@ -19,10 +19,14 @@ function IconPicks() {
     </svg>
   );
 }
-function IconRecord() {
+function IconFeed() {
+  // Activity / pulse glyph — three stacked rows representing a feed.
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 17l5-6 4 4 7-9" /><circle cx="20" cy="6" r="1.5" />
+      <path d="M4 6h16" />
+      <path d="M4 12h16" />
+      <path d="M4 18h10" />
+      <circle cx="20" cy="18" r="1.5" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -69,7 +73,7 @@ const ITEMS = [
   { to: '/picks',     label: 'Picks',    icon: <IconPicks /> },
   { to: '/lines',     label: 'Lines',    icon: <IconLines /> },
   { to: '/props',     label: 'Heat\nCheck', icon: <IconProps /> },
-  { to: '/about',     label: 'Record',   icon: <IconRecord /> },
+  { to: '/feed',      label: 'Feed',     icon: <IconFeed /> },
   { to: '/subscribe', label: 'Pro',      icon: <IconStar /> },
 ];
 

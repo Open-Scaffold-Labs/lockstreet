@@ -17,8 +17,7 @@ export default function HomeRoute() {
           three different football pools across three formats — receipts on the Track Record page.
         </p>
         <div className="hero-cta-row">
-          <Link to="/subscribe" className="btn-gold btn-lg">See pricing</Link>
-          <Link to="/about" className="btn-ghost btn-lg">View track record</Link>
+          <Link to="/subscribe" className="btn-gold btn-lg">See track record + pricing</Link>
         </div>
       </section>
 
