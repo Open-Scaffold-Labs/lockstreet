@@ -94,20 +94,38 @@ lockstreet/
 │   │   ├── HomeRoute.jsx         # / — landing (hero, stats, how-it-works, pricing, CTA)
 │   │   ├── ScoresRoute.jsx       # /scores — ESPN scoreboard with off-season banner
 │   │   ├── PicksRoute.jsx        # /picks — paid picks (or marketing empty state when none)
-│   │   ├── AboutRoute.jsx        # /about — credentials/Track Record (3 pool wins)
-│   │   ├── SubscribeRoute.jsx    # /subscribe — 3 tiers
+│   │   ├── FeedRoute.jsx         # /feed — community feed (posts + bare picks, Following / All tabs)
+│   │   ├── ProfileRoute.jsx      # /profile — own profile + EditProfile modal
+│   │   ├── PublicProfileRoute.jsx # /u/:handle — public view of any profile
+│   │   ├── FollowRoute.jsx       # /follow — manage following
+│   │   ├── LeaderboardRoute.jsx  # /leaderboard — handicapper rankings
+│   │   ├── SubscribeRoute.jsx    # /subscribe — Pro page (merged credentials + tiers)
 │   │   ├── SignInRoute.jsx       # /sign-in — custom Supabase email/password form
-│   │   ├── AdminRoute.jsx        # /admin — admin-only pick CRUD
+│   │   ├── ResetPasswordRoute.jsx # /reset-password — Supabase recovery flow
+│   │   ├── AdminRoute.jsx        # /admin — admin-only pick CRUD + user stats panel
 │   │   └── SuccessRoute.jsx      # /success — Stripe redirect target
 │   ├── components/
 │   │   ├── Header.jsx
+│   │   ├── BottomNav.jsx         # mobile-only iOS-style tab bar
 │   │   ├── GameCard.jsx
+│   │   ├── PostComposer.jsx      # /feed composer (textarea + Include pick + Post)
+│   │   ├── PostCard.jsx          # /feed: text post with optional embedded pick
+│   │   ├── UserPickCard.jsx      # bare pick row (used in profile + feed)
+│   │   ├── MakePickFlow.jsx      # game picker → PickModal flow
+│   │   ├── PickModal.jsx         # side / units / read-only line / buy-points
+│   │   ├── TeamPicker.jsx        # search-as-you-type team picker (onPointerDown)
+│   │   ├── OnboardingProfileModal.jsx # first-time profile setup
 │   │   └── InstallPrompt.jsx     # mobile bottom banner; per-platform install UX
 │   └── styles/
 │       ├── index.css             # base, dark theme, gold accent
 │       └── mobile.css            # <=600px overrides
 ├── supabase/migrations/
-│   └── 20260425_initial_schema.sql
+│   ├── 20260425_initial_schema.sql
+│   ├── 20260428_profiles_and_user_picks.sql
+│   ├── 20260428_profile_extras.sql
+│   ├── 20260429_admin_list_users.sql       # SECURITY DEFINER RPC bypassing GoTrue
+│   ├── 20260429_user_picks_no_delete.sql   # BEFORE DELETE trigger (immutability)
+│   └── 20260429_posts.sql                  # /feed composer posts table + RLS
 ├── .env.example                  # all required env vars (no secrets)
 ├── .env.local                    # local secrets (gitignored)
 ├── package.json
@@ -203,12 +221,12 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 ---
 
-## Current state (as of 2026-04-27)
+## Current state (as of 2026-04-29)
 
 ### ✅ Working / done
 
 - **Deployed live: https://lockstreet.vercel.app** (Vercel Hobby, free).
-- Frontend routes: `/` (Buffett hero landing), `/scores`, `/picks`, `/about`, `/subscribe`, `/sign-in`, `/admin`, `/lines`, `/props`, `/bankroll`, `/contest`, `/leaderboard`, `/weekly`, `/game/:league/:gameId`.
+- Frontend routes: `/` (Buffett hero landing), `/scores`, `/picks`, `/feed`, `/profile`, `/u/:handle`, `/follow`, `/subscribe` (Pro page — merged credentials + pricing), `/sign-in`, `/admin`, `/lines`, `/props`, `/contest`, `/leaderboard`, `/weekly`, `/game/:league/:gameId`, `/team/:league/:teamId`. `/about` and `/record` redirect to `/subscribe`. `/bankroll` redirects to `/profile`.
 - Year-round support: ESPN integration covers NFL/CFB/MLB/NBA/NHL. `/scores` filters for all 5. GamePicker supports date-driven sports.
 - **Brand & typography (Apr 27 update):**
   - Pure black background, neon purple primary `#c084fc` (kept as `--gold` token for backward compat), neon **green** `#4ade80` (variable still named `--orange` so existing rules unchanged).
@@ -251,6 +269,24 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 - Centered ambient halo via `.bg-halo` fixed-position div (z-index 1, below header z-50). Visible on every page. Corner accent gradients still on body.
 - Mobile-only fix: `.hdr` is `position: fixed` (sticky was failing on iOS Safari w/ safe-area-inset). Header swallows the notch via its own `padding-top: env(safe-area-inset-top)`. `.wrap` top-padding compensates. Desktop keeps `position: sticky`.
 - Removed: `/parlay`.
+- **Profile / public profile (Apr 29):** `/profile` (own) + `/u/:handle` (public). Edit Profile modal, fav-team picker. TeamPicker uses `onPointerDown` (not `onClick`) to dodge iOS Safari click-cancellation — taps on team rows kept being canceled even with `touch-action: manipulation`. Pointer events fire synchronously and aren't subject to iOS's gesture disambiguation.
+- **Admin User Stats panel (Apr 29):** `/admin` shows total users, verified/unverified, active subs by tier, push device count, recent signups. Reads via SECURITY DEFINER RPC `public.admin_list_users()` instead of `supabase.auth.admin.listUsers()` — GoTrue's deserializer chokes on the synthetic `@lockstreet` row in `auth.users` because that row was manually inserted by the profiles migration without all fields newer GoTrue versions require. Migration `20260429_admin_list_users.sql`.
+- **Pro page (`/subscribe`)** is now the merged Pro+Record page: hero → track-record chart → three #1 finishes → what you get → how we make picks → pricing tiers. Old `/about` and `/record` URLs redirect here. `AboutRoute.jsx` and `RecordRoute.jsx` deleted.
+- **Feed page (`/feed`)** with Following / All tabs:
+  - Tagline: "Live picks from the community. Locked at kickoff, graded automatically, never deleted."
+  - Composer at top — textarea (280-char) + "+ Include pick" button + Post button. Signed-out shows a sign-in CTA instead.
+  - "Include pick" opens existing `MakePickFlow`; the locked pick gets attached. Submit cases:
+    - Body empty + pick attached → no posts row, just the bare pick (already in user_picks).
+    - Body present (any pick) → posts row inserted with `pick_id` if attached.
+    - Body present, no pick → text-only post.
+  - Feed merges latest 50 posts (with embedded pick joined inline) + latest 50 user_picks NOT referenced by any post (dedup), sorted by `created_at` desc. Subscribes to realtime INSERTs on both tables.
+  - **CRITICAL:** PostComposer wrapper is `<div>` + onClick submit, NOT `<form>` + onSubmit. PickModal is itself a `<form>`, so wrapping the composer in a `<form>` causes the inner pick-submit event to bubble up the DOM and race-trigger the composer's submit. That race ate every post-with-pick attempt — silently. See lessons learned.
+- **`posts` table (Apr 29):** `id, user_id, body (1..280), pick_id (nullable FK), created_at`. RLS: public reads non-private (mirrors picks privacy), authenticated users insert their own, no UPDATE/DELETE policies. BEFORE UPDATE + BEFORE DELETE triggers reject every non-`service_role` mutation. Same immutability model as `user_picks` — receipts are permanent. Migration `20260429_posts.sql`.
+- **`user_picks` immutability hardened (Apr 29):** added BEFORE DELETE trigger `user_picks_no_client_delete` mirroring the existing BEFORE UPDATE trigger. RLS already blocks deletes (no policy), this is defense-in-depth in case a future migration accidentally adds one. Migration `20260429_user_picks_no_delete.sql`. Service role can still delete (admin cleanup carve-out).
+- **Line lock on PickModal (Apr 29):** "Line you took" input replaced with read-only consensus display. Users can't fudge a softer line — only sanctioned way to shift it is the buy-half-points stepper (with proper juice penalty). Keeps the leaderboard honest.
+- **Consensus line auto-fetch in PickModal (Apr 29):** if caller doesn't supply `game.consensus`, PickModal hits `/api/team-intel?op=public-betting&league=<league>` and matches by team abbrs as a fallback. **Primary path** is `MakePickFlow` parsing ESPN's `odds.details` ("DET -10.5", "EVEN", "PK") into a home-perspective spread number — ESPN returns lines on basically every upcoming game with no extra fetch.
+- **Header desktop nav (Apr 29):** dropped "Track Record" tab, renamed "Subscribe" → "Pro", added "Feed". BottomNav: dropped Record, added Feed.
+- **Admin can't delete picks via API (Apr 29):** the BEFORE DELETE trigger on user_picks rejects all non-service-role deletes. The composer's nested-form fix kept this from being a real concern, but it's also now structurally enforced.
 
 ### ⚠ Open / next-up
 
@@ -271,12 +307,13 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 - Pure black background (`--bg: #000000`). Neon purple primary (`--gold: #c084fc` — variable kept as `--gold` for backward compat, value is purple). Neon **green** secondary accent (`--orange: #4ade80` — variable kept as `--orange` for backward compat, value is green) for stat numbers / eyebrows / hero / league badges. Display font Inter app-wide; Syne reserved for header + home + about + subscribe via `.route-syne`. Custom `InterNum` `@font-face` overrides digits to Inter inside Syne scopes. Team abbreviations (`.tabbr`, `.orb`) explicitly opt back into Syne. All borders purple. Scrollbars hidden globally.
 - **Slogan:** "Be fearful when others are greedy. Be greedy when others are fearful." — appears on home hero only (no attribution; quotation marks alone suffice). Removed from header + footer.
-- "Two generations. One system." stays on `/about` as the brand-narrative line — that's the Matt+Shawn story.
+- "Two generations. One system." opens the `/subscribe` Pro page — that's the Matt+Shawn brand narrative line.
 - **Sports we post picks for: NFL, College Football, College Basketball.** Other sports tracked via `/scores`/`/lines`/etc. but no official picks. Reinforced via SystemInfoBanner on `/picks`.
 - All money/cost mentions link to the corresponding pricing tier or webhook event for traceability.
 - Disclaimers always include "1-800-GAMBLER" line.
-- `/about` is the credibility anchor — when in doubt about voice, match its tone (concrete, receipt-driven, no overclaiming).
-- Pool aliases footnoted on `/about` so verifiable receipts (Mlav1114, Lucky Shawn) tie back to the names.
+- `/subscribe` (Pro page) is the credibility anchor — when in doubt about voice, match its tone (concrete, receipt-driven, no overclaiming). The track-record cards still reference Matt and Shawn by first name; the hero establishes the father/son frame.
+- Pool aliases (Mlav1114, Lucky Shawn) tie back to the names in `/subscribe`'s track-record block.
+- **Posts and picks are permanent.** UI promises "never deleted"; DB enforces via missing UPDATE/DELETE RLS policies + BEFORE UPDATE/DELETE triggers on both `user_picks` and `posts`. Service role is the only thing that can ever modify a row — used by the grading job to write `result` and `graded_at` on picks. If you ever need to add admin-side deletion (banned-user cleanup, etc.), do it via `service_role` from a server endpoint, never expose a delete policy to `authenticated`.
 
 ## Lessons learned (don't repeat these mistakes)
 
@@ -296,3 +333,9 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 - **ScoresAndOdds slugs are NOT a reliable home/away indicator.** Slug like `blue-jays-vs-red-sox` doesn't always mean Blue Jays away — SAO sometimes inverts. Trust the page's `trend-graph-sides` left/right pair: SAO renders LEFT = away, RIGHT = home (verified for NBA/NHL/MLB by cross-checking ESPN schedules). The percentage-a/percentage-b alignment confirms (a=left=away, b=right=home).
 - **SAO `home-current-trends` / `away-current-trends` is a decorator class, not a section wrapper.** It appears 4+ times each on a page (once per data-attribute hook). A regex like `class="main ${label}"...</table>` won't bound the team's trend table because the table doesn't end with `</table>` near the anchor. Correct approach: find the FIRST `indexOf(anchor)` and scan forward in the HTML for the next `<tr ...><td>Last 10 Games</td></tr>` row — that row belongs to that team. Verified on NHL/MLB/NBA: away anchor comes first on the page, home anchor second.
 - **NEVER expose data-source attribution in user-visible UI.** Strings like "via ScoresAndOdds", "scraped from public sportsbook trend pages", "powered by VSiN", "live ScoresAndOdds data" — none of these belong on a customer-facing page. Subscribers paying $250/mo for picks shouldn't be told "we just scrape SAO." Use neutral phrasing: "public betting splits", "live lines", "publicly available data." Comments inside source files (`/** /lines — pure ScoresAndOdds data */`) are fine because they're invisible to users — but anything inside JSX, alt text, aria-label, footer disclaimer, header subtitle, stat box `sub` prop, or any other rendered string is OFF LIMITS for source attribution. **Audit rule: before shipping, grep `src/` for the names of any external services we hit (`ScoresAndOdds`, `VSiN`, `the-odds-api`, `ESPN`, `NewsData`, etc.) and verify every hit is inside a `/* */` or `//` comment, never inside a string literal that ends up rendered.**
+- **Nested `<form>` tags cause submit-event races in React.** PostComposer was a `<form onSubmit={submit}>` and rendered MakePickFlow inside, which itself renders PickModal as another `<form onSubmit={submit}>`. When the user clicked "Lock pick" inside the inner form, the submit event bubbled up the DOM and fired the OUTER composer's submit handler too — but with stale state (pick was still `null` because React hadn't applied `setPick` from the inner success handler yet). That race silently ate every post-with-pick attempt: body got cleared, pick was lost, no row landed in `posts`, and the user saw "nothing happened." **Rule: if a child component might render its own `<form>`, the parent MUST be a `<div>`, with the submit button as `type="button" onClick={submit}`.** Browsers don't error on nested forms in JS-built DOM (HTML5 parser would strip them, but `document.createElement` doesn't), so this is the kind of bug that survives all the way to production.
+- **iOS Safari cancels `onClick` on synthesized clicks under various gesture conditions.** TeamPicker's row buttons used `onClick`, and iOS would cancel the click whenever it interpreted the tap as a scroll-start or a "double tap to zoom" disambiguation. Symptoms: row visually highlights, dropdown closes, but selection never propagates to state. `touch-action: manipulation` helps but isn't sufficient. **Bulletproof fix: use `onPointerDown` with `e.preventDefault()` + `e.stopPropagation()`.** Pointer events fire synchronously and aren't subject to iOS's click-cancellation logic. Keep `onClick` as a fallback for keyboard/assistive-tech (`if (e.detail === 0) ...`). Same pattern works for any tappable list item where the dropdown closes on outside-click.
+- **GoTrue's admin `listUsers()` chokes on auth.users rows missing fields newer GoTrue versions added.** Lock Street's profiles migration (`20260428_profiles_and_user_picks.sql`) manually inserts a synthetic `@lockstreet` user into `auth.users` so the public free pick can compete on the leaderboard. That insert specifies a subset of columns; over time GoTrue has added required fields like `is_anonymous`, `is_sso_user`, etc. that default to NULL on the synthetic row. When `supabase.auth.admin.listUsers()` iterates rows, it deserializes every one through GoTrue's User struct and bails on the synthetic row with the generic "Database error finding user." The Supabase Dashboard reads `auth.users` directly via SQL and works fine, so the bug only surfaces from the JS admin SDK. **Workaround: bypass GoTrue for any user-listing endpoint.** Define a `SECURITY DEFINER` Postgres function in `public` that selects from `auth.users` and exposes only the columns you need; call it via `supabase.rpc()`. Pattern in `supabase/migrations/20260429_admin_list_users.sql`. The same fix inoculates any future admin-surface code that would otherwise call `listUsers`.
+- **Posts/picks privacy needs an owner-fallback in the SELECT RLS policy.** The user_picks SELECT policy correctly has `auth.uid() = user_id OR (not exists … is_private)` — owner always sees own. The first cut of the posts policy didn't, which would have hidden private users' own posts from themselves. Fixed before shipping but worth remembering: every policy that filters by `profiles.is_private` must include the owner-fallback OR the user's own data disappears from their own UI.
+- **ESPN's scoreboard endpoint returns spread/total/ML on `competitions[0].odds[0]`** for basically every upcoming game in NBA/NFL/CFB/MLB/NHL. `details` is a string like `"DET -10.5"`, `"EVEN"`, or `"PK"` — favorite abbreviation followed by their (always-negative-or-zero) spread. To convert to a home-perspective number: parse the abbr + number, flip sign if the favorite is the away team. Implementation in `MakePickFlow.parseEspnSpreadToHome`. This lets every PickModal autofill a line without an extra network call. The `public_betting` scraper is the fallback when ESPN is missing data (rare).
+- **The `posts` table needs an owner-fallback if you ever flip default privacy.** Currently the posts SELECT policy is `not exists (… profile.is_private = true)` only. That works because Lock Street's onboarding doesn't default profiles to private. If we ever flip the default OR add an "all profiles private until they opt in" mode, posts would disappear from authors' own feeds. The fix is to add `auth.uid() = user_id OR …` to the policy, mirroring `user_picks`. Migration `20260429_posts.sql` doesn't have it yet — leaving as a known follow-up so we don't have to migrate twice.
