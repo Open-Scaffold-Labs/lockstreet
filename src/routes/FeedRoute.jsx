@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase.js';
 import { useAuth, SignedIn, SignedOut, SignInButton } from '../lib/auth.jsx';
+import { useMyProfile } from '../hooks/useProfile.js';
+import { useToast } from '../lib/toast.jsx';
 import UserPickCard from '../components/UserPickCard.jsx';
 import PostCard from '../components/PostCard.jsx';
 import PostComposer from '../components/PostComposer.jsx';
@@ -23,6 +25,29 @@ import PostComposer from '../components/PostComposer.jsx';
 export default function FeedRoute() {
   const [tab, setTab] = useState('following');
   const [reloadKey, setReloadKey] = useState(0);
+  const { profile: viewer } = useMyProfile();
+  const toast = useToast();
+
+  // Pin / unpin a post. Authorized server-side: only the post's
+  // creator-author can flip pinned (DB trigger + RLS); the UI just
+  // hides the button for everyone else.
+  const togglePin = useCallback(async (postId, nextPinned) => {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('posts')
+      .update({ pinned: nextPinned })
+      .eq('id', postId);
+    if (error) {
+      toast(error.message || 'Could not pin', { type: 'error' });
+      return;
+    }
+    toast(nextPinned ? 'Pinned to top' : 'Unpinned', { type: 'success', duration: 1500 });
+    setReloadKey((k) => k + 1);
+  }, [toast]);
+
+  const viewerCanPinFor = useCallback((postUserId) => {
+    return !!(viewer?.isCreator && viewer?.userId && viewer.userId === postUserId);
+  }, [viewer]);
 
   return (
     <section className="feed-page">
@@ -52,10 +77,12 @@ export default function FeedRoute() {
       {tab === 'following' ? (
         <>
           <SignedOut><FollowingSignedOut /></SignedOut>
-          <SignedIn><FollowingFeed reloadKey={reloadKey} /></SignedIn>
+          <SignedIn>
+            <FollowingFeed reloadKey={reloadKey} viewerCanPinFor={viewerCanPinFor} onTogglePin={togglePin} />
+          </SignedIn>
         </>
       ) : (
-        <AllFeed reloadKey={reloadKey} />
+        <AllFeed reloadKey={reloadKey} viewerCanPinFor={viewerCanPinFor} onTogglePin={togglePin} />
       )}
     </section>
   );
@@ -79,18 +106,20 @@ function FollowingSignedOut() {
   );
 }
 
-function FollowingFeed({ reloadKey }) {
+function FollowingFeed({ reloadKey, viewerCanPinFor, onTogglePin }) {
   const { userId } = useAuth?.() || {};
   const { items, authors, loading, error } = useFeed({ scope: 'following', meId: userId, reloadKey });
-  return <FeedList items={items} authors={authors} loading={loading} error={error} emptyKind="following" />;
+  return <FeedList items={items} authors={authors} loading={loading} error={error} emptyKind="following"
+    viewerCanPinFor={viewerCanPinFor} onTogglePin={onTogglePin} />;
 }
 
-function AllFeed({ reloadKey }) {
+function AllFeed({ reloadKey, viewerCanPinFor, onTogglePin }) {
   const { items, authors, loading, error } = useFeed({ scope: 'all', reloadKey });
-  return <FeedList items={items} authors={authors} loading={loading} error={error} emptyKind="all" />;
+  return <FeedList items={items} authors={authors} loading={loading} error={error} emptyKind="all"
+    viewerCanPinFor={viewerCanPinFor} onTogglePin={onTogglePin} />;
 }
 
-function FeedList({ items, authors, loading, error, emptyKind }) {
+function FeedList({ items, authors, loading, error, emptyKind, viewerCanPinFor, onTogglePin }) {
   if (loading) return <p style={{ color: 'var(--ink-dim)' }}>Loading…</p>;
   if (error)   return <p style={{ color: 'var(--bad)' }}>Failed to load: {error.message}</p>;
 
@@ -119,7 +148,13 @@ function FeedList({ items, authors, loading, error, emptyKind }) {
     <div className="feed-list">
       {items.map((it) => (
         it.kind === 'post' ? (
-          <PostCard key={`p-${it.id}`} post={it} author={authors[it.userId]} />
+          <PostCard
+            key={`p-${it.id}`}
+            post={it}
+            author={authors[it.userId]}
+            canPin={viewerCanPinFor ? viewerCanPinFor(it.userId) : false}
+            onTogglePin={onTogglePin}
+          />
         ) : (
           <UserPickCard key={`k-${it.id}`} pick={it} showAuthor author={authors[it.userId]} />
         )
@@ -179,13 +214,14 @@ function useFeed({ scope, meId = null, reloadKey = 0 }) {
       let postQ = supabase
         .from('posts')
         .select(
-          'id, user_id, body, created_at, ' +
+          'id, user_id, body, pinned, created_at, ' +
           'pick:user_picks(' +
             'id, user_id, game_id, league, season, week, bet_type, side, units, ' +
             'line_at_pick, juice_at_pick, market_line, market_juice, point_buys, ' +
             'is_free_pick, home_abbr, away_abbr, home_logo, away_logo, ' +
             'locked_at, kickoff_at, result, graded_at, created_at)'
         )
+        .order('pinned', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(FEED_LIMIT);
       if (scope === 'following') postQ = postQ.in('user_id', followIds);
@@ -224,6 +260,7 @@ function useFeed({ scope, meId = null, reloadKey = 0 }) {
         id: r.id,
         userId: r.user_id,
         body: r.body,
+        pinned: !!r.pinned,
         createdAt: r.created_at,
         pick: r.pick ? mapPickRow(r.pick) : null,
       }));
@@ -233,9 +270,16 @@ function useFeed({ scope, meId = null, reloadKey = 0 }) {
         .filter((p) => !wrappedPickIds.has(p.id))
         .map((p) => ({ kind: 'pick', ...mapPickRow(p) }));
 
-      // Merge by created_at desc, cap at FEED_LIMIT.
+      // Merge: pinned posts first (in created_at desc within pinned),
+      // then everything else by created_at desc. Bare picks have no
+      // pinned concept so they treat as pinned=false.
       const merged = [...postItems, ...bareItems]
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .sort((a, b) => {
+          const ap = a.pinned ? 1 : 0;
+          const bp = b.pinned ? 1 : 0;
+          if (ap !== bp) return bp - ap;
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        })
         .slice(0, FEED_LIMIT);
       setItems(merged);
       setError(null);

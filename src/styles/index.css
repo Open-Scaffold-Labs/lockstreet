@@ -1743,6 +1743,31 @@ a.pf-meta-link:hover { color: var(--ink); }
   font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
   letter-spacing: 0.04em; flex-shrink: 0;
 }
+.post-card.is-pinned {
+  border-color: rgba(192, 132, 252, 0.55);
+  box-shadow: 0 0 0 1px rgba(192, 132, 252, 0.25), 0 6px 24px rgba(192, 132, 252, 0.08);
+}
+.post-card-pinned-badge {
+  font-family: var(--mono); font-size: 9px; font-weight: 800;
+  letter-spacing: 0.2em; padding: 2px 7px; border-radius: 4px;
+  background: var(--gold); color: #000; flex-shrink: 0;
+}
+.post-card-pin-btn {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--ink-dim); cursor: pointer;
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 4px 9px; border-radius: 6px;
+  flex-shrink: 0;
+}
+.post-card-pin-btn:hover {
+  color: var(--gold); border-color: var(--border-strong);
+  background: rgba(192,132,252,0.06);
+}
+.post-card-pin-btn.active {
+  color: var(--gold); border-color: rgba(192, 132, 252, 0.55);
+  background: rgba(192,132,252,0.10);
+}
 .post-card-avatar {
   width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
   border: 1px solid var(--border-strong); flex-shrink: 0;

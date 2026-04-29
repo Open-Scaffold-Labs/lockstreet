@@ -24,7 +24,7 @@ export function useProfile({ userId, handle } = {}) {
     setLoading(true);
     try {
       let q = supabase.from('profiles').select(
-        'user_id, handle, display_name, fav_team, fav_team_league, fav_team_name, fav_team_logo, avatar_url, bio, is_system, banned, is_private, created_at'
+        'user_id, handle, display_name, fav_team, fav_team_league, fav_team_name, fav_team_logo, avatar_url, bio, is_system, is_creator, banned, is_private, created_at'
       );
       if (userId) q = q.eq('user_id', userId);
       else        q = q.eq('handle', String(handle).toLowerCase());
@@ -101,6 +101,24 @@ export async function upsertMyProfile(fields) {
 
   const { data, error } = await supabase.from('profiles').insert(payload).select().single();
   if (error) throw error;
+
+  // First-profile creation: auto-follow every creator account so new
+  // users see Matt's pinned updates / picks in their Following feed
+  // out of the gate. Best-effort — failures don't block profile setup.
+  try {
+    const { data: creators } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('is_creator', true);
+    const rows = (creators || [])
+      .map((c) => c.user_id)
+      .filter((id) => id && id !== uid)
+      .map((id) => ({ follower_id: uid, followed_id: id }));
+    if (rows.length) {
+      await supabase.from('follows').insert(rows);
+    }
+  } catch { /* swallow — auto-follow is a nice-to-have */ }
+
   return mapProfile(data);
 }
 
@@ -148,6 +166,7 @@ function mapProfile(p) {
     avatarUrl: p.avatar_url,
     bio: p.bio,
     isSystem: !!p.is_system,
+    isCreator: !!p.is_creator,
     banned: !!p.banned,
     isPrivate: !!p.is_private,
     createdAt: p.created_at,

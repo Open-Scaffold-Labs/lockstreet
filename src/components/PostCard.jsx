@@ -7,15 +7,20 @@ import UserPickCard from './UserPickCard.jsx';
  * this component is for posts that have body text.
  *
  * Props:
- *   post   — { id, userId, body, pick, createdAt }
- *   author — { handle, displayName, avatarUrl, favTeamLogo }
+ *   post         — { id, userId, body, pick, createdAt, pinned }
+ *   author       — { handle, displayName, avatarUrl, favTeamLogo }
+ *   canPin       — true when the viewer is allowed to toggle pinned
+ *                  on this post (creator-author of the post)
+ *   onTogglePin  — (postId, nextPinned) => Promise; called when the
+ *                  pin button is tapped
  */
-export default function PostCard({ post, author }) {
+export default function PostCard({ post, author, canPin = false, onTogglePin }) {
   if (!post) return null;
   const handleLink = author?.handle ? `/u/${author.handle}` : null;
+  const pinned = !!post.pinned;
 
   return (
-    <article className="post-card">
+    <article className={'post-card' + (pinned ? ' is-pinned' : '')}>
       <header className="post-card-head">
         {handleLink ? (
           <Link to={handleLink} className="post-card-author">
@@ -31,7 +36,20 @@ export default function PostCard({ post, author }) {
             <span className="post-card-handle">@unknown</span>
           </div>
         )}
+        {pinned ? <span className="post-card-pinned-badge">PINNED</span> : null}
         <span className="post-card-time">{fmtRel(post.createdAt)}</span>
+        {canPin ? (
+          <button
+            type="button"
+            className={'post-card-pin-btn' + (pinned ? ' active' : '')}
+            onClick={() => onTogglePin?.(post.id, !pinned)}
+            aria-pressed={pinned}
+            aria-label={pinned ? 'Unpin this post' : 'Pin this post'}
+            title={pinned ? 'Unpin' : 'Pin to top of feed'}
+          >
+            {pinned ? '📌 Unpin' : '📌 Pin'}
+          </button>
+        ) : null}
       </header>
 
       <p className="post-card-body">{post.body}</p>

@@ -47,7 +47,12 @@ export default function FollowButton({ targetUserId, compact = false, onChange, 
       await reload();
       onChange?.(!isFollowing);
     } catch (e) {
-      toast(e?.message || 'Could not update follow', { type: 'error' });
+      const msg = e?.message || '';
+      if (/Cannot unfollow Lock Street creator/i.test(msg)) {
+        toast('You can\'t unfollow the Lock Street account.', { type: 'info', duration: 3000 });
+      } else {
+        toast(msg || 'Could not update follow', { type: 'error' });
+      }
     } finally {
       setBusy(false);
     }
