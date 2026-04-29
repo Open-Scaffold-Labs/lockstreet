@@ -4,6 +4,7 @@ import BottomNav from './components/BottomNav.jsx';
 import InstallPrompt from './components/InstallPrompt.jsx';
 import OnboardingModal from './components/OnboardingModal.jsx';
 import PushPromptModal from './components/PushPromptModal.jsx';
+import PullToRefresh from './components/PullToRefresh.jsx';
 import { ToastProvider } from './lib/toast.jsx';
 import ScoresRoute from './routes/ScoresRoute.jsx';
 import PicksRoute from './routes/PicksRoute.jsx';
@@ -70,6 +71,7 @@ export default function App() {
       <InstallPrompt />
       <OnboardingModal />
       <PushPromptModal />
+      <PullToRefresh />
     </ToastProvider>
   );
 }

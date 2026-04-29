@@ -1768,6 +1768,42 @@ a.pf-meta-link:hover { color: var(--ink); }
   color: var(--gold); border-color: rgba(192, 132, 252, 0.55);
   background: rgba(192,132,252,0.10);
 }
+
+/* ---------- Pull-to-refresh indicator ---------- */
+.ptr-indicator {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: 0; right: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  z-index: 90;
+  pointer-events: none;
+  font-family: var(--mono);
+  color: var(--ink-dim);
+  transition: transform 0.06s linear;
+}
+.ptr-indicator.ready { color: var(--gold); }
+.ptr-spinner {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800;
+  background: linear-gradient(160deg, #141114, #0a0a0a);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+.ptr-indicator.ready .ptr-spinner {
+  border-color: var(--gold); color: var(--gold);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4), 0 0 16px rgba(192,132,252,0.35);
+}
+.ptr-spinner.spinning { animation: ptr-spin 0.7s linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(360deg); } }
+.ptr-label {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+}
+
+/* Disable native overscroll on body so our gesture is the only one
+   that fires when the user pulls past the top. Without this, iOS would
+   show its rubber-band bounce alongside our indicator. */
+html, body { overscroll-behavior-y: contain; }
 .post-card-avatar {
   width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
   border: 1px solid var(--border-strong); flex-shrink: 0;
