@@ -28,6 +28,19 @@ export default function MakePickFlow({ onClose, onSubmitted, defaultLeague = 'nf
           season: game.season,
           home: game.home,
           away: game.away,
+          // ESPN's scoreboard endpoint already returns the live line on
+          // every event (`spread` like "DET -4.5", `ou` like "215.5",
+          // mlHome/mlAway). GamePicker reads them straight off `g.spread`
+          // / `g.ou`, so the previous list page already shows a spread.
+          // Build a consensus object from those strings here so PickModal
+          // prefills the line input automatically — no extra fetch, no
+          // dependency on the public_betting scraper being up-to-date.
+          consensus: {
+            spreadHome: parseEspnSpreadToHome(game.spread, game.home?.abbr, game.away?.abbr),
+            total:      game.ou != null && game.ou !== '' ? Number(game.ou) : null,
+            mlHome:     game.mlHome,
+            mlAway:     game.mlAway,
+          },
         }}
         onClose={() => { setGame(null); onClose?.(); }}
         onSubmitted={(p) => { onSubmitted?.(p); onClose?.(); }}
@@ -53,4 +66,29 @@ export default function MakePickFlow({ onClose, onSubmitted, defaultLeague = 'nf
       </div>
     </div>
   );
+}
+
+/**
+ * Convert ESPN's `odds.details` string ("DET -4.5", "ORL +2", "EVEN",
+ * "PK") into a home-perspective spread number that PickModal expects.
+ * The favorite's abbr is at the start; the number after it is always
+ * negative for the favorite. We flip sign if the favorite is the away
+ * team so the result is always home-perspective.
+ *
+ * Returns null if the string can't be parsed.
+ */
+function parseEspnSpreadToHome(details, homeAbbr, awayAbbr) {
+  if (!details || !homeAbbr) return null;
+  const s = String(details).trim();
+  if (/^(EVEN|PK|PICK[''-]?EM)$/i.test(s)) return 0;
+  const m = s.match(/^(\S+)\s+([+-]?\d+(?:\.\d+)?)$/);
+  if (!m) return null;
+  const favored = m[1].toUpperCase();
+  const num = Number(m[2]);
+  if (!Number.isFinite(num)) return null;
+  const home = String(homeAbbr).toUpperCase();
+  const away = String(awayAbbr || '').toUpperCase();
+  if (favored === home) return num;
+  if (favored === away) return -num;
+  return null;
 }
