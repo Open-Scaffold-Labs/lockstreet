@@ -148,9 +148,6 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0, hideLeag
           <TeamRow team={home} score={score?.home} side={hSide} showScore={showScore} />
         </div>
         <div className="lines">
-          {game.series?.summary && (
-            <span className="pill gd-pill-series"><span className="k">SERIES</span>{game.series.summary}</span>
-          )}
           {spread && <span className="pill"><span className="k">SPREAD</span>{spread}</span>}
           {ou &&     <span className="pill"><span className="k">O/U</span>{ou}</span>}
           {hasMl && (

@@ -167,13 +167,16 @@ function normalizeSummary(json, league) {
     return { summary, title: s.title || null, awayWins: aw, homeWins: hw };
   })();
 
-  // Odds: ESPN groups them under competitions[0].odds[0]. `details` is a
-  // human spread string ("DET -3.5"), `overUnder` is the total, and the
-  // per-team moneylines hang off awayTeamOdds / homeTeamOdds.moneyLine.
-  // We surface a normalized shape for the game-detail page to render
-  // pills like the scoreboard GameCard does.
+  // Odds source order (ESPN's summary endpoint scatters them):
+  //   1) json.pickcenter[0]  — the canonical place on the summary
+  //      response. Has `details` ("DET -11.5"), `overUnder`, per-team
+  //      moneylines on awayTeamOdds / homeTeamOdds.moneyLine.
+  //   2) header.competitions[0].odds[0] — the same shape, present on
+  //      the scoreboard endpoint and sometimes echoed here.
+  // Returns null when the event has no odds at all (rare for upcoming
+  // games, common for preseason / international).
   const odds = (() => {
-    const o = comp?.odds?.[0];
+    const o = json?.pickcenter?.[0] || comp?.odds?.[0] || null;
     if (!o) return null;
     const details   = typeof o.details === 'string' ? o.details : null;
     const total     = Number.isFinite(Number(o.overUnder)) ? Number(o.overUnder) : null;
