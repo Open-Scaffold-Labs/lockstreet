@@ -118,20 +118,36 @@ async function notifyFollower(req, res) {
   const displayName = prof?.display_name || 'Someone';
   const handle      = prof?.handle ? `@${prof.handle}` : '';
 
-  // Fetch followed user's push subscriptions.
+  const title = `${displayName} started following you`;
+  const body  = handle ? `Tap to view ${handle}'s profile.` : 'Tap to view their profile.';
+  const url   = prof?.handle ? `/u/${prof.handle}` : '/profile';
+
+  // Persist a notification row regardless of push subscription state
+  // so the user has it in their inbox even if push wasn't enabled.
+  // Best-effort — surface insert errors but don't fail the whole call.
+  await supa.from('notifications').insert({
+    user_id: followedId,
+    type:    'new_follower',
+    title,
+    body,
+    url,
+    meta:    { follower_id: userId, follower_handle: prof?.handle || null },
+  });
+
+  // Fetch followed user's push subscriptions for the additional push send.
   const { data: pushSubs } = await supa
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth_secret')
     .eq('user_id', followedId);
 
   if (!pushSubs?.length) {
-    return res.status(200).json({ sent: 0, total: 0, skipped: 'no-push-subs' });
+    return res.status(200).json({ sent: 0, total: 0, persisted: true, skipped: 'no-push-subs' });
   }
 
   const payload = JSON.stringify({
-    title: `${displayName} started following you`,
-    body:  handle ? `Tap to view ${handle}'s profile.` : 'Tap to view their profile.',
-    url:   prof?.handle ? `/u/${prof.handle}` : '/profile',
+    title,
+    body,
+    url,
     tag:   `follow-${userId}-${followedId}`,
   });
 
@@ -153,5 +169,5 @@ async function notifyFollower(req, res) {
   }));
 
   const sent = results.filter((r) => r.value?.ok).length;
-  res.status(200).json({ sent, total: pushSubs.length });
+  res.status(200).json({ sent, total: pushSubs.length, persisted: true });
 }

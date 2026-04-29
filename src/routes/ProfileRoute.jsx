@@ -12,6 +12,7 @@ import StatsStrip from '../components/StatsStrip.jsx';
 import UserPickCard from '../components/UserPickCard.jsx';
 import FollowButton from '../components/FollowButton.jsx';
 import MakePickFlow from '../components/MakePickFlow.jsx';
+import NotificationsSection from '../components/NotificationsSection.jsx';
 
 /**
  * /profile — your own home page.
@@ -99,6 +100,8 @@ export function ProfileBody({ profile, ownerUserId, isOwn = false, onProfileUpda
         isOwn={isOwn}
         onMakePick={isOwn ? () => setPickFlowOpen(true) : undefined}
       />
+
+      {isOwn && <NotificationsSection />}
 
       {pickFlowOpen && (
         <MakePickFlow

@@ -1787,6 +1787,43 @@ a.pf-meta-link:hover { color: var(--ink); }
 .pf-picks-tabs { padding: 0; }
 .pf-picks-tabs .tab { padding: 6px 12px; font-size: 12px; }
 
+/* ----- Notifications section ----- */
+.pf-notif-unread-badge {
+  font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: 0.14em;
+  padding: 3px 8px; border-radius: 4px; background: var(--gold); color: #000;
+  margin-left: 8px; vertical-align: middle;
+}
+.pf-notif-mark-all {
+  padding: 6px 10px; font-size: 11px;
+}
+.pf-notif-row {
+  width: 100%; text-align: left; cursor: pointer;
+  background: rgba(11, 15, 26, 0.5);
+  border: 1px solid var(--border);
+  text-transform: none; letter-spacing: normal; color: var(--ink);
+  padding: 12px 14px;
+}
+.pf-notif-row:hover { border-color: var(--border-strong); }
+.pf-notif-row.is-unread {
+  background: rgba(192, 132, 252, 0.06);
+  border-color: rgba(192, 132, 252, 0.35);
+}
+.pf-notif-type-badge {
+  font-family: var(--mono); font-size: 9px; font-weight: 800;
+  letter-spacing: 0.16em; padding: 2px 7px; border-radius: 4px;
+  background: rgba(255,255,255,0.04); color: var(--ink-faint);
+  border: 1px solid var(--border);
+}
+.pf-notif-type-badge.type-new_follower   { background: rgba(192,132,252,0.10); color: var(--gold);  border-color: rgba(192,132,252,0.4); }
+.pf-notif-type-badge.type-pick_graded    { background: rgba(76,201,240,0.10);  color: var(--green); border-color: rgba(76,201,240,0.4); }
+.pf-notif-type-badge.type-free_pick_drop { background: rgba(76,201,240,0.10);  color: var(--green); border-color: rgba(76,201,240,0.4); }
+.pf-notif-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--gold); flex-shrink: 0;
+  align-self: center; margin-left: 8px;
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.6);
+}
+
 /* + Make a Pick button at the top of the picks card. Full-width gold
    primary so it reads as the page's main action. */
 .pf-picks-make-pick {
