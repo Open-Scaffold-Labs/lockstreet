@@ -79,7 +79,7 @@ export function ProfileBody({ profile, ownerUserId, isOwn = false, onProfileUpda
   const [window, setWindow] = useState('season');
   const [pickFlowOpen, setPickFlowOpen] = useState(false);
   const { picks, loading: picksLoading, reload: reloadPicks } = useUserPicks(ownerUserId);
-  const { following, followers, loading: followsLoading } = useFollows(ownerUserId);
+  const { following, followers, loading: followsLoading, reload: reloadFollows } = useFollows(ownerUserId);
 
   return (
     <>
@@ -90,7 +90,7 @@ export function ProfileBody({ profile, ownerUserId, isOwn = false, onProfileUpda
         isOwn={isOwn}
         rightSlot={isOwn
           ? <EditProfileButton profile={profile} onUpdated={onProfileUpdated} inline />
-          : <FollowButton targetUserId={profile.userId} />}
+          : <FollowButton targetUserId={profile.userId} onChange={reloadFollows} />}
       />
 
       <PicksSection
