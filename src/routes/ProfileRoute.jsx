@@ -93,13 +93,13 @@ export function ProfileBody({ profile, ownerUserId, isOwn = false, onProfileUpda
           : <FollowButton targetUserId={profile.userId} />}
       />
 
-      {isOwn && (
-        <div className="pf-action-row">
-          <button type="button" className="btn-gold pf-make-pick-btn" onClick={() => setPickFlowOpen(true)}>
-            + Make a Pick
-          </button>
-        </div>
-      )}
+      <PicksSection
+        picks={picks}
+        loading={picksLoading}
+        isOwn={isOwn}
+        onMakePick={isOwn ? () => setPickFlowOpen(true) : undefined}
+      />
+
       {pickFlowOpen && (
         <MakePickFlow
           defaultLeague={profile.favTeamLeague || 'nfl'}
@@ -128,13 +128,6 @@ export function ProfileBody({ profile, ownerUserId, isOwn = false, onProfileUpda
       </div>
 
       <StatsStrip picks={picks} window={window} />
-
-      <PicksSection
-        picks={picks}
-        loading={picksLoading}
-        isOwn={isOwn}
-        onMakePick={isOwn ? () => setPickFlowOpen(true) : undefined}
-      />
     </>
   );
 }
@@ -234,6 +227,11 @@ function PicksSection({ picks, loading, isOwn, onMakePick }) {
 
   return (
     <div className="about-block">
+      {isOwn && onMakePick && (
+        <button type="button" className="btn-gold pf-picks-make-pick" onClick={onMakePick}>
+          + Make a Pick
+        </button>
+      )}
       <div className="pf-picks-head">
         <h3>Picks</h3>
         <div className="tabs pf-picks-tabs" role="tablist" aria-label="Picks filter">
