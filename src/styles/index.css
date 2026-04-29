@@ -2001,8 +2001,24 @@ a.pf-meta-link:hover { color: var(--ink); }
   }
 
   /* iOS Safari auto-zooms (and never auto-unzooms) when an input
-     focuses with font-size < 16px. Bumping just the search input on
-     mobile prevents that without changing the desktop visual. */
-  .hdr-search-input { font-size: 16px; }
+     focuses with font-size < 16px. Bumping every input the user can
+     focus inside a modal / picker on mobile so Safari never triggers
+     the zoom — desktop visuals unchanged. */
+  .hdr-search-input,
+  .pf-form input,
+  .pf-form select,
+  .pf-form textarea,
+  .pf-handle-input input,
+  .tp-input,
+  .pf-search-input,
+  .pm-line-number,
+  .pm-line-input input {
+    font-size: 16px;
+  }
+
+  /* Larger tap targets on mobile for modal close + picker rows. */
+  .pm-close   { padding: 12px 16px; font-size: 28px; }
+  .tp-row     { padding: 12px 10px; }
+  .tp-clear   { padding: 12px 14px; font-size: 22px; }
 }
 
