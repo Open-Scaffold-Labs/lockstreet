@@ -1990,5 +1990,14 @@ a.pf-meta-link:hover { color: var(--ink); }
   .pf-modal-card { padding: 22px 18px 18px; }
   .pm-side-btn { padding: 14px 10px; font-size: 16px; }
   .gd-top-row { margin-bottom: 4px; }
+
+  /* Header user-search panel: on narrow viewports, anchor to the
+     viewport (not the icon) so it always fits with 12px gutters. */
+  .hdr-search-panel {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 64px);
+    left: 12px; right: 12px;
+    width: auto;
+  }
 }
 
