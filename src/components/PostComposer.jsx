@@ -63,8 +63,7 @@ function Composer({ onPosted }) {
 
   function clearPick() { setPick(null); }
 
-  async function submit(e) {
-    e?.preventDefault?.();
+  async function submit() {
     if (!canPost || !userId) return;
     setBusy(true);
     try {
@@ -94,8 +93,15 @@ function Composer({ onPosted }) {
     }
   }
 
+  // NOTE: this used to be a <form> with onSubmit, but MakePickFlow
+  // renders PickModal which is *also* a <form>. Nested forms in the
+  // DOM cause submit events from the inner pick form to bubble up
+  // and race-trigger this composer's submit handler — that race was
+  // eating posts and clearing the textarea before the actual insert
+  // ran. Switching this to a <div> + onClick submit kills the
+  // nesting and the race.
   return (
-    <form className="post-composer" onSubmit={submit}>
+    <div className="post-composer">
       <textarea
         className="post-composer-input"
         value={body}
@@ -131,8 +137,9 @@ function Composer({ onPosted }) {
           {body.length}/{MAX_BODY}
         </span>
         <button
-          type="submit"
+          type="button"
           className="btn-gold post-composer-submit"
+          onClick={submit}
           disabled={!canPost}
         >
           {busy ? 'Posting…' : 'Post'}
@@ -145,6 +152,6 @@ function Composer({ onPosted }) {
           onSubmitted={(p) => { setPick(p); setPickFlowOpen(false); }}
         />
       )}
-    </form>
+    </div>
   );
 }
