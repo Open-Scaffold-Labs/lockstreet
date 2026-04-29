@@ -63,51 +63,37 @@ function FollowBody() {
 
   return (
     <>
-      <div className="bk-header">
-        <div>
-          <div className="trc-eyebrow">Follow graph</div>
-          <div className="trc-final">
-            {following.length} following
-            <span className="trc-final-sub">{followers.length} {followers.length === 1 ? 'follower' : 'followers'}</span>
-          </div>
+      <input
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search handle or display name…"
+        className="pf-search-input"
+        autoFocus
+      />
+      {query.trim().length >= 2 && (
+        <div className="pf-search-results bk-table" style={{ marginTop: 12 }}>
+          {searching ? (
+            <div style={{ color: 'var(--ink-dim)', padding: 12 }}>Searching…</div>
+          ) : results.length === 0 ? (
+            <div style={{ color: 'var(--ink-dim)', padding: 12 }}>No matches.</div>
+          ) : (
+            results.map((p) => (
+              <UserRow
+                key={p.userId}
+                profile={p}
+                rightSlot={
+                  p.userId === userId ? (
+                    <span className="pf-result-badge res-push" style={{ minWidth: 64 }}>YOU</span>
+                  ) : (
+                    <FollowButton targetUserId={p.userId} compact onChange={reload} />
+                  )
+                }
+              />
+            ))
+          )}
         </div>
-        <Link to="/leaderboard" className="btn-gold">Browse leaderboard</Link>
-      </div>
-
-      <div className="about-block" style={{ marginTop: 14 }}>
-        <h3>Find people</h3>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search handle or display name…"
-          className="pf-search-input"
-          autoFocus
-        />
-        {query.trim().length >= 2 && (
-          <div className="pf-search-results bk-table" style={{ marginTop: 12 }}>
-            {searching ? (
-              <div style={{ color: 'var(--ink-dim)', padding: 12 }}>Searching…</div>
-            ) : results.length === 0 ? (
-              <div style={{ color: 'var(--ink-dim)', padding: 12 }}>No matches.</div>
-            ) : (
-              results.map((p) => (
-                <UserRow
-                  key={p.userId}
-                  profile={p}
-                  rightSlot={
-                    p.userId === userId ? (
-                      <span className="pf-result-badge res-push" style={{ minWidth: 64 }}>YOU</span>
-                    ) : (
-                      <FollowButton targetUserId={p.userId} compact onChange={reload} />
-                    )
-                  }
-                />
-              ))
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
       <div className="tabs pf-window-tabs" role="tablist" aria-label="Follow lists">
         <button type="button" className={'tab' + (tab === 'following' ? ' active' : '')} onClick={() => setTab('following')}>
