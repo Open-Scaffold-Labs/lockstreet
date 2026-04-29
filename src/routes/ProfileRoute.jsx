@@ -193,12 +193,18 @@ function ProfileHeader({ profile, followingCount, followersCount, isOwn, rightSl
         </div>
         {profile.bio ? <div className="pf-bio">{profile.bio}</div> : null}
         <div className="pf-meta">
-          <Link to="/follow" className="pf-meta-link">
+          <Link
+            to={isOwn ? '/follow?tab=following' : `/u/${profile.handle}/follows?tab=following`}
+            className="pf-meta-link"
+          >
             <strong>{followingCount}</strong> Following
           </Link>
-          <span className="pf-meta-link">
+          <Link
+            to={isOwn ? '/follow?tab=followers' : `/u/${profile.handle}/follows?tab=followers`}
+            className="pf-meta-link"
+          >
             <strong>{followersCount}</strong> {followersCount === 1 ? 'Follower' : 'Followers'}
-          </span>
+          </Link>
           {memberSince ? <span className="pf-meta-link" style={{ color: 'var(--ink-faint)' }}>Member since {memberSince}</span> : null}
         </div>
       </div>

@@ -13,6 +13,7 @@ import HomeRoute from './routes/HomeRoute.jsx';
 import ProfileRoute from './routes/ProfileRoute.jsx';
 import PublicProfileRoute from './routes/PublicProfileRoute.jsx';
 import FollowRoute from './routes/FollowRoute.jsx';
+import PublicFollowsRoute from './routes/PublicFollowsRoute.jsx';
 import LinesRoute from './routes/LinesRoute.jsx';
 import PropsRoute from './routes/PropsRoute.jsx';
 import WeeklyRoute from './routes/WeeklyRoute.jsx';
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/bankroll" element={<Navigate to="/profile" replace />} />
           <Route path="/profile" element={<ProfileRoute />} />
           <Route path="/u/:handle" element={<PublicProfileRoute />} />
+          <Route path="/u/:handle/follows" element={<PublicFollowsRoute />} />
           <Route path="/follow" element={<FollowRoute />} />
           <Route path="/lines" element={<LinesRoute />} />
           <Route path="/props" element={<PropsRoute />} />

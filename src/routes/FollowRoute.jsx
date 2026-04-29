@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth, SignedIn, SignedOut, SignInButton } from '../lib/auth.jsx';
 import { useFollows } from '../hooks/useFollows.js';
 import { searchProfiles } from '../hooks/useProfile.js';
@@ -35,7 +35,11 @@ export default function FollowRoute() {
 function FollowBody() {
   const { userId } = useAuth?.() || {};
   const { following, followers, loading, reload } = useFollows(userId);
-  const [tab, setTab] = useState('following');
+  // Initial tab from ?tab= query param so the profile-header
+  // "Followers" link lands on the right list.
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'followers' ? 'followers' : 'following';
+  const [tab, setTab] = useState(initialTab);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
