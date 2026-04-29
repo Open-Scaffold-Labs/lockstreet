@@ -2020,5 +2020,26 @@ a.pf-meta-link:hover { color: var(--ink); }
   .pm-close   { padding: 12px 16px; font-size: 28px; }
   .tp-row     { padding: 12px 10px; }
   .tp-clear   { padding: 12px 14px; font-size: 22px; }
+
+  /* Modal scroll on mobile: top-anchored, viewport-aware so the user
+     can scroll past the keyboard if it covers the bottom of the form. */
+  .pf-modal-overlay {
+    align-items: flex-start;
+    padding: 12px;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
+    overflow-y: auto;
+  }
+  .pf-modal-card { max-height: none; }
+
+  /* TeamPicker dropdown becomes inline on mobile — was position:absolute
+     and could land behind the iOS keyboard, causing taps on "Notre Dame"
+     etc. to miss and select nothing. Static layout pushes the rest of
+     the form down so the dropdown is always above the keyboard. */
+  .tp-dropdown {
+    position: static;
+    margin-top: 6px;
+    max-height: 280px;
+    box-shadow: none;
+  }
 }
 
