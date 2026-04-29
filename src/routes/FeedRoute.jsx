@@ -26,7 +26,7 @@ export default function FeedRoute() {
     <section>
       <div className="sub-hero" style={{ marginBottom: 18 }}>
         <h2>Feed</h2>
-        <p>Live picks from the community. Locked at kickoff, graded automatically.</p>
+        <p>Live picks from the community. Locked at kickoff, graded automatically, never deleted.</p>
       </div>
 
       <div className="tabs feed-tabs" role="tablist" aria-label="Feed filter">
