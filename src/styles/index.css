@@ -2031,15 +2031,21 @@ a.pf-meta-link:hover { color: var(--ink); }
   }
   .pf-modal-card { max-height: none; }
 
-  /* TeamPicker dropdown becomes inline on mobile — was position:absolute
-     and could land behind the iOS keyboard, causing taps on "Notre Dame"
-     etc. to miss and select nothing. Static layout pushes the rest of
-     the form down so the dropdown is always above the keyboard. */
+  /* TeamPicker dropdown on mobile: inline (no abs-positioning) AND no
+     internal scroll. iOS Safari treats taps inside an overflow:auto
+     container as scroll-start gestures and cancels the click — that's
+     why tapping a team did nothing. Letting the page scroll the whole
+     thing instead removes the ambiguity. */
   .tp-dropdown {
     position: static;
     margin-top: 6px;
-    max-height: 280px;
+    max-height: none;
+    overflow: visible;
     box-shadow: none;
+  }
+  .tp-row,
+  .hdr-search-row {
+    touch-action: manipulation;
   }
 }
 
