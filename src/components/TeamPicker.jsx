@@ -31,14 +31,18 @@ export default function TeamPicker({ value, onChange, placeholder = 'Search team
     return () => { cancelled = true; };
   }, []);
 
-  // Close on outside click.
+  // Close on outside pointerdown. We use `pointerdown` instead of
+  // `mousedown` because the row buttons fire `onPointerDown` (see
+  // below) and we want both handlers to use the same event family —
+  // otherwise the doc-mousedown could fire before the row's onClick on
+  // iOS and unmount the dropdown mid-tap.
   useEffect(() => {
     if (!open) return undefined;
-    function onDocClick(e) {
+    function onDocPointerDown(e) {
       if (!wrapRef.current?.contains(e.target)) setOpen(false);
     }
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
+    document.addEventListener('pointerdown', onDocPointerDown);
+    return () => document.removeEventListener('pointerdown', onDocPointerDown);
   }, [open]);
 
   const results = useMemo(() => {
@@ -47,6 +51,12 @@ export default function TeamPicker({ value, onChange, placeholder = 'Search team
   }, [allTeams, query]);
 
   function pick(team) {
+    // Debug log — leave in until iOS team-pick bug is fully verified
+    // resolved across PWA + Safari + Chrome + Android.
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line no-console
+      console.log('[TeamPicker] pick', team?.abbr, team?.league);
+    }
     onChange?.(team);
     setQuery('');
     setOpen(false);
@@ -106,7 +116,25 @@ export default function TeamPicker({ value, onChange, placeholder = 'Search team
                 type="button"
                 className={'tp-row' + (i === highlight ? ' active' : '')}
                 onMouseEnter={() => setHighlight(i)}
-                onClick={() => pick(t)}
+                // Use onPointerDown instead of onClick so iOS Safari
+                // can't cancel the tap as a scroll-start gesture before
+                // the click event commits. preventDefault stops the
+                // synthesized mouseclick (no double-fire);
+                // stopPropagation prevents the document pointerdown
+                // outside-handler from seeing this and closing the
+                // dropdown mid-pick. Also keep onClick as a desktop /
+                // keyboard fallback for accessibility.
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  pick(t);
+                }}
+                onClick={(e) => {
+                  // Pointerdown already handled it on touch / mouse.
+                  // This fallback only matters for assistive tech that
+                  // synthesizes click without a pointer event.
+                  if (e.detail === 0) pick(t);
+                }}
               >
                 {t.logo ? <img src={t.logo} alt="" className="tp-row-logo" /> : <span className="tp-row-logo-fallback">{t.abbr}</span>}
                 <div className="tp-row-info">

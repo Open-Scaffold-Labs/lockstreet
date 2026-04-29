@@ -114,7 +114,15 @@ export default function OnboardingProfileModal({ defaultDisplayName = '', existi
 
           <label>
             <span>Fav team (optional)</span>
-            <TeamPicker value={team} onChange={setTeam} placeholder="Search any NFL / CFB / NBA / MLB / NHL / CBB team…" />
+            <TeamPicker
+              value={team}
+              onChange={(next) => {
+                // eslint-disable-next-line no-console
+                console.log('[OnboardingProfileModal] setTeam', next?.abbr, next?.league);
+                setTeam(next);
+              }}
+              placeholder="Search any NFL / CFB / NBA / MLB / NHL / CBB team…"
+            />
           </label>
 
           <label>
