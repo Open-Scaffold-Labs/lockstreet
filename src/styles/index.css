@@ -171,6 +171,21 @@ body {
 .gd-status-line { font-family: var(--mono); font-size: 12px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
 .gd-live-dot { font-family: var(--mono); font-size: 11px; color: var(--orange); letter-spacing: 0.1em; }
 
+/* Lines + series pills below the gd-header — same look as the
+   GameCard pills on /scores. */
+.gd-lines {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 10px 12px; margin: 10px 0;
+  background: linear-gradient(160deg, #141114, #0a0a0a);
+  border: 1px solid var(--border); border-radius: 12px;
+  justify-content: center;
+}
+.gd-pill-series {
+  background: rgba(192, 132, 252, 0.10) !important;
+  border-color: rgba(192, 132, 252, 0.4) !important;
+  color: var(--gold) !important;
+}
+
 .gd-section { padding: 14px 12px; background: linear-gradient(160deg, #141114, #0a0a0a);
   border: 1px solid var(--border); border-radius: 12px; }
 .gd-h3 { margin: 0 0 12px; font-family: var(--disp); font-size: 14px; font-weight: 700;

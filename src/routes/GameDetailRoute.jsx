@@ -5,6 +5,12 @@ import { fantasyPoints } from '../lib/fantasy.js';
 import PickModal from '../components/PickModal.jsx';
 import { SignedIn, SignedOut, SignInButton } from '../lib/auth.jsx';
 
+/** American moneyline → display string. +120 / -150 / "" for null. */
+function fmtMl(n) {
+  if (n == null || !Number.isFinite(n)) return '';
+  return n > 0 ? `+${n}` : String(n);
+}
+
 /**
  * Hit our /api/team-intel proxy which fans out to the best free per-sport
  * source (NBA Stats / MLB Stats API / NHL API / ESPN). Returns a unified
@@ -147,6 +153,30 @@ export default function GameDetailRoute() {
           <div className="gd-team-score">{home.score}</div>
         </Link>
       </div>
+
+      {/* Lines + series pills — same data the GameCard on /scores shows.
+          Spread + total + ML come from ESPN's odds payload (extracted in
+          espnSummary). Series tally is the playoff chip ("BOS leads 2-1"). */}
+      {(data.odds || data.series?.summary) && (
+        <div className="gd-lines">
+          {data.series?.summary && (
+            <span className="pill gd-pill-series"><span className="k">SERIES</span>{data.series.summary}</span>
+          )}
+          {data.odds?.details && (
+            <span className="pill"><span className="k">SPREAD</span>{data.odds.details}</span>
+          )}
+          {data.odds?.total != null && (
+            <span className="pill"><span className="k">O/U</span>{data.odds.total}</span>
+          )}
+          {(data.odds?.mlHome != null || data.odds?.mlAway != null) && (
+            <span className="pill">
+              <span className="k">ML</span>
+              {away?.abbr || ''} {fmtMl(data.odds.mlAway)}
+              {data.odds.mlHome != null ? ` / ${home?.abbr || ''} ${fmtMl(data.odds.mlHome)}` : ''}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Live Play Tracker — only while the game is in progress and ESPN
           is shipping plays. Sits ABOVE team stats so the most actionable

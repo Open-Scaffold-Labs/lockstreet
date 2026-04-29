@@ -167,6 +167,22 @@ function normalizeSummary(json, league) {
     return { summary, title: s.title || null, awayWins: aw, homeWins: hw };
   })();
 
+  // Odds: ESPN groups them under competitions[0].odds[0]. `details` is a
+  // human spread string ("DET -3.5"), `overUnder` is the total, and the
+  // per-team moneylines hang off awayTeamOdds / homeTeamOdds.moneyLine.
+  // We surface a normalized shape for the game-detail page to render
+  // pills like the scoreboard GameCard does.
+  const odds = (() => {
+    const o = comp?.odds?.[0];
+    if (!o) return null;
+    const details   = typeof o.details === 'string' ? o.details : null;
+    const total     = Number.isFinite(Number(o.overUnder)) ? Number(o.overUnder) : null;
+    const mlHome    = Number.isFinite(Number(o.homeTeamOdds?.moneyLine)) ? Number(o.homeTeamOdds.moneyLine) : null;
+    const mlAway    = Number.isFinite(Number(o.awayTeamOdds?.moneyLine)) ? Number(o.awayTeamOdds.moneyLine) : null;
+    if (!details && total == null && mlHome == null && mlAway == null) return null;
+    return { details, total, mlHome, mlAway };
+  })();
+
   return {
     id:         header.id,
     league,
@@ -181,6 +197,7 @@ function normalizeSummary(json, league) {
     home: buildTeam(home),
     away: buildTeam(away),
     series,                                   // playoff series chip data (or null)
+    odds,                                     // { details, total, mlHome, mlAway } | null
     players,                                  // raw shape, parsed in extractPlayers()
     parsed: extractPlayers(players, league),  // [{teamId, teamAbbr, players: [{name, position, stats, fp}]}]
     recentPlays: extractRecentPlays(json),    // last 15 plays for live game tracker
