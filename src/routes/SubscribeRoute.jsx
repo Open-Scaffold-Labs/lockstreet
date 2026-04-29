@@ -77,30 +77,6 @@ export default function SubscribeRoute() {
         )}
       </div>
 
-      {/* ============== Who you're paying ============== */}
-      <div className="about-block">
-        <h3>Who you're paying</h3>
-        <p>
-          <strong>Shawn (the father)</strong> developed the handicapping system
-          we use — line-movement reading, situational angles, market timing.
-          He's been doing this longer than I have.
-        </p>
-        <p>
-          <strong>Matt (the son)</strong> learned the system from him,
-          runs Lock Street day-to-day, and posts the picks subscribers see.
-          Every play that goes out is filtered through both of us.
-        </p>
-        <p style={{ color: 'var(--ink-faint)', fontSize: 12, marginTop: 8, fontFamily: 'var(--mono)' }}>
-          Online handles: Matt = "Mlav1114" · Shawn = "Lucky Shawn" — used in the verifiable pool standings below.
-        </p>
-        <p style={{ color: 'var(--ink-dim)', fontSize: 13, marginTop: 12 }}>
-          Most picks subscriptions are a single guy with a Twitter account and
-          screenshots from one good month. We're not that. The receipts below are
-          three separate seasons across three formats, with two of us showing up
-          in the standings independently.
-        </p>
-      </div>
-
       {/* ============== Track-record chart ============== */}
       <div className="about-block">
         <h3>Cumulative units · most recent ATS season</h3>
