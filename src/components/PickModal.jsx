@@ -128,11 +128,15 @@ export default function PickModal({ game, onClose, onSubmitted }) {
       navigate('/sign-in?next=' + encodeURIComponent(location.pathname));
       return;
     }
-    if (tooLate) { setErr('Kickoff is too close — picks lock 30s before tipoff.'); return; }
-    if (!game?.kickoffAt) { setErr('Missing kickoff time.'); return; }
-    if (units < 0.5 || units > 5)  { setErr('Units must be between 0.5 and 5.'); return; }
+    function reject(msg) {
+      setErr(msg);
+      toast(msg, { type: 'error', duration: 6000 });
+    }
+    if (tooLate) { reject('Kickoff is too close — picks lock 30s before tipoff.'); return; }
+    if (!game?.kickoffAt) { reject('Missing kickoff time.'); return; }
+    if (units < 0.5 || units > 5)  { reject('Units must be between 0.5 and 5.'); return; }
     if (betType !== 'ml' && baseLineNum == null) {
-      setErr('Line not posted yet for this game — try again once the consensus line is up.');
+      reject('Line not posted yet for this game — try again once the consensus line is up.');
       return;
     }
 
@@ -162,9 +166,14 @@ export default function PickModal({ game, onClose, onSubmitted }) {
       onClose?.();
     } catch (e) {
       const m = String(e?.message || e || '');
-      if (/Pick locked too late/i.test(m)) setErr('Kickoff has passed — pick rejected.');
-      else if (/duplicate key/i.test(m))   setErr('You already have a pick on this game/market.');
-      else setErr(m || 'Could not submit pick.');
+      let userMsg;
+      if (/Pick locked too late/i.test(m)) userMsg = 'Kickoff has passed — pick rejected.';
+      else if (/duplicate key/i.test(m))   userMsg = 'You already have a pick on this game/market.';
+      else userMsg = m || 'Could not submit pick.';
+      setErr(userMsg);
+      toast(userMsg, { type: 'error', duration: 6000 });
+      // eslint-disable-next-line no-console
+      console.error('[PickModal] submit failed', e);
     } finally {
       setBusy(false);
     }

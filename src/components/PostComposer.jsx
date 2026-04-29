@@ -86,7 +86,9 @@ function Composer({ onPosted }) {
       setPick(null);
       onPosted?.();
     } catch (e) {
-      toast(e?.message || 'Could not post', { type: 'error' });
+      toast(e?.message || 'Could not post', { type: 'error', duration: 6000 });
+      // eslint-disable-next-line no-console
+      console.error('[PostComposer] submit failed', e);
     } finally {
       setBusy(false);
     }
