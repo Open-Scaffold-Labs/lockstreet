@@ -34,22 +34,63 @@ export default function PickModal({ game, onClose, onSubmitted }) {
   const [pointBuys, setPointBuys] = useState(0);  // half-points bought (0..N)
   const [busy, setBusy]           = useState(false);
   const [err, setErr]             = useState('');
+  // Consensus line fetched if not provided by the caller. Shape matches
+  // game.consensus: { spreadHome, total }. Pulled from the public_betting
+  // table (same source as /lines) so spreads autofill in MakePickFlow.
+  const [fetchedConsensus, setFetchedConsensus] = useState(null);
+  const [consensusLoading, setConsensusLoading] = useState(false);
+
+  // If the caller didn't supply consensus and we have a league + team
+  // abbrs to match against, pull from /api/team-intel?op=public-betting.
+  useEffect(() => {
+    if (game?.consensus) { setFetchedConsensus(null); return undefined; }
+    if (!game?.league || !game?.home?.abbr || !game?.away?.abbr) return undefined;
+    let cancel = false;
+    setConsensusLoading(true);
+    (async () => {
+      try {
+        const r = await fetch(`/api/team-intel?op=public-betting&league=${game.league}`);
+        if (!r.ok) return;
+        const j = await r.json();
+        const rows = j?.rows || [];
+        const home = String(game.home.abbr).toUpperCase();
+        const away = String(game.away.abbr).toUpperCase();
+        const match = rows.find((row) =>
+          String(row.homeLabel || '').toUpperCase() === home &&
+          String(row.awayLabel || '').toUpperCase() === away
+        );
+        if (match && !cancel) {
+          const sh = match.spreadHomeLine != null ? Number(match.spreadHomeLine) : null;
+          const tot = match.totalLine != null ? Number(match.totalLine) : null;
+          setFetchedConsensus({
+            spreadHome: Number.isFinite(sh) ? sh : null,
+            total:      Number.isFinite(tot) ? tot : null,
+          });
+        }
+      } catch { /* best effort — fall through to manual entry */ }
+      finally { if (!cancel) setConsensusLoading(false); }
+    })();
+    return () => { cancel = true; };
+  }, [game?.league, game?.home?.abbr, game?.away?.abbr, game?.consensus]);
+
+  // Effective consensus = explicit prop > fetched > none.
+  const consensus = game?.consensus || fetchedConsensus;
 
   // Prefill the line from consensus when bet type / side changes.
   // Format with an explicit leading sign so a +8.5 dog reads correctly
   // ('8.5' alone is ambiguous between +8.5 and -8.5 to a casual reader).
   useEffect(() => {
-    if (!game?.consensus) return;
-    if (betType === 'spread' && game.consensus.spreadHome != null) {
-      const sh = Number(game.consensus.spreadHome);
+    if (!consensus) return;
+    if (betType === 'spread' && consensus.spreadHome != null) {
+      const sh = Number(consensus.spreadHome);
       const v = side === 'home' ? sh : -sh;
       setLineRaw(fmtSignedLine(v));
-    } else if (betType === 'total' && game.consensus.total != null) {
-      setLineRaw(String(game.consensus.total));
+    } else if (betType === 'total' && consensus.total != null) {
+      setLineRaw(String(consensus.total));
     } else if (betType === 'ml') {
       setLineRaw('');
     }
-  }, [betType, side, game?.consensus?.spreadHome, game?.consensus?.total]);
+  }, [betType, side, consensus?.spreadHome, consensus?.total]);
 
   // Time-to-kickoff guard.
   const kickoffMs = game?.kickoffAt ? new Date(game.kickoffAt).getTime() : 0;
@@ -105,10 +146,10 @@ export default function PickModal({ game, onClose, onSubmitted }) {
         lineAtPick:  betType === 'ml' ? null : adjustedLine,
         juiceAtPick: juiceUsed,
         pointBuys:   buys,
-        marketLine:  betType === 'ml' ? null : (game.consensus?.spreadHome != null && betType === 'spread'
-                       ? (side === 'home' ? Number(game.consensus.spreadHome) : -Number(game.consensus.spreadHome))
-                       : game.consensus?.total != null && betType === 'total'
-                       ? Number(game.consensus.total)
+        marketLine:  betType === 'ml' ? null : (consensus?.spreadHome != null && betType === 'spread'
+                       ? (side === 'home' ? Number(consensus.spreadHome) : -Number(consensus.spreadHome))
+                       : consensus?.total != null && betType === 'total'
+                       ? Number(consensus.total)
                        : (lineNum ?? null)),
         marketJuice: -110,
         kickoffAt:   game.kickoffAt,
