@@ -64,16 +64,16 @@ function IconProps() {
   );
 }
 
-// Profile is the leftmost tab — it's the home base for users
-// (was: Bankroll, repositioned + renamed). The remaining order
-// stays as it was.
+// Order, left → right: Profile, Feed, Scores, Lines, Picks, Heat
+// Check, Pro. Profile stays leftmost as the user's home base; Feed
+// sits next so the social loop is right next to the home tab.
 const ITEMS = [
   { to: '/profile',   label: 'Profile',  icon: <IconProfile /> },
-  { to: '/scores',    label: 'Scores',   icon: <IconHome /> },
-  { to: '/picks',     label: 'Picks',    icon: <IconPicks /> },
-  { to: '/lines',     label: 'Lines',    icon: <IconLines /> },
-  { to: '/props',     label: 'Heat\nCheck', icon: <IconProps /> },
   { to: '/feed',      label: 'Feed',     icon: <IconFeed /> },
+  { to: '/scores',    label: 'Scores',   icon: <IconHome /> },
+  { to: '/lines',     label: 'Lines',    icon: <IconLines /> },
+  { to: '/picks',     label: 'Picks',    icon: <IconPicks /> },
+  { to: '/props',     label: 'Heat\nCheck', icon: <IconProps /> },
   { to: '/subscribe', label: 'Pro',      icon: <IconStar /> },
 ];
 
