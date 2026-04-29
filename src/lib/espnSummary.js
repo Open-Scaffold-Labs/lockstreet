@@ -147,8 +147,12 @@ function normalizeSummary(json, league) {
   // Playoff series chip — present on postseason NBA/NHL/MLB events. Uses
   // ESPN's friendly summary string when present ("BOS leads 2-1"); falls
   // back to building it from per-team wins.
+  // ESPN's summary endpoint returns competitions[0].series as an ARRAY
+  // (with the relevant series at index 0); the scoreboard endpoint
+  // returns it as a plain object. Unwrap if array.
   const series = (() => {
-    const s = comp?.series;
+    const raw = comp?.series;
+    const s = Array.isArray(raw) ? raw[0] : raw;
     if (!s) return null;
     const sc = s.competitors || [];
     const homeRow = sc.find((x) => String(x.id) === String(home?.id || home?.team?.id));

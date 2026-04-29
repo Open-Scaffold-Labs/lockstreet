@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { fetchGameSummary } from '../lib/espnSummary.js';
 import { fantasyPoints } from '../lib/fantasy.js';
 import PickModal from '../components/PickModal.jsx';
@@ -37,6 +37,11 @@ async function fetchTeamIntel(league, teamId, teamAbbr) {
  */
 export default function GameDetailRoute() {
   const { league, gameId } = useParams();
+  // Game card from /scores passes its full game object via Link state
+  // so the series tally + lines render instantly without waiting for
+  // the summary fetch. Same data the GameCard already has on screen.
+  const { state: navState } = useLocation();
+  const navGame = navState?.game || null;
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -132,13 +137,15 @@ export default function GameDetailRoute() {
       )}
 
       {/* Playoffs series banner — sits above the team header so the
-          playoff context is the first thing the user sees. Only shows
-          when ESPN's summary returns a series object (postseason
-          NBA / NHL / MLB events). */}
-      {data.series?.summary && (
+          playoff context is the first thing the user sees. Falls back
+          to the series the GameCard passed via router state if the
+          summary endpoint hasn't filled it in yet. */}
+      {(data.series?.summary || navGame?.series?.summary) && (
         <div className="gd-series-banner">
           <span className="gd-series-banner-label">SERIES</span>
-          <span className="gd-series-banner-text">{data.series.summary}</span>
+          <span className="gd-series-banner-text">
+            {data.series?.summary || navGame?.series?.summary}
+          </span>
         </div>
       )}
 
@@ -165,29 +172,34 @@ export default function GameDetailRoute() {
         </Link>
       </div>
 
-      {/* Lines + series pills — same data the GameCard on /scores shows.
-          Spread + total + ML come from ESPN's odds payload (extracted in
-          espnSummary). Series tally is the playoff chip ("BOS leads 2-1"). */}
-      {(data.odds || data.series?.summary) && (
-        <div className="gd-lines">
-          {data.series?.summary && (
-            <span className="pill gd-pill-series"><span className="k">SERIES</span>{data.series.summary}</span>
-          )}
-          {data.odds?.details && (
-            <span className="pill"><span className="k">SPREAD</span>{data.odds.details}</span>
-          )}
-          {data.odds?.total != null && (
-            <span className="pill"><span className="k">O/U</span>{data.odds.total}</span>
-          )}
-          {(data.odds?.mlHome != null || data.odds?.mlAway != null) && (
-            <span className="pill">
-              <span className="k">ML</span>
-              {away?.abbr || ''} {fmtMl(data.odds.mlAway)}
-              {data.odds.mlHome != null ? ` / ${home?.abbr || ''} ${fmtMl(data.odds.mlHome)}` : ''}
-            </span>
-          )}
-        </div>
-      )}
+      {/* Lines pills — prefer ESPN summary's odds (richer, more current);
+          fall back to whatever the GameCard already showed via router
+          state so the data is instant on click. */}
+      {(() => {
+        const spreadStr = data.odds?.details || navGame?.spread || null;
+        const totalNum  = data.odds?.total != null ? data.odds.total
+                        : (navGame?.ou != null && navGame.ou !== '' ? Number(navGame.ou) : null);
+        const mlHome    = data.odds?.mlHome ?? navGame?.mlHome ?? null;
+        const mlAway    = data.odds?.mlAway ?? navGame?.mlAway ?? null;
+        if (!spreadStr && totalNum == null && mlHome == null && mlAway == null) return null;
+        return (
+          <div className="gd-lines">
+            {spreadStr && (
+              <span className="pill"><span className="k">SPREAD</span>{spreadStr}</span>
+            )}
+            {totalNum != null && Number.isFinite(totalNum) && (
+              <span className="pill"><span className="k">O/U</span>{totalNum}</span>
+            )}
+            {(mlHome != null || mlAway != null) && (
+              <span className="pill">
+                <span className="k">ML</span>
+                {away?.abbr || ''} {fmtMl(mlAway)}
+                {mlHome != null ? ` / ${home?.abbr || ''} ${fmtMl(mlHome)}` : ''}
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Live Play Tracker — only while the game is in progress and ESPN
           is shipping plays. Sits ABOVE team stats so the most actionable

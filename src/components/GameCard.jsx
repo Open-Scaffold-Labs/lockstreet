@@ -135,7 +135,12 @@ export default function GameCard({ game, pick, pickUnlocked, delay = 0, hideLeag
         onClose={() => setPickOpen(false)}
       />
     )}
-    <Link to={`/game/${league}/${game.id}`} className="card-link" style={{ animationDelay: `${delay}s` }}>
+    <Link
+      to={`/game/${league}/${game.id}`}
+      state={{ game }}
+      className="card-link"
+      style={{ animationDelay: `${delay}s` }}
+    >
       <article className="card">
         <div className="card-top">
           {!hideLeagueBadge && <span className={`lg-badge ${league}`}>{league.toUpperCase()}</span>}
