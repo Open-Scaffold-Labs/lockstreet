@@ -51,12 +51,6 @@ export default function TeamPicker({ value, onChange, placeholder = 'Search team
   }, [allTeams, query]);
 
   function pick(team) {
-    // Debug log — leave in until iOS team-pick bug is fully verified
-    // resolved across PWA + Safari + Chrome + Android.
-    if (typeof window !== 'undefined') {
-      // eslint-disable-next-line no-console
-      console.log('[TeamPicker] pick', team?.abbr, team?.league);
-    }
     onChange?.(team);
     setQuery('');
     setOpen(false);
