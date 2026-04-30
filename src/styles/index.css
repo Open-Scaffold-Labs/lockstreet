@@ -656,8 +656,10 @@ body {
 /* ----- About / Credentials page ----- */
 .about { max-width: 880px; margin: 0 auto; }
 .about-block { margin: 30px 0; padding: 26px 28px; background: linear-gradient(160deg, #141114, #0a0a0a);
-  border: 1px solid var(--border); border-radius: 16px;
-  opacity: 0; transform: translateY(8px); animation: fadeup .5s ease forwards; }
+  border: 1px solid var(--border); border-radius: 16px; }
+/* Note: previously had `opacity: 0; transform: translateY(8px); animation: fadeup .5s ease forwards;`
+   for an entrance-fade effect, but elements stayed invisible on iPhones with Reduce Motion enabled
+   (the animation never fires, so the opacity:0 initial state stuck). Visibility > eye candy. */
 .about-block h3 { margin: 0 0 14px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); }
 .about-block p { color: var(--ink-dim); font-size: 14.5px; line-height: 1.65; margin: 0 0 12px; }
 .about-block p:last-child { margin-bottom: 0; }
