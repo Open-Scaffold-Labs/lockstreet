@@ -19,7 +19,7 @@ import { useComments } from '../hooks/useComments.js';
  */
 export default function CommentThread({ postId, pickId, autoOpen = false }) {
   const [open, setOpen] = useState(autoOpen);
-  const { comments, visibleCount, loading } = useComments({ postId, pickId });
+  const { comments, visibleCount, loading, postComment } = useComments({ postId, pickId });
 
   if (!postId && !pickId) return null;
 
@@ -43,7 +43,12 @@ export default function CommentThread({ postId, pickId, autoOpen = false }) {
           ) : (
             <CommentList comments={comments} />
           )}
-          <Composer postId={postId} pickId={pickId} />
+          {/* Pass postComment down rather than re-instantiating the hook
+              inside Composer — two useComments() calls on the same target
+              both try to .subscribe() the same Supabase realtime channel
+              name and the second one throws "cannot add postgres_changes
+              callbacks". */}
+          <Composer postComment={postComment} />
         </div>
       )}
     </div>
@@ -139,9 +144,8 @@ function DeleteButton({ commentId }) {
   );
 }
 
-function Composer({ postId, pickId }) {
+function Composer({ postComment }) {
   const { user, isSignedIn } = useUser();
-  const { postComment } = useComments({ postId, pickId });
   const toast = useToast();
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
