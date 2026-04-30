@@ -2189,20 +2189,18 @@ html, body { overscroll-behavior-y: contain; }
 .pm-units-slider { width: 100%; accent-color: var(--gold); }
 
 /* =========================================================
-   Reduced-motion accessibility
-   Honors the OS setting for users with vestibular sensitivity
-   or who simply prefer minimal motion.
+   Reduced-motion accessibility — REVERTED 2026-04-30.
+   The naive "animation-duration: 0.01ms !important" override
+   broke iPhone profiles for users with Reduce Motion enabled:
+   elements like .tier / .how-card / .credential-card start at
+   opacity: 0 and rely on the `fadeup` animation to become
+   visible. Near-zero animation duration on iOS Safari doesn't
+   reliably apply the `forwards` fill mode, leaving them stuck
+   at opacity: 0.
+   To re-do this correctly: refactor the entrance animations so
+   the resting state is visible (opacity:1) rather than relying
+   on animation to reveal content. Until then, no global rule.
    ========================================================= */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
 
 .pm-units-scale {
   display: flex; justify-content: space-between;
