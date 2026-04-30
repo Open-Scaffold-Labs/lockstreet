@@ -222,6 +222,41 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 ---
 
+## Current state (as of 2026-04-30 — end of day)
+
+### Apr-30 session adds (most recent first, latest commit on main)
+
+- **Comments + tail/fade — full social engagement layer.**
+  - New tables: `public.comments` (flat, polymorphic post_id/pick_id, soft-delete only, immutability trigger mirroring posts/user_picks pattern) and `public.pick_actions` (one row per user+pick, action ∈ {tail,fade}, locked at kickoff via trigger). Both realtime-enabled.
+  - Hooks: `useComments({postId|pickId})` with realtime subscription + softDelete; `usePickActions(pickId, viewerUserId)` with toggle/clear.
+  - Components: `CommentThread.jsx` (collapse/expand, composer with Cmd-Enter, soft-delete by author); `TailFadeButtons.jsx` (pill buttons with live counts, locks visibly at kickoff). Wired into `PostCard` (thread on the post itself; embedded UserPickCard suppresses its own thread to avoid duplicate conversations) and `UserPickCard` (thread + tail/fade rendered everywhere it appears).
+  - Notifications fan-out: `?op=notify-comment` and `?op=notify-pick-action` multiplexed into existing `api/send-notifications.js`. Author-only delivery, self-action skipped server-side, anti-spoof verifies the action row matches before persisting. Per-event push (no batching at delivery).
+  - Inbox grouping in `NotificationsSection.jsx`: same-(type, target) runs of >5 collapse into a single grouped row that expands inline. ≤5 still render individually.
+  - Migration files: `20260430_comments_and_pick_actions.sql` + `20260430_notifications_extend_types.sql`. Production paste-ready: `COMMENTS_PICK_ACTIONS_2026-04-30.sql`. Plus a separate `notifications` table create block (the original `20260429_notifications.sql` had never been applied to production — discovered 2026-04-30 evening when @lavinlocks tail/comment notifications weren't reaching followers).
+
+- **CLAUDE.md rule #4 — test data stays.** Added after the BOS -7.5 near-miss where the audit recommended deleting it for having "Database Test, not real pick" reasoning text — that pick is real, the reasoning was just throwaway dev typing. Lock Street is in test mode; nothing in `picks` / `user_picks` / `posts` / `bets` gets deleted until Matt explicitly says we're going live.
+
+- **Fixed iPhone profile rendering.** Two separate bugs: (1) the global `.tabs { display: none }` on mobile hid `.pf-picks-tabs`, `.pf-window-tabs`, `.pf-sport-tabs`, and `.pm-bet-tabs` — added explicit `display: flex` overrides matching the existing `.feed-tabs.tabs` pattern. (2) Earlier in the day I shipped a naive `prefers-reduced-motion` rule that overrode `animation-duration: 0.01ms !important` — on iPhones with Reduce Motion enabled this stuck `.about-block` and other entrance-animated elements at `opacity: 0`. Reverted the media query AND removed the `opacity: 0; animation: fadeup forwards` initial state from `.about-block` so the resting visible state isn't gated on animation completion. Lesson: never make content's visible state depend on an entrance animation firing — too fragile across iOS settings.
+
+- **Bottom-nav legibility.** Inactive items swapped from `--ink-faint` (#5a4f6f, dim gray-purple, hard to read in daylight) to `--ink` (near-white). Active state still differentiates via `--gold` + the purple drop-shadow.
+
+- **Audit + 60-minute quick-wins shipped (commit `d3939eb`).**
+  - User-visible: stripped `~` from headline stats / pricing copy (Syne renders the tilde as a hyphen so "~65%" looked like "-65%"); stripped Warren Buffett attribution from index.html meta description; refactored `/weekly` body to render proper `<ul>` bullets instead of inline dashes; surgical Supabase error suppression on `/contest` so the schema-cache string doesn't leak; `/leaderboard` "/scores" empty-state turned into a real Link.
+  - Hardening: root `<ErrorBoundary>` wrapping `<Routes>`; `vite.config.js` gates `sourcemap` on `NODE_ENV`; `aria-label="Lock Street home"` on the header brand; `/game/:league/:gameId` polling caps at 5 consecutive failures; `/sign-in?next=` validates same-origin (closes open-redirect); `bearer()` rejects empty / malformed tokens at `api/_utils.js`; `create-checkout-session` looks up the customer email server-side from `auth.users` instead of trusting `body.email`.
+  - Hook fixes: `useSubscription` deps include `getToken`; `PushPromptModal` swallowed enable() errors → now toast on failure; `PostCard` pin button stops propagation.
+
+- **Audit deliverable.** `AUDIT_2026-04-29.md` at the repo root — full 343-line punch list grouped Critical / High / Medium / Polish / Improvement-suggestions. Many items still open (Stripe wiring, profile bio fix, C2 `##1` rank badge, C3 closed-pick final scores, etc.) — see file for the prioritized list.
+
+### Apr-30 deferred / known-open
+
+- **Stripe wiring.** Still the single biggest open gap. Need real keys + 3 Price IDs from Stripe Dashboard + webhook secret in Vercel env. ~30 min once started.
+- **Profile bio.** @lavinlocks bio still reads "Sub-creator of the lavinlock, CEO of Lock Street." — fix via `/profile → Edit Profile`.
+- **Push delivery for tail/fade + comments.** Server-side fan-out is wired. Verified with friend's account that no push arrives unless the recipient has a row in `public.push_subscriptions` (i.e., they've granted browser notification permission on at least one device). If a future user reports "no push" check `push_subscriptions` first before debugging server-side.
+- **Email verification gate.** The `verified` check in `CommentThread.jsx → Composer` is intentionally permissive client-side because Supabase email confirmation is disabled in dev. Re-enable confirmation in Supabase Auth before launch and the gate kicks in automatically.
+- **Known scratch-files mess at repo root.** ~250 `.bat` / `.vbs` / `.commit-*.txt` files from this session's commit-via-Desktop-Commander pattern. Added matching globs to `.gitignore` so they stop showing as untracked.
+
+---
+
 ## Current state (as of 2026-04-29 — late session)
 
 ### Late Apr-29 session adds (most recent first, latest commit `b021d4c`)

@@ -30,3 +30,50 @@ dist-ssr/
 
 # Misc
 coverage/
+
+# Session scratch files — the workaround pattern from CLAUDE.md
+# (Desktop Commander 2.85s timeout) leaves these all over the repo
+# root. None of them are real source code.
+*.bat
+*.vbs
+.commit-*.txt
+.push-*
+.fix-*
+.find-*
+.fp-*
+.fc-*
+.fi-*
+.cm-*
+.as-*
+.et-*
+.ll-*
+.mps-*
+.nf-*
+.pmc-*
+.run-*
+.start-*
+.strip-*
+.eos-*
+.check-*
+.vite-started.txt
+.wp-*
+.fix-snip*
+build-verify*
+commit-*-done.txt
+commit-*.log
+commit-*.bat
+push-*.bat
+push-*.txt
+push-*.log
+run-*.vbs
+strip-*.txt
+strip-*.log
+claudemd-*.txt
+probe.bat
+probe.log
+probe-done.txt
+find-node.bat
+find-node.log
+find-node-done.txt
+unlock-and-commit.bat
+check-running.*
