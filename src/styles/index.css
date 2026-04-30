@@ -1688,7 +1688,14 @@ a.pf-meta-link:hover { color: var(--ink); }
 .feed-tabs { padding: 0; margin: 0 0 14px; }
 .feed-tabs .tab { padding: 10px 18px; font-size: 13px; }
 @media (max-width: 600px) {
-  .feed-tabs.tabs { display: flex; }
+  /* Inner-page tab rows that use the bare .tabs base class would otherwise
+     get hidden by the global ".tabs { display: none }" rule that suppresses
+     the desktop top-nav on mobile. Re-show them explicitly. */
+  .feed-tabs.tabs,
+  .pf-picks-tabs.tabs,
+  .pf-window-tabs.tabs,
+  .pf-sport-tabs.tabs,
+  .pm-bet-tabs.tabs { display: flex; }
 }
 
 /* ----- /feed page layout ----- */
