@@ -175,6 +175,7 @@ lockstreet/
 1. **NEVER spend money without explicit per-action user authorization.** This includes creating Supabase Pro projects (the existing `OpenScaffoldLabs` org is on Pro — every new project there costs \~$10/mo). Only use the free `mlav-personal` org for Lock Street. Don't invoke Stripe charges. Don't deploy to paid Vercel.
 2. **The** `lockstreet` **Supabase project (ref** `chwijzlynfnxvzfeydtf`**)** lives in the `mlav-personal` **free org** — DO NOT touch projects in `OpenScaffoldLabs`.
 3. **Confirm cost before any action that could bill.** Mistakes here have happened and the user is rightly sensitive about it.
+4. **The project is in test mode. Test data stays.** Test posts, test picks, "Database Test" reasoning text, dummy bets, throwaway notifications, the @lavinlocks "Lock Street Test" posts on /feed — none of it gets cleaned up until Matt explicitly says "we're going live, clean it up." Even when test data looks obviously throwaway (e.g., reasoning text literally says "not real pick"), do NOT delete. Mention it in an audit punch list so Matt knows it's there, but never package it as a "fix" to apply. If you find yourself writing a `delete from public.picks`, `delete from public.user_picks`, `delete from public.posts`, or `delete from public.bets` in any cleanup script — STOP. Reread this rule. The data is real to Matt even when it looks like noise.
 
 ---
 

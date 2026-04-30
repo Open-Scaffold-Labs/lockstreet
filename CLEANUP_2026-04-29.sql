@@ -1,13 +1,17 @@
 -- =============================================================================
--- Lock Street — manual cleanup script, 2026-04-29
+-- Lock Street — manual setup script, 2026-04-29
 -- =============================================================================
 -- RUN IN: Supabase Dashboard → SQL Editor → for the `lockstreet` project
 --         (project ref chwijzlynfnxvzfeydtf, in the mlav-personal free org).
--- AUTH:   the SQL editor runs with service_role privileges, so RLS triggers
---         are bypassed. That's the only way to clean immutable rows.
 --
--- This is split into 3 steps. Run them top-to-bottom. Each step is idempotent
--- (safe to re-run).
+-- This script applies the contests migration that never made it to the live
+-- Supabase project. It does NOT delete any data — Lock Street is in test mode
+-- and Matt's test posts / test picks / dummy bets stay in the database until
+-- he explicitly says we're going live and to clean up. See CLAUDE.md → Critical
+-- user rules → #4 for the standing rule.
+--
+-- Idempotent: safe to re-run. CREATE TABLE IF NOT EXISTS / DROP POLICY IF
+-- EXISTS guarded.
 -- =============================================================================
 
 
@@ -17,8 +21,7 @@
 -- Symptom we're fixing: /contest renders the literal string
 --   "Error: Could not find the table 'public.contests' in the schema cache"
 -- because the migration file 20260426_contests.sql was authored locally but
--- never applied. This block is the same migration, idempotent (CREATE TABLE
--- IF NOT EXISTS, CREATE INDEX IF NOT EXISTS, CREATE POLICY guarded).
+-- never applied. This block is the same migration, idempotent.
 
 create table if not exists public.contests (
   id                uuid primary key default gen_random_uuid(),
@@ -83,7 +86,6 @@ alter table public.contests        enable row level security;
 alter table public.contest_entries enable row level security;
 alter table public.contest_picks   enable row level security;
 
--- Drop-then-create so re-runs replace the policies cleanly.
 drop policy if exists "anyone reads contests"        on public.contests;
 drop policy if exists "anyone reads contest_entries" on public.contest_entries;
 drop policy if exists "anyone reads contest_picks"   on public.contest_picks;
@@ -145,46 +147,16 @@ create policy "admins manage contest_picks"   on public.contest_picks   for all 
 
 
 -- =============================================================================
--- STEP 2 — Delete the test posts visible on /feed.
--- =============================================================================
--- Symptom: /feed → All shows "Lock Street Test" x3 and "DEBUG 1777448115181"
--- posts authored by @lavinlocks. The BEFORE DELETE trigger on `posts` blocks
--- non-service_role deletes; the SQL editor is service_role so it goes through.
-
--- Preview first — uncomment to see what will be deleted before running:
--- select id, body, created_at from public.posts
--- where body in ('Lock Street Test') or body like 'DEBUG %';
-
-delete from public.posts
-where body = 'Lock Street Test'
-   or body like 'DEBUG %';
-
-
--- =============================================================================
--- STEP 3 — Delete the "Database Test, not real pick" pick.
--- =============================================================================
--- Symptom: /admin and /picks → Closed both show BOS -7.5 with reasoning
--- "Database Test, not real pick", marked as a WIN. Permanent + public.
--- Also clean up any user_picks row that was mirrored to the leaderboard pool.
-
--- Preview:
--- select id, game_id, side, units, reasoning, result from public.picks
--- where reasoning ilike '%database test%';
--- select id, game_id, side, units, reasoning, result from public.user_picks
--- where reasoning ilike '%database test%';
-
-delete from public.picks
-where reasoning ilike '%database test%';
-
-delete from public.user_picks
-where reasoning ilike '%database test%';
-
-
--- =============================================================================
 -- DONE.
 -- =============================================================================
--- After running, hard-refresh https://lockstreet.vercel.app and verify:
---   1. /contest no longer shows the schema-cache error.
---   2. /feed → All only shows real picks (CLE -8.5 free pick, etc.).
---   3. /picks → Closed only shows real graded picks (no "Database Test").
+-- After running:
+--   1. /contest no longer shows the schema-cache error — friendly empty state
+--      instead. Already verified ✓.
+--   2. The contest module is dormant during off-season; this just lets the
+--      table exist so reads don't error. Real contests open during NFL/CFB
+--      season.
+--
+-- Test data (Lock Street Test posts on /feed, "Database Test" reasoning on
+-- the BOS pick, dummy bets, etc.) is INTENTIONALLY left in place per CLAUDE.md
+-- rule #4. Don't delete it until Matt says "we're going live, clean up."
 -- =============================================================================
