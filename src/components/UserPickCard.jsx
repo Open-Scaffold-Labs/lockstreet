@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { winPayoff, fmtNet } from '../lib/userPicks.js';
+import TailFadeButtons from './TailFadeButtons.jsx';
+import CommentThread from './CommentThread.jsx';
 
 /**
  * One pick row inside a profile. Self-contained: renders from the
@@ -10,7 +12,7 @@ import { winPayoff, fmtNet } from '../lib/userPicks.js';
  * for pending/win/loss/push, and use .pf-* classes for the bits
  * specific to user picks (line+juice pill, bet-type tag, side label).
  */
-export default function UserPickCard({ pick, showAuthor = false, author = null }) {
+export default function UserPickCard({ pick, showAuthor = false, author = null, suppressComments = false }) {
   if (!pick) return null;
   const result = pick.result || 'pending';
   const isGraded = result === 'win' || result === 'loss' || result === 'push';
@@ -49,6 +51,8 @@ export default function UserPickCard({ pick, showAuthor = false, author = null }
           {pick.lockedAt && <> · locked {fmtRelDate(pick.lockedAt)}</>}
           {pick.gradedAt && <> · graded {fmtRelDate(pick.gradedAt)}</>}
         </div>
+        <TailFadeButtons pick={pick} />
+        {!suppressComments && <CommentThread pickId={pick.id} />}
       </div>
       <div className="bk-row-pl">
         {result === 'pending' ? (

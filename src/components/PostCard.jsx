@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import UserPickCard from './UserPickCard.jsx';
+import CommentThread from './CommentThread.jsx';
 
 /**
  * Renders a /feed post: body text + optional embedded pick card.
@@ -56,9 +57,14 @@ export default function PostCard({ post, author, canPin = false, onTogglePin }) 
 
       {post.pick ? (
         <div className="post-card-pick">
-          <UserPickCard pick={post.pick} />
+          {/* Suppress UserPickCard's own comment thread when the pick is
+              embedded in a post — the post's thread is the conversation
+              surface for both. Tail/fade still renders. */}
+          <UserPickCard pick={post.pick} suppressComments />
         </div>
       ) : null}
+
+      <CommentThread postId={post.id} />
     </article>
   );
 }
