@@ -2540,3 +2540,38 @@ html, body { overscroll-behavior-y: contain; }
   min-width: 14px;
   text-align: right;
 }
+
+/* =========================================================
+   Notification group row (5+ same-target events collapsed)
+   + new type badges for comment / tail / fade
+   ========================================================= */
+.pf-notif-group {
+  /* Container: keeps the summary + expanded children inside one card. */
+  flex-wrap: wrap;
+}
+.pf-notif-group-summary { flex: 1; min-width: 0; }
+.pf-notif-expand-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--ink-dim);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.pf-notif-expand-btn:hover { color: var(--ink); border-color: var(--border-strong); }
+.pf-notif-group-children {
+  flex-basis: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+/* Per-type badge tints for the new notification types. The base
+   .pf-notif-type-badge already has padding / radius / size; these
+   only set foreground + background tint. */
+.pf-notif-type-badge.type-new_comment { color: var(--ink); background: rgba(192, 132, 252, 0.14); }
+.pf-notif-type-badge.type-new_tail    { color: var(--gold); background: rgba(192, 132, 252, 0.14); }
+.pf-notif-type-badge.type-new_fade    { color: var(--red);  background: rgba(255, 85, 119, 0.14); }

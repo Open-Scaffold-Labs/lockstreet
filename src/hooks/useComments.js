@@ -92,9 +92,27 @@ export function useComments({ postId, pickId } = {}) {
       [target.col]: target.val,
       [target.col === 'post_id' ? 'pick_id' : 'post_id']: null,
     };
-    const { error } = await supabase.from('comments').insert(row);
+    const { data: inserted, error } = await supabase
+      .from('comments')
+      .insert(row)
+      .select('id')
+      .single();
     if (error) throw error;
-    // Realtime will pick this up; no need to optimistic-insert.
+
+    // Realtime will pick this up for the local feed; no optimistic-insert.
+    // Fire-and-forget notify the target's author. Server verifies target +
+    // self-skip + caller-owns-comment, so this is safe to fail silently.
+    try {
+      const sessForTok = await supabase.auth.getSession();
+      const tok = sessForTok?.data?.session?.access_token;
+      if (tok && inserted?.id) {
+        fetch('/api/send-notifications?op=notify-comment', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', Authorization: `Bearer ${tok}` },
+          body: JSON.stringify({ commentId: inserted.id }),
+        }).catch(() => {});
+      }
+    } catch { /* notify is best-effort */ }
   }, [target?.col, target?.val]);
 
   const softDelete = useCallback(async (commentId) => {

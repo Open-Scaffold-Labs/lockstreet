@@ -79,6 +79,21 @@ export function usePickActions(pickId, viewerUserId) {
         { onConflict: 'user_id,pick_id' },
       );
     if (e) throw e;
+
+    // Fire-and-forget notify the pick author (server side enforces
+    // self-skip + that the action row really exists, so this is safe to
+    // fail silently on push errors).
+    try {
+      const sess = await supabase.auth.getSession();
+      const tok = sess?.data?.session?.access_token;
+      if (tok) {
+        fetch('/api/send-notifications?op=notify-pick-action', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', Authorization: `Bearer ${tok}` },
+          body: JSON.stringify({ pickId, action }),
+        }).catch(() => {});
+      }
+    } catch { /* notify is best-effort */ }
   }, [pickId, viewerUserId]);
 
   const clearAction = useCallback(async () => {
