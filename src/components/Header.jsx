@@ -25,7 +25,7 @@ export default function Header() {
   return (
     <header className="hdr">
       <div className="hdr-row">
-        <Link to="/" className="brand">
+        <Link to="/" className="brand" aria-label="Lock Street home">
           <span className="b1">Lock</span>
           <span className="b2">Street</span>
         </Link>

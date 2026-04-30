@@ -50,19 +50,26 @@ export default function GameDetailRoute() {
 
   useEffect(() => {
     let cancelled = false;
+    // Cap consecutive failures so a flaky network doesn't keep us pounding
+    // the ESPN endpoint forever. After MAX_FAILS in a row, stop polling.
+    let failStreak = 0;
+    const MAX_FAILS = 5;
     async function load() {
       try {
         const s = await fetchGameSummary(league, gameId);
-        if (!cancelled) { setData(s); setError(null); }
+        if (!cancelled) { setData(s); setError(null); failStreak = 0; }
       } catch (e) {
+        failStreak++;
         if (!cancelled) setError(String(e.message || e));
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
     load();
-    // Poll every 30s for live games
+    // Poll every 30s for live games — bail out after MAX_FAILS in a row OR
+    // once the game has clearly finished.
     const interval = setInterval(() => {
+      if (failStreak >= MAX_FAILS) { clearInterval(interval); return; }
       if (!data || data.status === 'live') load();
     }, 30_000);
     return () => { cancelled = true; clearInterval(interval); };

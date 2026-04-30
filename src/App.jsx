@@ -5,6 +5,7 @@ import InstallPrompt from './components/InstallPrompt.jsx';
 import OnboardingModal from './components/OnboardingModal.jsx';
 import PushPromptModal from './components/PushPromptModal.jsx';
 import PullToRefresh from './components/PullToRefresh.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { ToastProvider } from './lib/toast.jsx';
 import ScoresRoute from './routes/ScoresRoute.jsx';
 import PicksRoute from './routes/PicksRoute.jsx';
@@ -36,6 +37,7 @@ export default function App() {
       <div className="bg-halo" aria-hidden="true" />
       <Header />
       <main className="wrap">
+        <ErrorBoundary>
         <Routes>
           <Route path="/" element={<HomeRoute />} />
           <Route path="/scores" element={<ScoresRoute />} />
@@ -65,6 +67,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPasswordRoute />} />
           <Route path="*" element={<Navigate to="/scores" replace />} />
         </Routes>
+        </ErrorBoundary>
       </main>
       <footer className="footnote">Lock Street — “Be fearful when others are greedy. Be greedy when others are fearful.”</footer>
       <BottomNav />

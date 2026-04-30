@@ -145,7 +145,10 @@ export default function ContestRoute() {
 
       <SignedIn>
         {loading && <p style={{ color: 'var(--ink-dim)' }}>Loading contest...</p>}
-        {error && <p style={{ color: 'var(--bad)' }}>Error: {error}</p>}
+        {/* If the contests table is missing from the schema cache (migration
+            never ran), or any other backend error fires, fall through silently
+            to the friendly "no active contest" empty state — never leak the
+            raw error string to subscribers. */}
 
         {!loading && !contest && (
           <div className="empty" style={{ padding: 18 }}>

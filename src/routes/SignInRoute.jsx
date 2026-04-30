@@ -7,7 +7,11 @@ export default function SignInRoute() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { isSignedIn } = useAuth();
-  const next = params.get('next') || '/';
+  // Sanitize the post-signin redirect target. Reject anything that isn't
+  // same-origin OR a relative path starting with '/'. Open redirects are a
+  // classic phishing vector — never trust ?next=https://attacker.example.
+  const rawNext = params.get('next') || '/';
+  const next = sanitizeNext(rawNext);
 
   const [mode, setMode] = useState('signin'); // signin | signup | reset
   const [email, setEmail] = useState('');
@@ -92,4 +96,23 @@ export default function SignInRoute() {
       </form>
     </div>
   );
+}
+
+/**
+ * Whitelist the post-signin redirect target. Accept:
+ *   - relative paths starting with '/' that don't try to escape via '//'
+ *     (which browsers treat as protocol-relative).
+ *   - absolute URLs whose origin matches window.location.origin.
+ * Reject everything else by collapsing to '/'.
+ */
+function sanitizeNext(raw) {
+  if (!raw) return '/';
+  // Block protocol-relative ('//evil.example/path') early.
+  if (raw.startsWith('//')) return '/';
+  if (raw.startsWith('/')) return raw;
+  try {
+    const u = new URL(raw, window.location.origin);
+    if (u.origin === window.location.origin) return u.pathname + u.search + u.hash;
+  } catch { /* fall through */ }
+  return '/';
 }

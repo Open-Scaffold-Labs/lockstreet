@@ -85,7 +85,7 @@ export default function SubscribeRoute() {
 
       {/* ============== Three #1 finishes ============== */}
       <div className="about-block">
-        <h3>Track record — three #1 finishes, three formats, ~250 combined entrants</h3>
+        <h3>Track record — three #1 finishes, three formats, 250 combined entrants</h3>
 
         <div className="credential-card">
           <div className="cred-rank">#1<span className="cred-of">/84</span></div>
@@ -111,7 +111,7 @@ export default function SubscribeRoute() {
             <div className="cred-detail">
               <strong>Father and son split this entry — 4 picks each, every week, against
               the spread.</strong> 18 weeks. 4 college + 4 NFL per week.
-              Combined finish: <strong>94 / 144 — ~65% ATS</strong>. 1st out of 100 entries.
+              Combined finish: <strong>94 / 144 — 65% ATS</strong>. 1st out of 100 entries.
             </div>
             <div className="cred-why">
               The format here is identical to what Lock Street subscribers receive:

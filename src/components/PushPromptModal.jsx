@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth.jsx';
 import { usePushNotifications } from '../hooks/usePushNotifications.js';
+import { useToast } from '../lib/toast.jsx';
 
 const PROMPT_KEY = 'lockstreet_push_prompted_v1';
 
@@ -16,6 +17,7 @@ const PROMPT_KEY = 'lockstreet_push_prompted_v1';
 export default function PushPromptModal() {
   const { isSignedIn, isLoaded } = useAuth();
   const { perm, subscribed, enable } = usePushNotifications();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const supported = typeof window !== 'undefined' && 'Notification' in window
@@ -41,7 +43,15 @@ export default function PushPromptModal() {
 
   async function handleEnable() {
     setBusy(true);
-    try { await enable(); } catch {} finally { dismiss(); setBusy(false); }
+    try {
+      await enable();
+      toast('Push notifications enabled', { type: 'success' });
+    } catch (e) {
+      toast(e?.message || 'Could not enable push notifications', { type: 'error', duration: 6000 });
+    } finally {
+      dismiss();
+      setBusy(false);
+    }
   }
 
   if (!open) return null;

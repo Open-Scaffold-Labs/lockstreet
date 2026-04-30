@@ -6,11 +6,16 @@ const SUPABASE_URL              = process.env.SUPABASE_URL              || proce
 const SUPABASE_ANON_KEY         = process.env.SUPABASE_ANON_KEY         || process.env.VITE_SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-/** Bearer token from Authorization header (or null). */
+/** Bearer token from Authorization header (or null).
+ *  Rejects empty / malformed tokens at the boundary so downstream callers
+ *  don't have to defend against `""` propagating into Supabase.auth.getUser. */
 export function bearer(req) {
   const hdr = req.headers.authorization || req.headers.Authorization;
   if (!hdr || !hdr.startsWith('Bearer ')) return null;
-  return hdr.slice(7);
+  const tok = hdr.slice(7).trim();
+  // JWTs are ≥ ~30 chars and use only [A-Za-z0-9._-]. Anything else is junk.
+  if (!tok || tok.length < 16 || !/^[A-Za-z0-9._-]+$/.test(tok)) return null;
+  return tok;
 }
 
 /** Per-request Supabase client scoped to the user's JWT (RLS applies). */

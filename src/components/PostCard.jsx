@@ -42,7 +42,7 @@ export default function PostCard({ post, author, canPin = false, onTogglePin }) 
           <button
             type="button"
             className={'post-card-pin-btn' + (pinned ? ' active' : '')}
-            onClick={() => onTogglePin?.(post.id, !pinned)}
+            onClick={(e) => { e.stopPropagation(); onTogglePin?.(post.id, !pinned); }}
             aria-pressed={pinned}
             aria-label={pinned ? 'Unpin this post' : 'Pin this post'}
             title={pinned ? 'Unpin' : 'Pin to top of feed'}

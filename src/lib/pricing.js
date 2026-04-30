@@ -20,7 +20,7 @@ export const TIERS = [
     name: 'Monthly',
     price: 250,
     period: 'month',
-    note: '~$58 / week effective - save 42%',
+    note: '$58 / week effective — save 42%',
     features: [
       'Everything in Weekly',
       'Early-week previews',
@@ -35,7 +35,7 @@ export const TIERS = [
     name: 'Annual',
     price: 500,
     period: 'year',
-    note: '~$9.60 / week effective - best value',
+    note: '$9.60 / week effective — best value',
     features: [
       'Everything in Monthly',
       'Playoffs + bowls included',

@@ -45,8 +45,7 @@ export function useSubscription() {
     }
     check();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSignedIn, userId]);
+  }, [isSignedIn, userId, getToken]);
 
   return status;
 }

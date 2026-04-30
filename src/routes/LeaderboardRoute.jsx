@@ -151,7 +151,9 @@ function EmptyBoard({ side, sport, windowKey }) {
   if (side === 'hot') {
     return (
       <p style={{ color: 'var(--ink-dim)' }}>
-        Nobody qualifies in {sportLabel} {winLabel} yet. Make picks on /scores to start your record.
+        Nobody qualifies in {sportLabel} {winLabel} yet. Make picks on{' '}
+        <Link to="/scores" style={{ color: 'var(--gold)' }}>/scores</Link>{' '}
+        to start your record.
       </p>
     );
   }

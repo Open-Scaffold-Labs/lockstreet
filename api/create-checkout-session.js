@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { getUserIdFromRequest, readJson, badRequest, serverError, unauthorized } from './_utils.js';
+import { getUserIdFromRequest, readJson, badRequest, serverError, unauthorized, adminClient } from './_utils.js';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
@@ -23,12 +23,26 @@ export default async function handler(req, res) {
     const userId = await getUserIdFromRequest(req);
     if (!userId) return unauthorized(res, 'Sign in required');
 
+    // Look up the email server-side from auth.users — never trust the
+    // client-supplied email, otherwise an attacker could redirect Stripe
+    // receipts to a victim's address. Fall back to omitting customer_email
+    // so Stripe Checkout collects it from the buyer directly.
+    let customerEmail;
+    try {
+      const supa = adminClient();
+      if (supa) {
+        const { data } = await supa.auth.admin.getUserById(userId);
+        const e = data?.user?.email;
+        if (e && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) customerEmail = e;
+      }
+    } catch { /* leave customer_email undefined */ }
+
     const baseUrl = process.env.APP_URL || `https://${req.headers.host}`;
 
     const session = await stripe.checkout.sessions.create({
       mode: MODES[tier],
       line_items: [{ price, quantity: 1 }],
-      customer_email: body.email || undefined,
+      customer_email: customerEmail,
       client_reference_id: userId,
       metadata: { userId, tier },
       subscription_data: { metadata: { userId, tier } },

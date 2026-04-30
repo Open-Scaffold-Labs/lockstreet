@@ -2187,6 +2187,23 @@ html, body { overscroll-behavior-y: contain; }
   box-shadow: 0 0 0 3px rgba(192,132,252,0.06);
 }
 .pm-units-slider { width: 100%; accent-color: var(--gold); }
+
+/* =========================================================
+   Reduced-motion accessibility
+   Honors the OS setting for users with vestibular sensitivity
+   or who simply prefer minimal motion.
+   ========================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .pm-units-scale {
   display: flex; justify-content: space-between;
   font-family: var(--mono); font-size: 9.5px; color: var(--ink-faint);

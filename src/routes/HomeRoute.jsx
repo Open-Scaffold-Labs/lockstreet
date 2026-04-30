@@ -27,7 +27,7 @@ export default function HomeRoute() {
           <div className="hstat-label">#1 pool finishes<br />in three different formats</div>
         </div>
         <div className="hstat">
-          <div className="hstat-num">~65<span className="hstat-suffix">%</span></div>
+          <div className="hstat-num">65<span className="hstat-suffix">%</span></div>
           <div className="hstat-label">ATS in our most<br />recent 144-pick season</div>
         </div>
         <div className="hstat">
