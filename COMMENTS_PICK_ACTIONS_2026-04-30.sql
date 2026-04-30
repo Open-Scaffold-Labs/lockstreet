@@ -164,21 +164,32 @@ end $$;
 -- ============================================================
 -- notifications type check — extend for new_comment / tail / fade
 -- ============================================================
--- The original notifications schema constrains `type` to a fixed list.
--- Adding three new types so the comment + tail/fade fan-out can insert
--- rows. Idempotent: drop the constraint by name then re-add.
+-- Wrap in a DO block with an EXISTS check so this paste survives even
+-- if the notifications table isn't on the project yet. (Supabase's SQL
+-- editor runs the whole paste as one transaction; an error here would
+-- roll back the comments + pick_actions creates above.)
 
-alter table public.notifications drop constraint if exists notifications_type_check;
-alter table public.notifications add constraint notifications_type_check
-  check (type in (
-    'new_follower',
-    'pick_graded',
-    'free_pick_drop',
-    'system',
-    'new_comment',
-    'new_tail',
-    'new_fade'
-  ));
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'notifications'
+  ) then
+    execute 'alter table public.notifications drop constraint if exists notifications_type_check';
+    execute $constraint$
+      alter table public.notifications add constraint notifications_type_check
+        check (type in (
+          'new_follower',
+          'pick_graded',
+          'free_pick_drop',
+          'system',
+          'new_comment',
+          'new_tail',
+          'new_fade'
+        ))
+    $constraint$;
+  end if;
+end $$;
 
 
 -- =============================================================================
