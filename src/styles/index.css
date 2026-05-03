@@ -2117,6 +2117,16 @@ html, body { overscroll-behavior-y: contain; }
   padding: 14px; color: var(--ink-dim); font-size: 13px;
   font-family: var(--mono); text-align: center;
 }
+.hdr-search-section {
+  padding: 8px 10px 4px;
+  font-family: var(--disp);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.hdr-search-section + .hdr-search-row { margin-top: 2px; }
 .hdr-search-row {
   width: 100%; padding: 8px 10px; gap: 10px;
   display: flex; align-items: center;
