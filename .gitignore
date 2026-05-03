@@ -77,3 +77,6 @@ find-node.log
 find-node-done.txt
 unlock-and-commit.bat
 check-running.*
+gen-brief-done.txt
+gen-brief.log
+scripts/generate-partner-brief.cjs

@@ -222,6 +222,23 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 ---
 
+## Current state (as of 2026-05-03 — end of day)
+
+### May-3 session adds (most recent first, latest commit on main)
+
+- **Header search now finds teams too.** `HeaderUserSearch.jsx` lazily loads `teamsCatalog.js` on first panel-open and filters client-side; results render in two labeled sections (`TEAMS` then `PEOPLE`). Match priority for teams: exact abbr > abbr-starts-with > name-contains > shortName-contains. Click → `/team/<league>/<id>` (the existing TeamRoute). Enter key picks the first result regardless of section. Placeholder updated to "Search teams or handles…".
+
+- **Notification fan-out actually works now.** Pre-existing duplicate `const body` in `notifyFollower` (api/send-notifications.js) was a SyntaxError that took down ALL ops on the endpoint at module-load time — Vercel returned `FUNCTION_INVOCATION_FAILED` (text/plain), the frontend's best-effort .catch swallowed it, and **no comment / tail / fade / follower notifications had ever fired** since the comments + tail/fade ship the day before. Renamed the request-body variable to `reqBody` (commit `dd3bab4`); verified end-to-end via live Chrome MCP probe — all four ops now return clean JSON.
+
+- **Auth + seeding live walkthrough completed.** Verified sign-in / session persistence / token refresh setup / admin role gating / sanitizeNext open-redirect defense (3-of-3 attack vectors blocked: `https://evil.example`, `//evil.example`, `javascript:`, with legitimate `/picks` allowed) / picks API gating (POST returns 403 to non-admin) / bearer() bouncing junk + empty tokens. The notify-endpoint failure was the only real bug surfaced.
+
+- **Partner brief deliverable.** `Lock_Street_Partner_Brief.docx` at the repo root, generated via `scripts/generate-partner-brief.js` (docx-js). Frames Lock Street as a free fan app + Twitter-for-bettors social network, with two revenue streams: Matt + Shawn's own picks subscription (stream 1) and the creator marketplace where independent handicappers run their own paid tiers and Lock Street takes a rev-share (stream 2 — the scale play). Re-run the generator any time copy changes:
+  ```
+  cmd /c gen-brief.bat       # or: node scripts/generate-partner-brief.cjs
+  ```
+
+---
+
 ## Current state (as of 2026-04-30 — end of day)
 
 ### Apr-30 session adds (most recent first, latest commit on main)
