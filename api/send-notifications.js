@@ -93,8 +93,8 @@ async function notifyFollower(req, res) {
   const userId = await getUserIdFromRequest(req);
   if (!userId) return res.status(401).json({ error: 'sign-in required' });
 
-  const body = await readJson(req);
-  const followedId = body?.followedId;
+  const reqBody = await readJson(req);
+  const followedId = reqBody?.followedId;
   if (!followedId) return res.status(400).json({ error: 'followedId required' });
   if (followedId === userId) {
     return res.status(200).json({ sent: 0, skipped: 'self' });
