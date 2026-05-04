@@ -33,16 +33,23 @@ export async function fetchLeagueRowsSao(league) {
   if (!r.ok) throw new Error(`SAO ${league} ${r.status}`);
   const html = await r.text();
 
-  // Pull every consensus-table card's outerHTML in source order. Pattern:
-  //   <div class="trend-card consensus consensus-table-{market}--0 ...">
-  // Cards are siblings inside .container-body.grid; ordered ML/spread/total
-  // per game. 3 cards → 1 game.
-  const cardRe = /<div\s+class="trend-card[^"]*consensus-table-(moneyline|spread|total)--\d+[^"]*"[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/g;
-  const cards = [];
+  // Find each card's start position by its class anchor. Cards are siblings
+  // inside .container-body.grid in source order: ML / spread / total per
+  // game. We slice each card from its anchor to the start of the next
+  // anchor (or end of HTML). This is more robust than trying to match the
+  // card's closing </div></div></div> with a regex — the original attempt
+  // found 0 cards on Vercel because the closing-div count doesn't reliably
+  // anchor a card boundary.
+  const anchorRe = /<div\s+class="trend-card[^"]*consensus-table-(moneyline|spread|total)--\d+/g;
+  const anchors = [];
   let m;
-  while ((m = cardRe.exec(html)) !== null) {
-    cards.push({ market: m[1], html: m[0] });
+  while ((m = anchorRe.exec(html)) !== null) {
+    anchors.push({ market: m[1], start: m.index });
   }
+  const cards = anchors.map((a, i) => ({
+    market: a.market,
+    html: html.slice(a.start, i + 1 < anchors.length ? anchors[i + 1].start : html.length),
+  }));
 
   // Group in triples per game. We expect strict ML/spread/total order,
   // but defensive code: skip any group whose markets don't match expected.
