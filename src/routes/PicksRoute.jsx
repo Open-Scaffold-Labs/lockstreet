@@ -8,15 +8,12 @@ import { supabase } from '../lib/supabase.js';
 import GameCard from '../components/GameCard.jsx';
 import { SkeletonCardGrid } from '../components/Skeleton.jsx';
 
-// Closed picks linger on /picks for 6 days after the game graded, then drop off.
-const CLOSED_TTL_MS = 6 * 24 * 60 * 60 * 1000;
-
 function isOpen(p)   { return p.result === 'pending'; }
-function isClosed(p) {
-  if (p.result === 'pending') return false;
-  if (!p.gradedAt) return true; // graded with no timestamp -- keep showing for now
-  return Date.now() - new Date(p.gradedAt).getTime() < CLOSED_TTL_MS;
-}
+// Every graded pick stays on the Closed tab indefinitely. We used to drop
+// rows after 6 days, but it produced a "where did my picks go?" surprise
+// when older picks silently vanished. /profile is the long-form history;
+// /picks Closed is just "every pick we ever graded, newest first."
+function isClosed(p) { return p.result !== 'pending'; }
 
 export default function PicksRoute() {
   // Fetch all 5 leagues so NBA/MLB/NHL picks get live ESPN data —
@@ -86,7 +83,7 @@ export default function PicksRoute() {
       />
       {cards.length === 0 ? (
         <div className="empty">
-          {view === 'open' ? 'No open picks right now.' : 'No closed picks in the last 6 days.'}
+          {view === 'open' ? 'No open picks right now.' : 'No closed picks yet.'}
         </div>
       ) : (
         <div className="grid">
@@ -197,8 +194,8 @@ function PicksEmptyState() {
 }
 
 
-/** Open / Closed tab nav for /picks. Open = pending; Closed = graded picks
- *  inside the 6-day display window (older closed picks are filtered out). */
+/** Open / Closed tab nav for /picks. Open = pending; Closed = every
+ *  graded pick (no TTL — every win/loss/push stays here forever). */
 function PicksTabs({ view, setView, openCount, closedCount }) {
   return (
     <div className="picks-tabs">
