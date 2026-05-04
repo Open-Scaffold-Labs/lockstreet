@@ -36,10 +36,7 @@ export async function fetchLeagueRowsSao(league) {
   // Find each card's start position by its class anchor. Cards are siblings
   // inside .container-body.grid in source order: ML / spread / total per
   // game. We slice each card from its anchor to the start of the next
-  // anchor (or end of HTML). This is more robust than trying to match the
-  // card's closing </div></div></div> with a regex — the original attempt
-  // found 0 cards on Vercel because the closing-div count doesn't reliably
-  // anchor a card boundary.
+  // anchor (or end of HTML).
   const anchorRe = /<div\s+class="trend-card[^"]*consensus-table-(moneyline|spread|total)--\d+/g;
   const anchors = [];
   let m;
@@ -63,9 +60,78 @@ export async function fetchLeagueRowsSao(league) {
     games.push({ ml: ml.html, spread: sp.html, total: tot.html });
   }
 
+  // Pull per-game URL slugs from the consensus-picks page in source order.
+  // Pattern: href="/{league}/{away}-vs-{home}". One slug per game card —
+  // we'll match positionally to the games array above.
+  const slugRe = new RegExp(`href="/${league}/([a-z0-9]+(?:-[a-z0-9]+)*-vs-[a-z0-9]+(?:-[a-z0-9]+)*)"`, 'g');
+  const slugSet = new Set();
+  const slugs = [];
+  while ((m = slugRe.exec(html)) !== null) {
+    if (slugSet.has(m[1])) continue;
+    slugSet.add(m[1]);
+    slugs.push(m[1]);
+  }
+
   const now = new Date().toISOString();
   const rows = games.map((g, idx) => buildRow(league, g, idx, now)).filter(Boolean);
+
+  // Per-game page fetch fans out in parallel. Each per-game page is ~1.5MB
+  // and contains Last 10 SU/ATS for both teams in `home-current-trends` /
+  // `away-current-trends` data-* attributes (server-rendered, unlike the
+  // betting-splits widgets which migrated to BAM). One fetch per matchup
+  // adds N parallel network calls per league but stays well under the 50+
+  // requests of the original scraper. ATS data is the only reason for this
+  // layer — without it /game/:gameId team-preview Last 10 cards go blank.
+  const trends = await Promise.all(rows.map(async (row, i) => {
+    const slug = slugs[i];
+    if (!slug) return null;
+    try {
+      return await fetchGameLast10(league, slug);
+    } catch { return null; }
+  }));
+  for (let i = 0; i < rows.length; i++) {
+    const tr = trends[i];
+    if (!tr) continue;
+    rows[i].away_last_10_ats_pct = tr.away?.atsPct ?? null;
+    rows[i].away_last_10_su_pct  = tr.away?.suPct  ?? null;
+    rows[i].home_last_10_ats_pct = tr.home?.atsPct ?? null;
+    rows[i].home_last_10_su_pct  = tr.home?.suPct  ?? null;
+  }
   return rows;
+}
+
+/**
+ * Fetch one per-game page and extract Last 10 SU/ATS for both teams from
+ * the trend tables. Returns { away: {suPct, atsPct}, home: {...} } where
+ * percentages are 0-1 fractions (matching SAO's data-wins/data-spread shape).
+ */
+async function fetchGameLast10(league, slug) {
+  const url = `${SAO_BASE}/${league}/${slug}`;
+  const r = await fetch(url, { headers: BROWSER_HEADERS });
+  if (!r.ok) return null;
+  const html = await r.text();
+  return {
+    away: pullLast10(html, 'away-current-trends'),
+    home: pullLast10(html, 'home-current-trends'),
+  };
+}
+
+function pullLast10(html, anchor) {
+  const idx = html.indexOf(anchor);
+  if (idx < 0) return null;
+  const tail = html.slice(idx);
+  // Find the <tr> that has the "Last 10 Games" cell. The <tr> attributes
+  // carry data-wins (SU pct, 0-1) and data-spread (ATS pct, 0-1).
+  const rowRe = /<tr\s+([^>]*)>\s*<td[^>]*>\s*Last 10 Games\s*<\/td>/;
+  const m = tail.match(rowRe);
+  if (!m) return null;
+  const attrs = m[1];
+  const wM = attrs.match(/data-wins="([\d.]+)"/);
+  const sM = attrs.match(/data-spread="([\d.]+)"/);
+  return {
+    suPct:  wM ? Number(wM[1]) : null,
+    atsPct: sM ? Number(sM[1]) : null,
+  };
 }
 
 function buildRow(league, g, idx, now) {
