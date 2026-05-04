@@ -55,6 +55,57 @@ jobs:
           fi
           echo "All api/*.js source files map to deployed functions."
 
+      - name: Probe feature data quality
+        id: feature
+        env:
+          BASE_URL: ${{ vars.HEALTH_PROBE_URL || 'https://lockstreet.vercel.app' }}
+        run: |
+          set -u
+          fail=0
+          fails=()
+          # 1. Public betting splits — at least one league must return rows
+          # with non-null bets % and money % values. Catches the "endpoint
+          # returns 200 but data is null" regression we hit May 3 (cron was
+          # firing into a 404 endpoint, but if it had been 200 with nulls
+          # we'd have stayed broken just as long).
+          for lg in mlb nba nhl nfl; do
+            body=$(curl -sS --max-time 20 "$BASE_URL/api/team-intel?op=public-betting&league=$lg" || echo '{}')
+            rows=$(echo "$body" | jq '.rows // [] | length' 2>/dev/null || echo 0)
+            if [ "$rows" -gt 0 ]; then
+              # Check at least 1 row has bets % data — defends against the
+              # "scraped but every field is null" failure mode.
+              betsPctRows=$(echo "$body" | jq '[.rows[]? | select(.spreadHomePctBets != null)] | length' 2>/dev/null || echo 0)
+              # Check at least 1 row has Last 10 ATS data — defends against
+              # the May-4 regression where the SAO rewrite forgot to fetch
+              # per-game pages and ATS columns silently went to null.
+              atsRows=$(echo "$body" | jq '[.rows[]? | select(.awayLast10AtsPct != null)] | length' 2>/dev/null || echo 0)
+              echo "[feature] $lg: rows=$rows, betsPctRows=$betsPctRows, atsRows=$atsRows"
+              if [ "$betsPctRows" = "0" ]; then
+                fails+=("$lg-betsPct-all-null")
+                fail=1
+              fi
+              if [ "$atsRows" = "0" ]; then
+                fails+=("$lg-last10ATS-all-null")
+                fail=1
+              fi
+              # Once we've found at least one league with full data, we're done
+              # checking betting splits — others can be 0-row days legitimately
+              # (off-season, no games scheduled, etc.).
+              if [ "$betsPctRows" -gt "0" ] && [ "$atsRows" -gt "0" ]; then
+                echo "[feature] $lg has full data — skipping further leagues."
+                break
+              fi
+            else
+              echo "[feature] $lg: 0 rows"
+            fi
+          done
+          if [ "$fail" = "1" ]; then
+            echo "::error::Feature data-quality failures: ${fails[*]}"
+            echo "fails=${fails[*]}" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          echo "Feature data-quality OK."
+
       - name: Auto-recover by triggering Vercel redeploy
         if: failure() && env.VERCEL_DEPLOY_HOOK != ''
         env:
