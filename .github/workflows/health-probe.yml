@@ -1,0 +1,81 @@
+name: API Health Probe
+
+# Runs every 10 minutes. Probes every api/*.js source file against the
+# live production URL. If any source file maps to a 404 or other failure,
+# the workflow fails red (you get an email from GitHub) and tries to
+# auto-recover by triggering a Vercel redeploy via deploy hook.
+#
+# This catches the failure mode Matt hit on May 3: Vercel silently dropped
+# two of our largest functions during deploy, build status said "Ready",
+# but the routing table was missing endpoints. Without this workflow we
+# only noticed days later when /lines started showing empty.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Probe API endpoints
+        id: probe
+        env:
+          BASE_URL: ${{ vars.HEALTH_PROBE_URL || 'https://lockstreet.vercel.app' }}
+        run: |
+          set -u
+          cd "$GITHUB_WORKSPACE"
+          fail=0
+          missing=()
+          for f in api/*.js; do
+            base=$(basename "$f" .js)
+            case "$base" in _*) continue ;; esac
+            url="$BASE_URL/api/$base"
+            # We don't care WHICH non-404 status — 200, 400, 401, 403, 405 all
+            # mean the function is deployed. Only 404 means missing entirely.
+            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url" || echo "000")
+            echo "[probe] /api/$base -> HTTP $status"
+            if [ "$status" = "404" ] || [ "$status" = "000" ]; then
+              missing+=("$base ($status)")
+              fail=1
+            fi
+          done
+          if [ "$fail" = "1" ]; then
+            echo "::error::Missing endpoints: ${missing[*]}"
+            echo "missing=${missing[*]}" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          echo "All api/*.js source files map to deployed functions."
+
+      - name: Auto-recover by triggering Vercel redeploy
+        if: failure() && env.VERCEL_DEPLOY_HOOK != ''
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          set -e
+          echo "Triggering Vercel redeploy via deploy hook..."
+          response=$(curl -sS -X POST "$VERCEL_DEPLOY_HOOK" --max-time 30)
+          echo "Vercel response: $response"
+          echo "::warning::Vercel redeploy triggered. Re-run this workflow in ~2 min to confirm fix."
+
+      - name: Send push notification
+        if: failure() && env.PUSH_BROADCAST_URL != ''
+        env:
+          PUSH_BROADCAST_URL: ${{ secrets.ADMIN_PUSH_BROADCAST_URL }}
+          ADMIN_PASSWORD:     ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          set -e
+          missing="${{ steps.probe.outputs.missing }}"
+          curl -sS -X POST "$PUSH_BROADCAST_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $ADMIN_PASSWORD" \
+            -d "{\"title\":\"Lock Street health probe FAILED\",\"body\":\"Missing endpoints: $missing. Auto-redeploy triggered.\"}" \
+            --max-time 15 || echo "Push broadcast failed (non-fatal)"
