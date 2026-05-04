@@ -64,11 +64,33 @@ Three tables, all RLS-enabled:
 ```
 lockstreet/
 ├── api/                          # Vercel serverless routes (Supabase-backed)
+│   │                             # NOTE: _*.js files DO NOT count as serverless functions on Vercel.
+│   │                             # They bundle as imports into the function that imports them.
+│   │                             # Vercel Hobby has a documented 12-fn cap PLUS an undocumented
+│   │                             # per-function source-size threshold (see lessons learned).
+│   │                             # Keep main files <400 lines; extract bulky logic into _*.js helpers.
 │   ├── _utils.js                 # bearer/userClient/anonClient/adminClient/getUserIdFromRequest/isAdmin
+│   ├── _email.js                 # Resend wrapper (Discord invite + weekly blast)
+│   ├── _intel-nba-espn.js        # NBA bulk fetch via ESPN (imported by team-intel.js)
+│   ├── _intel-mlb.js             # MLB stats via statsapi.mlb.com
+│   ├── _intel-nhl-espn.js        # NHL standings + ESPN fallback for NFL/CFB/NBA
+│   ├── _intel-schedule.js        # team schedule across regular + postseason
+│   ├── _intel-news.js            # ESPN RSS + NewsData fallback
+│   ├── _intel-heat-check.js      # handleHeatCheck + handlePublicBetting (read endpoints)
+│   ├── _scrape-sao.js            # PRIMARY scrape source — SAO consensus-picks
+│   ├── _scrape-action-network.js # FALLBACK scrape source — only fires when SAO returns 0 rows or throws
+│   ├── _job-vsin-consensus.js    # VSiN consensus job (?job=consensus)
+│   ├── _job-grade-picks.js       # user-pick grader (?job=grade-user-picks)
+│   ├── team-intel.js             # multiplexed read dispatcher (?op=intel|news|schedule|public-betting|heat-check)
+│   ├── refresh-public-betting.js # cron router with SAO-primary/AN-fallback (?job=public-betting|consensus|grade-user-picks)
 │   ├── picks.js                  # GET (RLS-gated read) / POST / DELETE (admin-gated write)
 │   ├── subscription-status.js    # reads subscriptions row
 │   ├── notify-subscribe.js       # writes push_subscriptions row
 │   ├── send-notifications.js     # admin: broadcast push to active subscribers
+│   ├── send-weekly.js            # admin: weekly email blast to active subs only
+│   ├── admin-stats.js            # /admin user stats panel (SECURITY DEFINER RPC bypassing GoTrue)
+│   ├── odds.js                   # the-odds-api.com proxy for /lines + /props
+│   ├── odds-props.js             # the-odds-api.com props proxy for /props
 │   ├── create-checkout-session.js# Stripe checkout flow
 │   └── stripe-webhook.js         # Stripe → subscriptions table sync (uses service_role)
 ├── public/
@@ -222,6 +244,96 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 
 ---
 
+## Current state (as of 2026-05-04 — end of day)
+
+### May-4 session adds (most recent first, latest commit `4f2456c`)
+
+- **Public betting scrape architecture: SAO primary + Action Network fallback (auto-failover).** Reverted the May-3 unilateral swap to Action Network. SAO is the lower-detection-risk source (smaller operation, ran for months unblocked) and is now back as primary. Per-league flow: try `/_scrape-sao.js` → if rows.length > 0, done. Else try `/_scrape-action-network.js` → log `fellBack: true`. If both fail, league is skipped, errors recorded.
+  - **Primary: SAO at `/{league}/consensus-picks`.** Server-rendered HTML still works on this URL (only per-game pages migrated to client-rendered BAM). One fetch per league. Same `trend-graph-percentage` / `percentage-a` / `percentage-b` selectors as the original. Anchor-based card slicing (find `consensus-table-{market}--N` start positions, slice each card to the next anchor — robust against div-nesting changes).
+  - **Fallback: Action Network at `/{league}/odds`.** Parses `__NEXT_DATA__` JSON. We only hit AN when SAO returns 0 (silent breakage) or throws.
+  - **Verified live:** Run `25342298955` showed `source: "sao", fellBack: false` for all 4 active leagues (NBA/NHL/MLB/NFL), 17 upserts, identical percentages to what AN returned earlier (same underlying sportsbook data).
+  - Files: `api/refresh-public-betting.js` (slim router, 126 lines) → imports `api/_scrape-sao.js` + `api/_scrape-action-network.js` + `api/_job-vsin-consensus.js` + `api/_job-grade-picks.js`.
+  - Read endpoint dedupes by (league, away, home) keeping freshest `fetched_at`, so transient AN rows from a fallback don't double-render alongside fresh SAO rows once SAO recovers.
+
+- **Vercel silently dropped two largest functions during deploys for ~24h before noticing — root-caused and fixed.** Sometime between Apr 30 and May 3, Vercel changed an undocumented per-function source-size threshold; deploys went from `Functions: All (12)` to `Functions: All (10)` with no build error. `team-intel.js` (807 lines) and `refresh-public-betting.js` (519 lines) were silently omitted from the routing table. /lines, /heat-check, and the public-betting cron all 404'd. The GitHub Actions cron returned exit 0 because `curl` exits 0 on a 404 response body.
+  - **Mitigation 1 (the fix):** Split both files into multiple `_*.js` helpers via imports. Vercel doesn't deploy `_*.js` as separate functions; they bundle as imports. Final sizes: `team-intel.js` 91 lines, `refresh-public-betting.js` 126 lines. New helpers in `api/`: `_intel-nba-espn.js`, `_intel-mlb.js`, `_intel-nhl-espn.js`, `_intel-schedule.js`, `_intel-news.js`, `_intel-heat-check.js`, `_scrape-sao.js`, `_scrape-action-network.js`, `_job-vsin-consensus.js`, `_job-grade-picks.js`.
+  - **Mitigation 2 (detection):** New workflow `.github/workflows/health-probe.yml` runs every 10 min, probes every `api/*.js` source file against production, fails red if any returns 404. Cron returns exit 0 trick is defeated by explicit status-code check (`status=$(curl -s -o /dev/null -w "%{http_code}" $URL)`).
+  - **Mitigation 3 (auto-recovery):** Vercel deploy hook created (`auto-recover`, branch `main`), URL stored as GitHub repo secret `VERCEL_DEPLOY_HOOK`. When health-probe fails, workflow POSTs to the hook to trigger a fresh redeploy automatically. Optional secrets `ADMIN_PUSH_BROADCAST_URL` + `ADMIN_PASSWORD` would also fire push notifications on failure (not yet wired — email from GitHub workflow failure is sufficient for now).
+  - **Rule for next session:** if you add a new file to `api/`, keep it under ~400 lines. After any deploy, verify the health-probe workflow goes green before declaring shipped — Vercel's `Ready` status alone doesn't mean all functions deployed.
+
+- **Public-facing scraper-attribution leak fixed.** `/lines` empty-state previously read "No games scraped... The scraper runs every ~10 min during peak windows." Visible to every visitor. Replaced with neutral copy ("No public betting splits available for {SPORT} right now.") and split error vs empty paths so an HTTP failure doesn't double-render with the empty-state. Commit `510c7b1`. CLAUDE.md rule already said never expose data-source mechanics to users; this is now also captured in lessons-learned with a grep audit pattern.
+
+### Architecture overview — public betting splits flow (added 2026-05-04 for next session's reference)
+
+```
+GitHub Actions cron (every 10 min)
+        │
+        ▼
+POST /api/refresh-public-betting?force=1   (or empty for time-gated)
+        │
+        ▼
+   getScrapeLevel() returns 'peak' | 'normal' | 'skip'
+        │ (skip exits immediately)
+        ▼
+   for each league in [nba, nhl, mlb, nfl, cfb]:
+        │
+        ▼
+   scrapeLeagueWithFallback(league):
+        │
+        ├──► PRIMARY: fetchLeagueRowsSao(league)        // _scrape-sao.js
+        │       ├─ fetch /{league}/consensus-picks
+        │       ├─ parse trend-graph-percentage / percentage-a / -b
+        │       └─ if rows.length > 0: return { source: 'sao', rows }
+        │
+        ├──► FALLBACK: fetchLeagueRowsActionNetwork(league)  // _scrape-action-network.js
+        │       ├─ fetch /{league}/odds
+        │       ├─ parse __NEXT_DATA__ JSON
+        │       └─ return { source: 'actionnetwork', rows, fellBack: true }
+        │
+        └──► BOTH FAIL: return { source: 'none', rows: [], errors }
+        │
+        ▼
+   for each row: supa.from('public_betting').upsert(row, { onConflict: 'source,external_id' })
+        │
+        ▼
+   response: { runs: [{ league, source, games, fellBack }, ...], totalUpserts, errors }
+```
+
+Read path:
+```
+GET /api/team-intel?op=public-betting&league=mlb
+        │
+        ▼
+   team-intel.js dispatches to handlePublicBetting (in _intel-heat-check.js)
+        │
+        ▼
+   SELECT * FROM public_betting WHERE fetched_at >= 24h ago AND league=mlb
+        │
+        ▼
+   Dedupe by (league, away_label, home_label) keeping freshest (fixes AN/SAO co-existence)
+        │
+        ▼
+   return { rows: [...] }
+```
+
+Health probe (catches silent function drops):
+```
+.github/workflows/health-probe.yml runs every 10 min
+        │
+        ▼
+   for each api/*.js (excluding _*.js):
+       curl GET https://lockstreet.vercel.app/api/{name}
+       status=$(curl ...) ; [ "$status" = "404" ] && fail=1
+        │
+        ▼
+   if fail: ::error:: + workflow fails red (email from GitHub)
+        │       + POST $VERCEL_DEPLOY_HOOK (triggers fresh redeploy)
+        ▼
+   else: workflow passes green
+```
+
+---
+
 ## Current state (as of 2026-05-03 — end of day)
 
 ### May-3 session adds (most recent first, latest commit on main)
@@ -323,6 +435,8 @@ To run `/api/*` routes locally you need `vercel dev` (Vercel CLI). Plain Vite pr
 - Push test panel on `/admin`: enable push on this device + send test broadcast to all devices.
 - All env vars set in Vercel.
 - GitHub Actions cron `refresh-consensus.yml` runs daily 8am ET → `consensus_picks` table → `/lines` row.
+- GitHub Actions cron `refresh-public-betting.yml` runs every 10 min → calls `/api/refresh-public-betting` → SAO primary, AN fallback → `public_betting` table → `/lines` cards.
+- GitHub Actions cron `health-probe.yml` runs every 10 min → probes every `api/*.js` endpoint → fails red on any 404 → triggers Vercel redeploy via `VERCEL_DEPLOY_HOOK` secret. This is the auto-recovery layer for the May-3 silent-function-drop incident.
 - **Game detail page (`/game/:league/:gameId`):**
   - Team logos in header (with purple drop-shadow).
   - Live status box shows clock (`Q3 · 5:24` for NBA/NFL/CFB, `P2 · 5:24` for NHL, `Top 7th` for MLB) — never the date when game is live.
