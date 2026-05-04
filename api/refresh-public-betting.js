@@ -1,15 +1,26 @@
 /**
- * Refresh public betting splits from Action Network. Triggered every
- * 10 min by GitHub Actions cron; getScrapeLevel() decides whether to
- * actually run based on day-of-week + time-of-day in ET.
+ * Refresh public betting splits with primary/fallback source design.
  *
- * Multiplexed handler — keeps us under Vercel Hobby's 12-fn cap:
- *   ?job=public-betting (default) → Action Network scrape
- *   ?job=consensus               → VSiN consensus job
- *   ?job=grade-user-picks        → grade pending user picks
+ *   Primary:  ScoresAndOdds (low detection risk, ran for months unblocked)
+ *             → api/_scrape-sao.js : fetchLeagueRowsSao()
+ *   Fallback: Action Network (used only when primary fails — higher
+ *             detection risk so we minimize requests to it)
+ *             → api/_scrape-action-network.js : fetchLeagueRowsActionNetwork()
  *
- * Bulky job logic lives in api/_job-*.js helpers (underscore prefix
- * so Vercel doesn't deploy them as separate functions).
+ * Per league: try SAO first. If it throws OR returns 0 rows, try Action
+ * Network. Either way, log which source was used so we can monitor source
+ * health over time. If both fail, the league is skipped (errors recorded
+ * in summary).
+ *
+ * This was designed after the May 3 2026 incident where SAO migrated
+ * betting splits to client-rendered JS, breaking the original scraper.
+ * Without a fallback, /lines went dark for ~24 hours. With fallback in
+ * place, the system would have auto-switched to AN within one cron tick.
+ *
+ * Multiplexed handler (?job=) — keeps us under Vercel Hobby's 12-fn cap:
+ *   public-betting (default) → scrape splits (this file)
+ *   consensus               → VSiN consensus job (_job-vsin-consensus.js)
+ *   grade-user-picks        → grade pending picks (_job-grade-picks.js)
  *
  * Auth: x-cron-secret header must match CRON_SECRET env var.
  *
@@ -20,16 +31,9 @@
 import { adminClient, serverError } from './_utils.js';
 import { runConsensusJob } from './_job-vsin-consensus.js';
 import { runGradeUserPicksJob } from './_job-grade-picks.js';
+import { fetchLeagueRowsSao } from './_scrape-sao.js';
+import { fetchLeagueRowsActionNetwork } from './_scrape-action-network.js';
 
-const AN_BASE = 'https://www.actionnetwork.com';
-const AN_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-  'Accept':     'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
-};
-const AN_LEAGUE_PATH = {
-  nba: 'nba', nhl: 'nhl', mlb: 'mlb', nfl: 'nfl', cfb: 'college-football',
-};
 const LEAGUES = ['nba', 'nhl', 'mlb', 'nfl', 'cfb'];
 
 export default async function handler(req, res) {
@@ -55,24 +59,49 @@ export default async function handler(req, res) {
 
   const summary = { level, runs: [], totalUpserts: 0, errors: [] };
   for (const league of LEAGUES) {
-    try {
-      const rows = await fetchLeagueRows(league);
-      summary.runs.push({ league, games: rows.length });
-      for (const row of rows) {
-        if (!row.away_label || !row.home_label) {
-          summary.errors.push({ league, id: row.external_id, error: 'missing team labels' });
-          continue;
-        }
-        const { error } = await supa.from('public_betting').upsert(row, { onConflict: 'source,external_id' });
-        if (error) summary.errors.push({ league, id: row.external_id, error: error.message });
-        else summary.totalUpserts++;
+    const result = await scrapeLeagueWithFallback(league);
+    summary.runs.push({ league, source: result.source, games: result.rows.length, fellBack: result.fellBack });
+    if (result.errors.length) summary.errors.push(...result.errors);
+
+    for (const row of result.rows) {
+      if (!row.away_label || !row.home_label) {
+        summary.errors.push({ league, id: row.external_id, error: 'missing team labels' });
+        continue;
       }
-    } catch (e) {
-      summary.errors.push({ league, error: String(e?.message || e) });
+      const { error } = await supa.from('public_betting').upsert(row, { onConflict: 'source,external_id' });
+      if (error) summary.errors.push({ league, id: row.external_id, error: error.message });
+      else summary.totalUpserts++;
     }
   }
 
   res.status(200).json(summary);
+}
+
+/**
+ * Try primary (SAO) first. Fall back to Action Network if primary throws
+ * OR returns 0 rows (SAO returns 0 when their structure changes silently).
+ * Returns the rows + which source produced them + any errors encountered.
+ */
+async function scrapeLeagueWithFallback(league) {
+  const errors = [];
+  // Primary: SAO
+  try {
+    const rows = await fetchLeagueRowsSao(league);
+    if (rows.length > 0) {
+      return { source: 'sao', rows, errors, fellBack: false };
+    }
+    errors.push({ league, source: 'sao', error: 'returned 0 rows' });
+  } catch (e) {
+    errors.push({ league, source: 'sao', error: String(e?.message || e) });
+  }
+  // Fallback: Action Network
+  try {
+    const rows = await fetchLeagueRowsActionNetwork(league);
+    return { source: 'actionnetwork', rows, errors, fellBack: true };
+  } catch (e) {
+    errors.push({ league, source: 'actionnetwork', error: String(e?.message || e) });
+    return { source: 'none', rows: [], errors, fellBack: true };
+  }
 }
 
 function getScrapeLevel(now) {
@@ -94,88 +123,4 @@ function getScrapeLevel(now) {
   if (hour >= 9 && hour <= 23 && (hour % 2 === 0) && minute < 5) return 'normal';
   if ((hour === 12 || hour === 18) && minute < 5) return 'normal';
   return 'skip';
-}
-
-async function fetchLeagueRows(league) {
-  const path = AN_LEAGUE_PATH[league];
-  if (!path) return [];
-
-  const url = `${AN_BASE}/${path}/odds`;
-  const r = await fetch(url, { headers: AN_HEADERS });
-  if (!r.ok) throw new Error(`AN ${league} ${r.status}`);
-  const html = await r.text();
-
-  const ndMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>(.+?)<\/script>/s);
-  if (!ndMatch) throw new Error(`No __NEXT_DATA__ on ${url}`);
-  const nd = JSON.parse(ndMatch[1]);
-  const games = nd?.props?.pageProps?.scoreboardResponse?.games || [];
-
-  const now = new Date().toISOString();
-  return games.map((game) => {
-    const teamById = {};
-    for (const t of (game.teams || [])) teamById[t.id] = t;
-    const away = teamById[game.away_team_id] || {};
-    const home = teamById[game.home_team_id] || {};
-
-    const markets = game.markets || {};
-    const bookIds = ['15', ...Object.keys(markets).filter(b => b !== '15')];
-
-    let spreadRow = null, mlRow = null, totalRow = null;
-    for (const bookId of bookIds) {
-      const bm = markets[bookId]?.event;
-      if (!bm) continue;
-      if (!spreadRow) {
-        const homeEntry = (bm.spread || []).find(e => e.side === 'home');
-        if (homeEntry?.bet_info?.tickets?.percent != null) {
-          spreadRow = {
-            spread_home_line:      homeEntry.value ?? null,
-            spread_home_pct_bets:  homeEntry.bet_info.tickets.percent,
-            spread_home_pct_money: homeEntry.bet_info.money?.percent ?? null,
-          };
-        }
-      }
-      if (!mlRow) {
-        const homeEntry = (bm.moneyline || []).find(e => e.side === 'home');
-        if (homeEntry?.bet_info?.tickets?.percent != null) {
-          mlRow = {
-            ml_home_pct_bets:  homeEntry.bet_info.tickets.percent,
-            ml_home_pct_money: homeEntry.bet_info.money?.percent ?? null,
-          };
-        }
-      }
-      if (!totalRow) {
-        const overEntry = (bm.total || []).find(e => e.side === 'over');
-        if (overEntry?.bet_info?.tickets?.percent != null) {
-          totalRow = {
-            total_line:           overEntry.value ?? null,
-            total_over_pct_bets:  overEntry.bet_info.tickets.percent,
-            total_over_pct_money: overEntry.bet_info.money?.percent ?? null,
-          };
-        }
-      }
-      if (spreadRow && mlRow && totalRow) break;
-    }
-
-    return {
-      source:      'actionnetwork',
-      league,
-      external_id: String(game.id),
-      slug:        `${away.url_slug || 'away'}-vs-${home.url_slug || 'home'}`,
-      away_label:  away.abbr || away.display_name || null,
-      home_label:  home.abbr || home.display_name || null,
-      spread_home_line:      spreadRow?.spread_home_line      ?? null,
-      spread_home_pct_bets:  spreadRow?.spread_home_pct_bets  ?? null,
-      spread_home_pct_money: spreadRow?.spread_home_pct_money ?? null,
-      ml_home_pct_bets:      mlRow?.ml_home_pct_bets          ?? null,
-      ml_home_pct_money:     mlRow?.ml_home_pct_money         ?? null,
-      total_line:            totalRow?.total_line              ?? null,
-      total_over_pct_bets:   totalRow?.total_over_pct_bets    ?? null,
-      total_over_pct_money:  totalRow?.total_over_pct_money   ?? null,
-      away_last_10_ats_pct: null,
-      away_last_10_su_pct:  null,
-      home_last_10_ats_pct: null,
-      home_last_10_su_pct:  null,
-      fetched_at: now,
-    };
-  });
 }

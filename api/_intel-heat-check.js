@@ -80,7 +80,20 @@ export async function handlePublicBetting(req, res) {
   const { data, error } = await q;
   if (error) return serverError(res, error);
 
-  const rows = (data || []).map((r) => ({
+  // Dedupe by (league, away, home). Same matchup can have rows from
+  // multiple sources (e.g. SAO primary + Action Network fallback after
+  // a SAO outage). data is already ordered fetched_at desc, so the first
+  // row we see for each matchup is the freshest — keep it, drop the rest.
+  const seen = new Set();
+  const deduped = [];
+  for (const r of (data || [])) {
+    const key = `${r.league}::${r.away_label}::${r.home_label}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(r);
+  }
+
+  const rows = deduped.map((r) => ({
     league: r.league, slug: r.slug,
     awayLabel: r.away_label, homeLabel: r.home_label,
     spreadHomeLine: r.spread_home_line,
