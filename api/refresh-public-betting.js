@@ -1,8 +1,13 @@
 /**
- * Scrape ScoresAndOdds for public betting % (bets % + money %) and write to
+ * Fetch public betting % (bets % + money %) from Action Network and write to
  * Supabase public_betting table. Triggered by GitHub Actions cron (every 10
  * min). Heavily skipped — getScrapeLevel() decides whether to actually run
  * based on day-of-week + time-of-day in ET. Most invocations exit immediately.
+ *
+ * Data source: actionnetwork.com/{league}/odds — parses __NEXT_DATA__ JSON
+ * (server-rendered, no JS execution needed). One page fetch per league instead
+ * of N fetches for N games. Replaced SAO scraper 2026-05-03 after SAO moved
+ * betting splits to client-side JS (BAM component system).
  *
  * Auth: x-cron-secret header must match CRON_SECRET env var.
  *
@@ -12,11 +17,15 @@
 
 import { adminClient, serverError } from './_utils.js';
 
-const SAO_BASE = 'https://www.scoresandodds.com';
-const BROWSER_HEADERS = {
+const AN_BASE = 'https://www.actionnetwork.com';
+const AN_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
   'Accept':     'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
   'Accept-Language': 'en-US,en;q=0.9',
+};
+// Lockstreet league code → Action Network URL path segment
+const AN_LEAGUE_PATH = {
+  nba: 'nba', nhl: 'nhl', mlb: 'mlb', nfl: 'nfl', cfb: 'college-football',
 };
 const LEAGUES = ['nba', 'nhl', 'mlb', 'nfl', 'cfb'];
 
@@ -48,46 +57,16 @@ export default async function handler(req, res) {
   const summary = { level, runs: [], totalUpserts: 0, errors: [] };
   for (const league of LEAGUES) {
     try {
-      const slugs = await discoverSlugs(league);
-      summary.runs.push({ league, slugs: slugs.length });
-      for (const slug of slugs) {
-        try {
-          const data = await scrapeGame(league, slug);
-          if (!data) continue;
-          // Skip rows where the scraper failed to parse team names —
-          // they'd land in the table as null-label rows that render as
-          // an empty card on /lines. Drop at the source.
-          if (!data.awayLabel || !data.homeLabel) {
-            summary.errors.push({ league, slug, error: 'missing team labels' });
-            continue;
-          }
-          await jitterDelay();
-          const { error } = await supa.from('public_betting').upsert({
-            source:       'scoresandodds',
-            league,
-            external_id:  data.externalId,
-            slug,
-            away_label:   data.awayLabel,
-            home_label:   data.homeLabel,
-            spread_home_line:      data.spreadHomeLine,
-            spread_home_pct_bets:  data.spreadHomePctBets,
-            spread_home_pct_money: data.spreadHomePctMoney,
-            ml_home_pct_bets:      data.mlHomePctBets,
-            ml_home_pct_money:     data.mlHomePctMoney,
-            total_line:            data.totalLine,
-            total_over_pct_bets:   data.totalOverPctBets,
-            total_over_pct_money:  data.totalOverPctMoney,
-            away_last_10_ats_pct:  data.awayLast10AtsPct,
-            away_last_10_su_pct:   data.awayLast10SuPct,
-            home_last_10_ats_pct:  data.homeLast10AtsPct,
-            home_last_10_su_pct:   data.homeLast10SuPct,
-            fetched_at: new Date().toISOString(),
-          }, { onConflict: 'source,external_id' });
-          if (error) summary.errors.push({ league, slug, error: error.message });
-          else summary.totalUpserts++;
-        } catch (e) {
-          summary.errors.push({ league, slug, error: String(e?.message || e) });
+      const rows = await fetchLeagueRows(league);
+      summary.runs.push({ league, games: rows.length });
+      for (const row of rows) {
+        if (!row.away_label || !row.home_label) {
+          summary.errors.push({ league, id: row.external_id, error: 'missing team labels' });
+          continue;
         }
+        const { error } = await supa.from('public_betting').upsert(row, { onConflict: 'source,external_id' });
+        if (error) summary.errors.push({ league, id: row.external_id, error: error.message });
+        else summary.totalUpserts++;
       }
     } catch (e) {
       summary.errors.push({ league, error: String(e?.message || e) });
@@ -146,175 +125,107 @@ function getScrapeLevel(now) {
   return 'skip';
 }
 
-async function discoverSlugs(league) {
-  const url = `${SAO_BASE}/${league}`;
-  const res = await fetch(url, { headers: BROWSER_HEADERS });
-  if (!res.ok) throw new Error(`SAO ${league} listing ${res.status}`);
-  const html = await res.text();
-  // Match /{league}/{away}-vs-{home} short slugs only — exclude
-  // SEO/prediction long-form URLs and meta pages (consensus-picks, etc).
-  const re = new RegExp(`/${league}/([a-z0-9]+(?:-[a-z0-9]+)*-vs-[a-z0-9]+(?:-[a-z0-9]+)*)(?=["'])`, 'g');
-  const seen = new Set();
-  let m;
-  while ((m = re.exec(html)) !== null) {
-    const slug = m[1];
-    // Skip long-form prediction articles
-    if (slug.includes('-prediction') || slug.includes('-pick-odds') || slug.includes('-game-')) continue;
-    if (slug.length > 60) continue;
-    seen.add(slug);
-  }
-  return Array.from(seen);
-}
-
-async function scrapeGame(league, slug) {
-  const url = `${SAO_BASE}/${league}/${slug}`;
-  await jitterDelay();
-  const res = await fetch(url, { headers: BROWSER_HEADERS });
-  if (!res.ok) return null;
-  const html = await res.text();
-  return parseGameHtml(html);
-}
-
 /**
- * Parse a SAO game page into a normalized record. ScoresAndOdds renders
- * each market (moneyline / spread / total) inside an <li> with a class
- * `odds-table-{market}--{external_id}`. Inside each <li> there are two
- * `trend-graph-percentage` blocks — first is "% of Bets", second is
- * "% of Money" — each with `percentage-a` (left team / over) and
- * `percentage-b` (right team / under) spans.
+ * Fetch one league's games + public betting splits from Action Network.
+ * Parses __NEXT_DATA__ (server-rendered JSON) — no JS execution needed.
+ * Returns one DB row per game, ready to upsert into public_betting.
  *
- * Page URL convention is /{league}/{away}-vs-{home}, so the LEFT team
- * across all markets is the AWAY team. We flip into a home-perspective
- * record before returning.
+ * Book priority: book 15 first (DraftKings consensus on AN), then any
+ * book that has non-zero spread bet_info. Falls back gracefully to null
+ * fields if a market has no data (e.g., early lines, no handle yet).
  */
-function parseGameHtml(html) {
-  // Pull the external (event) id from any odds-table-{market}--XXXXX class.
-  const idMatch = html.match(/odds-table-(?:moneyline|spread|total)--(\d+)/);
-  if (!idMatch) return null;
-  const externalId = idMatch[1];
+async function fetchLeagueRows(league) {
+  const path = AN_LEAGUE_PATH[league];
+  if (!path) return [];
 
-  // Helper: pull the percentages inside a market block.
-  // Market block is an <li> ... </li> chunk identified by its class.
-  function blockFor(market) {
-    const re = new RegExp(`<li[^>]*class="odds-table-${market}--${externalId}[^>]*>([\\s\\S]*?)</li>`);
-    const m = html.match(re);
-    return m ? m[1] : null;
-  }
-  function pcts(block) {
-    if (!block) return null;
-    // Two trend-graph-percentage spans, in order: bets, money.
-    const re = /<span class="trend-graph-percentage"[^>]*>([\s\S]*?)<\/span>\s*<\/span>?/g;
-    const found = [];
-    let m;
-    while ((m = re.exec(block)) !== null) found.push(m[1]);
-    function inner(html) {
-      const a = html.match(/percentage-a"[^>]*>(\d+)%/);
-      const b = html.match(/percentage-b"[^>]*>(\d+)%/);
-      return {
-        a: a ? Number(a[1]) : null,
-        b: b ? Number(b[1]) : null,
-      };
+  const url = `${AN_BASE}/${path}/odds`;
+  const r = await fetch(url, { headers: AN_HEADERS });
+  if (!r.ok) throw new Error(`AN ${league} ${r.status}`);
+  const html = await r.text();
+
+  const ndMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>(.+?)<\/script>/s);
+  if (!ndMatch) throw new Error(`No __NEXT_DATA__ on ${url}`);
+  const nd = JSON.parse(ndMatch[1]);
+  const games = nd?.props?.pageProps?.scoreboardResponse?.games || [];
+
+  const now = new Date().toISOString();
+  return games.map((game) => {
+    // Build team lookup by id
+    const teamById = {};
+    for (const t of (game.teams || [])) teamById[t.id] = t;
+    const away = teamById[game.away_team_id] || {};
+    const home = teamById[game.home_team_id] || {};
+
+    // Find market data — prefer book 15, fall back to first book with data.
+    const markets = game.markets || {};
+    const bookIds = ['15', ...Object.keys(markets).filter(b => b !== '15')];
+
+    let spreadRow = null, mlRow = null, totalRow = null;
+    for (const bookId of bookIds) {
+      const bm = markets[bookId]?.event;
+      if (!bm) continue;
+
+      if (!spreadRow) {
+        const homeEntry = (bm.spread || []).find(e => e.side === 'home');
+        const awayEntry = (bm.spread || []).find(e => e.side === 'away');
+        if (homeEntry?.bet_info?.tickets?.percent != null) {
+          spreadRow = {
+            spread_home_line:      homeEntry.value ?? null,
+            spread_home_pct_bets:  homeEntry.bet_info.tickets.percent,
+            spread_home_pct_money: homeEntry.bet_info.money?.percent ?? null,
+          };
+        }
+      }
+
+      if (!mlRow) {
+        const homeEntry = (bm.moneyline || []).find(e => e.side === 'home');
+        if (homeEntry?.bet_info?.tickets?.percent != null) {
+          mlRow = {
+            ml_home_pct_bets:  homeEntry.bet_info.tickets.percent,
+            ml_home_pct_money: homeEntry.bet_info.money?.percent ?? null,
+          };
+        }
+      }
+
+      if (!totalRow) {
+        const overEntry = (bm.total || []).find(e => e.side === 'over');
+        if (overEntry?.bet_info?.tickets?.percent != null) {
+          totalRow = {
+            total_line:           overEntry.value ?? null,
+            total_over_pct_bets:  overEntry.bet_info.tickets.percent,
+            total_over_pct_money: overEntry.bet_info.money?.percent ?? null,
+          };
+        }
+      }
+
+      if (spreadRow && mlRow && totalRow) break;
     }
+
     return {
-      bets:  found[0] ? inner(found[0]) : null,
-      money: found[1] ? inner(found[1]) : null,
+      source:      'actionnetwork',
+      league,
+      external_id: String(game.id),
+      slug:        `${away.url_slug || 'away'}-vs-${home.url_slug || 'home'}`,
+      away_label:  away.abbr || away.display_name || null,
+      home_label:  home.abbr || home.display_name || null,
+      spread_home_line:      spreadRow?.spread_home_line      ?? null,
+      spread_home_pct_bets:  spreadRow?.spread_home_pct_bets  ?? null,
+      spread_home_pct_money: spreadRow?.spread_home_pct_money ?? null,
+      ml_home_pct_bets:      mlRow?.ml_home_pct_bets          ?? null,
+      ml_home_pct_money:     mlRow?.ml_home_pct_money         ?? null,
+      total_line:            totalRow?.total_line              ?? null,
+      total_over_pct_bets:   totalRow?.total_over_pct_bets    ?? null,
+      total_over_pct_money:  totalRow?.total_over_pct_money   ?? null,
+      // Last-10 ATS/SU no longer available without SAO; null until a new
+      // source is wired. The team-intel endpoint still serves per-team
+      // Last 10 SU via ESPN schedule for the game-detail page.
+      away_last_10_ats_pct: null,
+      away_last_10_su_pct:  null,
+      home_last_10_ats_pct: null,
+      home_last_10_su_pct:  null,
+      fetched_at: now,
     };
-  }
-
-  // Pull labels (away on left, home on right) from any market's
-  // trend-graph-sides. Spread block has the lines parenthesized.
-  function labels(block) {
-    if (!block) return null;
-    // Capture two <strong> blocks in trend-graph-sides
-    const m = block.match(/trend-graph-sides[^>]*>\s*<strong>([\s\S]*?)<\/strong>[\s\S]*?<strong>([\s\S]*?)<\/strong>/);
-    if (!m) return null;
-    return { left: cleanLabel(m[1]), right: cleanLabel(m[2]) };
-  }
-  function cleanLabel(s) {
-    return String(s).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-  }
-  function spreadFromLabel(label) {
-    // 'OKC (-10.5)' -> -10.5
-    const m = String(label).match(/[(]?([+-]?\d+(?:\.\d)?)[)]?\s*$/);
-    return m ? Number(m[1]) : null;
-  }
-  function totalFromOverLabel(label) {
-    // 'Over (o214.5)' -> 214.5
-    const m = String(label).match(/o(\d+(?:\.\d)?)/i);
-    return m ? Number(m[1]) : null;
-  }
-
-  const mlBlock     = blockFor('moneyline');
-  const spreadBlock = blockFor('spread');
-  const totalBlock  = blockFor('total');
-
-  // Per-team trend tables — SAO renders team-specific trend rows like
-  //   <tr data-wins="0.4" data-spread="0.3" ...> <td>Last 10 Games</td> </tr>
-  // The class `main home-current-trends` / `away-current-trends` appears
-  // multiple times across the page as a decorative tag, NOT a single table
-  // wrapper, so a `class=...</table>` section regex doesn't bound either
-  // team's table. Instead we find the first occurrence of each anchor in
-  // the HTML and scan forward for the next "Last 10 Games" row — that
-  // belongs to that team. Verified empirically against actual game pages
-  // (288 data-wins rows, 2 exact "Last 10 Games" matches, the first follows
-  // the away anchor and the second follows the home anchor).
-  function pullLast10(anchor) {
-    // anchor = 'home-current-trends' | 'away-current-trends'
-    const anchorIdx = html.indexOf(anchor);
-    if (anchorIdx < 0) return null;
-    const tail = html.slice(anchorIdx);
-    const rowRe = /<tr\b([^>]*)>\s*<td[^>]*>\s*Last 10 Games\s*<\/td>/;
-    const m = tail.match(rowRe);
-    if (!m) return null;
-    const attrs = m[1];
-    const wins   = (attrs.match(/data-wins="([\d.]+)"/) || [])[1];
-    const spread = (attrs.match(/data-spread="([\d.]+)"/) || [])[1];
-    return {
-      suPct:  wins   != null ? Number(wins)   : null,
-      atsPct: spread != null ? Number(spread) : null,
-    };
-  }
-  const homeTrend = pullLast10('home-current-trends');
-  const awayTrend = pullLast10('away-current-trends');
-
-  const mlPcts     = pcts(mlBlock);
-  const spreadPcts = pcts(spreadBlock);
-  const totalPcts  = pcts(totalBlock);
-
-  const mlLabels     = labels(mlBlock);     // {left: away, right: home}
-  const spreadLabels = labels(spreadBlock);
-  const totalLabels  = labels(totalBlock);
-
-  const awayLabel = mlLabels?.left  || spreadLabels?.left  || null;
-  const homeLabel = mlLabels?.right || spreadLabels?.right || null;
-  const spreadHomeLine = spreadLabels?.right ? spreadFromLabel(spreadLabels.right) : null;
-  const totalLine      = totalLabels?.left   ? totalFromOverLabel(totalLabels.left) : null;
-
-  // SAO renders away on the LEFT (percentage-a), home on the RIGHT (percentage-b).
-  // Flip into home-perspective for storage.
-  return {
-    externalId,
-    awayLabel,
-    homeLabel,
-    spreadHomeLine,
-    spreadHomePctBets:  spreadPcts?.bets?.b  ?? null,
-    spreadHomePctMoney: spreadPcts?.money?.b ?? null,
-    mlHomePctBets:      mlPcts?.bets?.b      ?? null,
-    mlHomePctMoney:     mlPcts?.money?.b     ?? null,
-    totalLine,
-    totalOverPctBets:   totalPcts?.bets?.a   ?? null,
-    totalOverPctMoney:  totalPcts?.money?.a  ?? null,
-    awayLast10AtsPct:   awayTrend?.atsPct    ?? null,
-    awayLast10SuPct:    awayTrend?.suPct     ?? null,
-    homeLast10AtsPct:   homeTrend?.atsPct    ?? null,
-    homeLast10SuPct:    homeTrend?.suPct     ?? null,
-  };
-}
-
-/** Tiny random delay (50–250ms) so requests aren't perfectly clock-aligned. */
-function jitterDelay() {
-  const ms = 50 + Math.floor(Math.random() * 200);
-  return new Promise((r) => setTimeout(r, ms));
+  });
 }
 
 // ====================================================================
@@ -606,3 +517,4 @@ function decideResult(pick, game) {
   }
   return null;
 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
