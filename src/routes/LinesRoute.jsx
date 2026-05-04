@@ -122,10 +122,14 @@ export default function LinesRoute() {
       </div>
 
       {loading && <p style={{ color: 'var(--ink-dim)' }}>Loading lines...</p>}
-      {error && <p style={{ color: 'var(--ink-dim)' }}>Couldn't load lines ({error}).</p>}
-      {!loading && sorted.length === 0 && (
+      {error && !loading && (
         <div className="empty">
-          No games scraped for {sport.toUpperCase()} in the last 24 hours. The scraper runs every ~10 min during peak windows.
+          Lines temporarily unavailable. Try again in a few minutes.
+        </div>
+      )}
+      {!loading && !error && sorted.length === 0 && (
+        <div className="empty">
+          No public betting splits available for {sport.toUpperCase()} right now.
         </div>
       )}
 
